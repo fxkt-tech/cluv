@@ -7,6 +7,7 @@ use self::{
 };
 use anyhow::{Ok, Result};
 
+pub mod codec;
 pub mod filter;
 pub mod input;
 pub mod naming;

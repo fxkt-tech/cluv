@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 
 use super::naming::gen;
-use super::stream::Streamer;
+use super::stream::{Stream, StreamImpl, Streamer};
 
 pub trait Filter: Streamer {
     fn get(self) -> Box<dyn Streamer>;
@@ -77,6 +77,10 @@ impl Filters {
         args.push(filter_strs.join(";"));
         args
     }
+}
+
+pub fn select(idx: i32, stream: Stream) -> StreamImpl {
+    StreamImpl { idx, stream }
 }
 
 pub fn scale<T>(x: T, y: T) -> Simple
