@@ -231,90 +231,18 @@ impl FFmpeg {
     }
 }
 
-impl Default for FFmpeg {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Builder pattern for creating FFmpeg instances
-pub struct FFmpegBuilder {
-    ffmpeg: FFmpeg,
-}
-
-impl FFmpegBuilder {
-    /// Start building a new FFmpeg command
-    pub fn new() -> Self {
-        Self {
-            ffmpeg: FFmpeg::new(),
-        }
-    }
-
-    /// Start building with custom options
-    pub fn with_options(options: FFmpegOptions) -> Self {
-        Self {
-            ffmpeg: FFmpeg::with_options(options),
-        }
-    }
-
-    /// Add an input
-    pub fn input(mut self, input: input::Input) -> Self {
-        self.ffmpeg = self.ffmpeg.add_input(input);
-        self
-    }
-
-    /// Add a filter
-    pub fn filter(mut self, filter: filter::Filter) -> Self {
-        self.ffmpeg = self.ffmpeg.add_filter(filter);
-        self
-    }
-
-    /// Add an output
-    pub fn output(mut self, output: output::Output) -> Self {
-        self.ffmpeg = self.ffmpeg.add_output(output);
-        self
-    }
-
-    /// Build the final FFmpeg instance
-    pub fn build(self) -> FFmpeg {
-        self.ffmpeg
-    }
-}
-
-impl Default for FFmpegBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::options::LogLevel;
 
     #[test]
-    fn test_ffmpeg_builder() {
-        let ffmpeg = FFmpegBuilder::new()
-            .input(input::Input::new("input.mp4"))
-            .output(output::Output::new("output.mp4"))
-            .build();
-
-        let args = ffmpeg.build_args();
-        assert!(args.contains(&"-v".to_string()));
-        assert!(args.contains(&"error".to_string()));
-        assert!(args.contains(&"-y".to_string()));
-        assert!(args.contains(&"-i".to_string()));
-        assert!(args.contains(&"input.mp4".to_string()));
-        assert!(args.contains(&"output.mp4".to_string()));
-    }
-
-    #[test]
     fn test_custom_options() {
-        let options = FFmpegOptions::new()
-            .log_level(LogLevel::Debug)
-            .overwrite(false);
-
-        let ffmpeg = FFmpeg::with_options(options);
+        let ffmpeg = FFmpeg::with_options(
+            FFmpegOptions::new()
+                .log_level(LogLevel::Debug)
+                .overwrite(false),
+        );
         let args = ffmpeg.build_args();
 
         assert!(args.contains(&"debug".to_string()));

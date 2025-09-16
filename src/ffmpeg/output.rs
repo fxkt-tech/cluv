@@ -247,7 +247,12 @@ impl Output {
         // Add stream mappings
         for mapping in &self.mappings {
             args.push("-map".to_string());
-            args.push(mapping.clone().to_string());
+            let mut mapping_str = mapping.clone().to_string();
+            // FIXME: 暂时这样处理选择流时在output中不需要加中括号的特殊情况
+            if mapping_str.contains(":") {
+                mapping_str = mapping_str.replace("[", "").replace("]", "");
+            }
+            args.push(mapping_str);
         }
 
         // Add video codec

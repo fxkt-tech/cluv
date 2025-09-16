@@ -32,14 +32,6 @@ svg-support = ["svg"]
 tempfile = "3.0"
 
 [examples]
-amix = { path = "examples/amix.rs" }
 basic_transcode = { path = "examples/basic_transcode.rs" }
-concat = { path = "examples/concat.rs" }
 filter = { path = "examples/filter.rs" }
-hls = { path = "examples/hls.rs" }
-loudnorm = { path = "examples/loudnorm.rs" }
-mask = { path = "examples/mask.rs" }
-screenshot = { path = "examples/screenshot.rs" }
-subtitles = { path = "examples/subtitles.rs" }
-tc = { path = "examples/tc.rs" }
-two_pass = { path = "examples/two_pass.rs" }
+mediainfo = { path = "examples/mediainfo.rs" }

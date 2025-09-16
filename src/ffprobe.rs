@@ -168,9 +168,7 @@ impl FFprobe {
 
         let args = self.build_args();
         let mut cmd = Command::new(&self.options.binary_path);
-        cmd.args(&args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        cmd.args(&args);
 
         // Set environment variables
         for (key, value) in &self.options.env_vars {
@@ -181,6 +179,8 @@ impl FFprobe {
             .output()
             .await
             .map_err(|e| CluvError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
+
+        println!("FFprobe output: {:?}", output);
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

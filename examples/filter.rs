@@ -18,14 +18,6 @@ use cluv::LogLevel;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    // Create FFmpeg instance with debug options
-    let ffmpeg = FFmpeg::with_options(
-        FFmpegOptions::new()
-            .debug(true)
-            // .dry_run(true)
-            .log_level(LogLevel::Error),
-    );
-
     // Define input video
     let i_main = Input::new("examples/metadata/in.mp4");
     let i_logo = Input::new("examples/metadata/logo.jpg");
@@ -37,18 +29,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create output with H.264 video codec and copy audio
     let output = Output::new("examples/metadata/out.mp4")
         .map_stream(f_overlay.clone())
-        // .map_stream(i_main.may_audio())
+        .map_stream(i_main.may_audio())
         .video_codec(VideoCodec::H264)
         .audio_codec(AudioCodec::Copy)
         .metadata("comment", "iamcluv");
 
     // Build and execute the FFmpeg command
-    let result = ffmpeg
-        .add_inputs([i_main, i_logo])
-        .add_filters([f_scale, f_overlay])
-        .add_outputs([output])
-        .run()
-        .await;
+    let result = FFmpeg::with_options(
+        FFmpegOptions::new()
+            .debug(true)
+            // .dry_run(true)
+            .log_level(LogLevel::Error),
+    )
+    .add_inputs([i_main, i_logo])
+    .add_filters([f_scale, f_overlay])
+    .add_outputs([output])
+    .run()
+    .await;
 
     match result {
         Ok(()) => {
