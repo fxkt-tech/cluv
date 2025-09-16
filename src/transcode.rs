@@ -276,9 +276,9 @@ impl Transcoder {
 
             // Create split filter for multiple outputs
             if params.subs.len() > 1 {
-                let split_filter = Filter::new("split")
+                let split_filter = Filter::with_name("split")
                     .param(params.subs.len().to_string())
-                    .use_stream(&Stream::video(0))
+                    .refs([Stream::video(0)])
                     .output(format!("split_{}", i));
                 filters.push(split_filter);
             }
@@ -292,14 +292,14 @@ impl Transcoder {
             if let Some(ref filter_config) = sub.filters {
                 // Process delogo filters
                 for delogo in &filter_config.delogo {
-                    let delogo_filter = Filter::new("delogo")
+                    let delogo_filter = Filter::with_name("delogo")
                         .params([
                             format!("x={}", delogo.rect.x),
                             format!("y={}", delogo.rect.y),
                             format!("w={}", delogo.rect.width),
                             format!("h={}", delogo.rect.height),
                         ])
-                        .inputs([&last_video_filter])
+                        .refs([&last_video_filter])
                         .output(format!("delogo_{}_{}", i, filters.len()));
 
                     last_video_filter = format!("delogo_{}_{}", i, filters.len());
@@ -312,9 +312,9 @@ impl Transcoder {
                         let width = self.fix_pixel_len(video.width.unwrap_or(-2));
                         let height = self.fix_pixel_len(video.height.unwrap_or(-2));
 
-                        let scale_filter = Filter::new("scale")
+                        let scale_filter = Filter::with_name("scale")
                             .params([width, height])
-                            .inputs([&last_video_filter])
+                            .refs([&last_video_filter])
                             .output(format!("scale_{}_{}", i, filters.len()));
 
                         last_video_filter = format!("scale_{}_{}", i, filters.len());
@@ -342,9 +342,9 @@ impl Transcoder {
                         let logo_height =
                             self.fix_pixel_len(logo.height.map(|h| h as i32).unwrap_or(-2));
 
-                        let logo_scale_filter = Filter::new("scale")
+                        let logo_scale_filter = Filter::with_name("scale")
                             .params([logo_width, logo_height])
-                            .inputs([&logo_stream])
+                            .refs([&logo_stream])
                             .output(format!("logo_scale_{}_{}_{}", i, logo_idx, filters.len()));
 
                         logo_filter_stream =
@@ -359,9 +359,9 @@ impl Transcoder {
                         logo.position.as_deref().unwrap_or("top-left"),
                     );
 
-                    let overlay_filter = Filter::new("overlay")
+                    let overlay_filter = Filter::with_name("overlay")
                         .param(overlay_pos)
-                        .inputs([&last_video_filter, &logo_filter_stream])
+                        .refs([&last_video_filter, &logo_filter_stream])
                         .output(format!("overlay_{}_{}", i, filters.len()));
 
                     last_video_filter = format!("overlay_{}_{}", i, filters.len());
@@ -378,10 +378,10 @@ impl Transcoder {
             let mut output = Output::new(&sub.output_file);
 
             // Map video stream
-            output = output.map(&last_video_filter);
+            output = output.map_stream(&last_video_filter);
 
             // Map audio stream
-            output = output.map("0:a");
+            output = output.map_stream("0:a");
 
             // Set codecs
             if let Some(ref filter_config) = sub.filters {
@@ -438,9 +438,9 @@ impl Transcoder {
 
         // Create audio split if multiple outputs
         if params.subs.len() > 1 {
-            let asplit_filter = Filter::new("asplit")
+            let asplit_filter = Filter::with_name("asplit")
                 .param(params.subs.len().to_string())
-                .use_stream(&Stream::audio(0));
+                .refs([Stream::audio(0)]);
 
             ffmpeg = ffmpeg.add_filter(asplit_filter);
         }
@@ -455,7 +455,7 @@ impl Transcoder {
             } else {
                 "0:a".to_string()
             };
-            output = output.map(&audio_stream);
+            output = output.map_stream(&audio_stream);
 
             // Set audio codec and options
             if let Some(ref filters) = sub.filters {
@@ -493,9 +493,9 @@ impl Transcoder {
 
         // Create split if multiple outputs
         if params.subs.len() > 1 {
-            let split_filter = Filter::new("split")
+            let split_filter = Filter::with_name("split")
                 .param(params.subs.len().to_string())
-                .use_stream(&Stream::video(0));
+                .refs([Stream::video(0)]);
             ffmpeg = ffmpeg.add_filter(split_filter);
         }
 
@@ -513,9 +513,9 @@ impl Transcoder {
                         let width = self.fix_pixel_len(video.width.unwrap_or(-2));
                         let height = self.fix_pixel_len(video.height.unwrap_or(-2));
 
-                        let scale_filter = Filter::new("scale")
+                        let scale_filter = Filter::with_name("scale")
                             .params([width, height])
-                            .inputs([&last_filter])
+                            .refs([&last_filter])
                             .output(format!("scale_{}", i));
 
                         last_filter = format!("scale_{}", i);
@@ -525,7 +525,7 @@ impl Transcoder {
             }
 
             let mut output = Output::new(&sub.output_file)
-                .map(&last_filter)
+                .map_stream(&last_filter)
                 .format(Format::Image2);
 
             if let Some(ref filters) = sub.filters {
@@ -604,9 +604,9 @@ impl Transcoder {
                     let width = self.fix_pixel_len(video.width.unwrap_or(-2));
                     let height = self.fix_pixel_len(video.height.unwrap_or(-2));
 
-                    let scale_filter = Filter::new("scale")
+                    let scale_filter = Filter::with_name("scale")
                         .params([width, height])
-                        .use_stream(&Stream::video(0))
+                        .refs([Stream::video(0)])
                         .output("scaled");
 
                     last_video_filter = "scaled".to_string();
@@ -616,8 +616,8 @@ impl Transcoder {
         }
 
         let mut output = Output::new(&params.output_file)
-            .map(&last_video_filter)
-            .map("0:a")
+            .map_stream(&last_video_filter)
+            .map_stream("0:a")
             .format(Format::Hls)
             .option("sc_threshold", "0")
             .mov_flags("faststart");

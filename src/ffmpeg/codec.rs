@@ -10,17 +10,17 @@ pub enum VideoCodec {
     /// H.265/HEVC codec
     H265,
     /// VP8 codec
-    Vp8,
+    VP8,
     /// VP9 codec
-    Vp9,
+    VP9,
     /// AV1 codec
-    Av1,
+    AV1,
     /// MJPEG codec
-    Mjpeg,
+    MJPEG,
     /// PNG codec
-    Png,
+    PNG,
     /// JPEG codec
-    Jpeg,
+    JPEG,
     /// Copy stream without re-encoding
     Copy,
     /// No video stream
@@ -33,19 +33,19 @@ pub enum VideoCodec {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AudioCodec {
     /// AAC codec
-    Aac,
+    AAC,
     /// MP3 codec
-    Mp3,
+    MP3,
     /// AC3 codec
-    Ac3,
+    AC3,
     /// Opus codec
     Opus,
     /// Vorbis codec
     Vorbis,
     /// FLAC codec
-    Flac,
+    FLAC,
     /// PCM codec
-    Pcm,
+    PCM,
     /// Copy stream without re-encoding
     Copy,
     /// No audio stream
@@ -95,12 +95,12 @@ impl VideoCodec {
         match self {
             VideoCodec::H264 => "libx264",
             VideoCodec::H265 => "libx265",
-            VideoCodec::Vp8 => "libvpx",
-            VideoCodec::Vp9 => "libvpx-vp9",
-            VideoCodec::Av1 => "libaom-av1",
-            VideoCodec::Mjpeg => "mjpeg",
-            VideoCodec::Png => "png",
-            VideoCodec::Jpeg => "mjpeg",
+            VideoCodec::VP8 => "libvpx",
+            VideoCodec::VP9 => "libvpx-vp9",
+            VideoCodec::AV1 => "libaom-av1",
+            VideoCodec::MJPEG => "mjpeg",
+            VideoCodec::PNG => "png",
+            VideoCodec::JPEG => "mjpeg",
             VideoCodec::Copy => "copy",
             VideoCodec::None => "none",
             VideoCodec::Custom(s) => s,
@@ -122,13 +122,13 @@ impl AudioCodec {
     /// Get the FFmpeg codec string
     pub fn as_str(&self) -> &str {
         match self {
-            AudioCodec::Aac => "aac",
-            AudioCodec::Mp3 => "libmp3lame",
-            AudioCodec::Ac3 => "ac3",
+            AudioCodec::AAC => "aac",
+            AudioCodec::MP3 => "libmp3lame",
+            AudioCodec::AC3 => "ac3",
             AudioCodec::Opus => "libopus",
             AudioCodec::Vorbis => "libvorbis",
-            AudioCodec::Flac => "flac",
-            AudioCodec::Pcm => "pcm_s16le",
+            AudioCodec::FLAC => "flac",
+            AudioCodec::PCM => "pcm_s16le",
             AudioCodec::Copy => "copy",
             AudioCodec::None => "none",
             AudioCodec::Custom(s) => s,
@@ -243,12 +243,12 @@ impl From<&str> for VideoCodec {
         match s {
             "libx264" | "h264" => VideoCodec::H264,
             "libx265" | "h265" | "hevc" => VideoCodec::H265,
-            "libvpx" | "vp8" => VideoCodec::Vp8,
-            "libvpx-vp9" | "vp9" => VideoCodec::Vp9,
-            "libaom-av1" | "av1" => VideoCodec::Av1,
-            "mjpeg" => VideoCodec::Mjpeg,
-            "png" => VideoCodec::Png,
-            "jpeg" => VideoCodec::Jpeg,
+            "libvpx" | "vp8" => VideoCodec::VP8,
+            "libvpx-vp9" | "vp9" => VideoCodec::VP9,
+            "libaom-av1" | "av1" => VideoCodec::AV1,
+            "mjpeg" => VideoCodec::MJPEG,
+            "png" => VideoCodec::PNG,
+            "jpeg" => VideoCodec::JPEG,
             "copy" => VideoCodec::Copy,
             "none" => VideoCodec::None,
             _ => VideoCodec::Custom(s.to_string()),
@@ -265,13 +265,13 @@ impl From<String> for VideoCodec {
 impl From<&str> for AudioCodec {
     fn from(s: &str) -> Self {
         match s {
-            "aac" => AudioCodec::Aac,
-            "libmp3lame" | "mp3" => AudioCodec::Mp3,
-            "ac3" => AudioCodec::Ac3,
+            "aac" => AudioCodec::AAC,
+            "libmp3lame" | "mp3" => AudioCodec::MP3,
+            "ac3" => AudioCodec::AC3,
             "libopus" | "opus" => AudioCodec::Opus,
             "libvorbis" | "vorbis" => AudioCodec::Vorbis,
-            "flac" => AudioCodec::Flac,
-            "pcm_s16le" | "pcm" => AudioCodec::Pcm,
+            "flac" => AudioCodec::FLAC,
+            "pcm_s16le" | "pcm" => AudioCodec::PCM,
             "copy" => AudioCodec::Copy,
             "none" => AudioCodec::None,
             _ => AudioCodec::Custom(s.to_string()),
@@ -395,9 +395,9 @@ mod tests {
 
     #[test]
     fn test_audio_codec_conversions() {
-        assert_eq!(AudioCodec::Aac.as_str(), "aac");
-        assert_eq!(AudioCodec::from("mp3"), AudioCodec::Mp3);
-        assert!(AudioCodec::Aac.requires_encoding());
+        assert_eq!(AudioCodec::AAC.as_str(), "aac");
+        assert_eq!(AudioCodec::from("mp3"), AudioCodec::MP3);
+        assert!(AudioCodec::AAC.requires_encoding());
         assert!(!AudioCodec::Copy.requires_encoding());
     }
 

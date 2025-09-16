@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use crate::ffmpeg::filter::Filter;
+
 /// Represents a stream selector for FFmpeg operations
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stream {
@@ -9,8 +11,12 @@ pub struct Stream {
     pub input_index: i32,
     /// Stream type
     pub stream_type: StreamType,
+    /// Whether the stream may not exist
+    pub may_not: bool,
     /// Stream index within the input (optional)
     pub stream_index: Option<i32>,
+    /// Filter label for the stream (optional)
+    pub label: Option<String>,
 }
 
 /// Types of streams
@@ -30,37 +36,53 @@ pub enum StreamType {
 
 impl Stream {
     /// Create a new stream selector
-    pub fn new(input_index: i32, stream_type: StreamType) -> Self {
+    pub fn new(input_index: i32, stream_type: StreamType, may_not: bool) -> Self {
         Self {
             input_index,
             stream_type,
+            may_not,
             stream_index: None,
+            label: None,
         }
     }
 
     /// Create a video stream selector
     pub fn video(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Video)
+        Self::new(input_index, StreamType::Video, false)
+    }
+
+    pub fn may_video(input_index: i32) -> Self {
+        Self::new(input_index, StreamType::Video, true)
     }
 
     /// Create an audio stream selector
     pub fn audio(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Audio)
+        Self::new(input_index, StreamType::Audio, false)
+    }
+
+    pub fn may_audio(input_index: i32) -> Self {
+        Self::new(input_index, StreamType::Audio, true)
     }
 
     /// Create a subtitle stream selector
     pub fn subtitle(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Subtitle)
+        Self::new(input_index, StreamType::Subtitle, false)
     }
 
     /// Create a data stream selector
     pub fn data(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Data)
+        Self::new(input_index, StreamType::Data, false)
     }
 
     /// Create an any stream selector
     pub fn any(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Any)
+        Self::new(input_index, StreamType::Any, false)
+    }
+
+    /// Create a label for the stream
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
+        self
     }
 
     /// Set the specific stream index within the input
@@ -89,32 +111,29 @@ impl Stream {
             StreamType::Any => "",
         };
 
-        if let Some(stream_index) = self.stream_index {
+        let may = if self.may_not { "?" } else { "" };
+
+        if let Some(label) = self.label.clone() {
+            label
+        } else if let Some(stream_index) = self.stream_index {
             if type_char.is_empty() {
-                format!("{}:{}", self.input_index, stream_index)
+                format!("[{}:{}{}]", self.input_index, stream_index, may)
             } else {
-                format!("{}:{}:{}", self.input_index, type_char, stream_index)
+                format!(
+                    "[{}:{}{}:{}]",
+                    self.input_index, type_char, may, stream_index
+                )
             }
         } else if type_char.is_empty() {
-            format!("{}", self.input_index)
+            format!("[{}]", self.input_index)
         } else {
-            format!("{}:{}", self.input_index, type_char)
+            format!("[{}:{}{}]", self.input_index, type_char, may)
         }
-    }
-
-    /// Check if this stream may contain audio
-    pub fn may_audio(&self) -> bool {
-        matches!(self.stream_type, StreamType::Audio | StreamType::Any)
-    }
-
-    /// Check if this stream may contain video
-    pub fn may_video(&self) -> bool {
-        matches!(self.stream_type, StreamType::Video | StreamType::Any)
     }
 
     /// Select first available stream of given type from input
     pub fn select(input_index: i32, stream_type: StreamType) -> Self {
-        Self::new(input_index, stream_type)
+        Self::new(input_index, stream_type, false)
     }
 }
 
@@ -179,12 +198,12 @@ impl Stream {
 
     /// Get best video stream from input
     pub fn best_video(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Video)
+        Self::new(input_index, StreamType::Video, false)
     }
 
     /// Get best audio stream from input
     pub fn best_audio(input_index: i32) -> Self {
-        Self::new(input_index, StreamType::Audio)
+        Self::new(input_index, StreamType::Audio, false)
     }
 }
 
@@ -223,9 +242,104 @@ pub trait Streamable {
     fn to_stream(&self) -> Stream;
 }
 
+/// Enum wrapper for all types that implement Streamable
+#[derive(Debug, Clone)]
+pub enum StreamInput {
+    Stream(Stream),
+    Filter(Filter),
+    InputIndex(i32),
+    InputWithType(i32, StreamType),
+    InputWithIndex(i32, i32),
+    StringSpec(String),
+}
+
+impl fmt::Display for StreamInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StreamInput::Stream(stream) => stream.fmt(f),
+            StreamInput::Filter(filter) => filter.label.fmt(f),
+            StreamInput::InputIndex(index) => write!(f, "{}", index),
+            StreamInput::InputWithType(input, stream_type) => {
+                write!(f, "{}:{}", input, stream_type)
+            }
+            StreamInput::InputWithIndex(input, index) => write!(f, "{}:{}", input, index),
+            StreamInput::StringSpec(spec) => write!(f, "{}", spec),
+        }
+    }
+}
+
+impl Streamable for StreamInput {
+    fn to_stream(&self) -> Stream {
+        match self {
+            StreamInput::Stream(stream) => stream.clone(),
+            StreamInput::Filter(filter) => filter.to_stream(),
+            StreamInput::InputIndex(index) => Stream::any(*index),
+            StreamInput::InputWithType(input, stream_type) => {
+                Stream::new(*input, stream_type.clone(), false)
+            }
+            StreamInput::InputWithIndex(input, index) => Stream::any(*input).with_index(*index),
+            StreamInput::StringSpec(spec) => spec.to_stream(),
+        }
+    }
+}
+
+impl From<Stream> for StreamInput {
+    fn from(stream: Stream) -> Self {
+        StreamInput::Stream(stream)
+    }
+}
+
+impl From<i32> for StreamInput {
+    fn from(index: i32) -> Self {
+        StreamInput::InputIndex(index)
+    }
+}
+
+impl From<(i32, StreamType)> for StreamInput {
+    fn from(tuple: (i32, StreamType)) -> Self {
+        StreamInput::InputWithType(tuple.0, tuple.1)
+    }
+}
+
+impl From<(i32, i32)> for StreamInput {
+    fn from(tuple: (i32, i32)) -> Self {
+        StreamInput::InputWithIndex(tuple.0, tuple.1)
+    }
+}
+
+impl From<String> for StreamInput {
+    fn from(spec: String) -> Self {
+        StreamInput::StringSpec(spec)
+    }
+}
+
+impl From<&str> for StreamInput {
+    fn from(spec: &str) -> Self {
+        StreamInput::StringSpec(spec.to_string())
+    }
+}
+
+impl From<&String> for StreamInput {
+    fn from(s: &String) -> Self {
+        StreamInput::StringSpec(s.clone())
+    }
+}
+
+impl From<&Stream> for StreamInput {
+    fn from(stream: &Stream) -> Self {
+        StreamInput::Stream(stream.clone())
+    }
+}
+
 impl Streamable for Stream {
     fn to_stream(&self) -> Stream {
         self.clone()
+    }
+}
+
+impl Streamable for Filter {
+    fn to_stream(&self) -> Stream {
+        Stream::any(0).with_label(self.label.to_string().clone())
     }
 }
 
@@ -237,13 +351,45 @@ impl Streamable for i32 {
 
 impl Streamable for (i32, StreamType) {
     fn to_stream(&self) -> Stream {
-        Stream::new(self.0, self.1.clone())
+        Stream::new(self.0, self.1.clone(), false)
     }
 }
 
 impl Streamable for (i32, i32) {
     fn to_stream(&self) -> Stream {
         Stream::any(self.0).with_index(self.1)
+    }
+}
+
+impl Streamable for String {
+    fn to_stream(&self) -> Stream {
+        // Parse string as stream specifier, fallback to input 0 if parsing fails
+        if let Some(colon_pos) = self.find(':') {
+            let input_part = &self[..colon_pos];
+            let stream_part = &self[colon_pos + 1..];
+
+            if let Ok(input_index) = input_part.parse::<i32>() {
+                match stream_part {
+                    "v" => Stream::video(input_index),
+                    "a" => Stream::audio(input_index),
+                    "s" => Stream::subtitle(input_index),
+                    "d" => Stream::data(input_index),
+                    _ => {
+                        if let Ok(stream_index) = stream_part.parse::<i32>() {
+                            Stream::any(input_index).with_index(stream_index)
+                        } else {
+                            Stream::any(input_index)
+                        }
+                    }
+                }
+            } else {
+                Stream::any(0)
+            }
+        } else if let Ok(input_index) = self.parse::<i32>() {
+            Stream::any(input_index)
+        } else {
+            Stream::any(0)
+        }
     }
 }
 
@@ -255,21 +401,27 @@ pub mod common {
     pub const VIDEO_0: Stream = Stream {
         input_index: 0,
         stream_type: StreamType::Video,
+        may_not: false,
         stream_index: None,
+        label: None,
     };
 
     /// First audio stream from first input
     pub const AUDIO_0: Stream = Stream {
         input_index: 0,
         stream_type: StreamType::Audio,
+        may_not: false,
         stream_index: None,
+        label: None,
     };
 
     /// All streams from first input
     pub const ALL_0: Stream = Stream {
         input_index: 0,
         stream_type: StreamType::Any,
+        may_not: false,
         stream_index: None,
+        label: None,
     };
 }
 
@@ -300,21 +452,6 @@ mod tests {
 
         let indexed_stream = Stream::audio_index(1, 2);
         assert_eq!(indexed_stream.to_string(), "1:a:2");
-    }
-
-    #[test]
-    fn test_stream_type_properties() {
-        let video_stream = Stream::video(0);
-        assert!(video_stream.may_video());
-        assert!(!video_stream.may_audio());
-
-        let audio_stream = Stream::audio(0);
-        assert!(!audio_stream.may_video());
-        assert!(audio_stream.may_audio());
-
-        let any_stream = Stream::any(0);
-        assert!(any_stream.may_video());
-        assert!(any_stream.may_audio());
     }
 
     #[test]

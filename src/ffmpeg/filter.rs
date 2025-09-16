@@ -1,25 +1,49 @@
 //! Filter handling for FFmpeg operations
 
-use crate::ffmpeg::stream::Stream;
+use crate::ffmpeg::stream::{StreamInput, Streamable};
 use std::fmt;
 
-/// Represents an FFmpeg filter
 #[derive(Debug, Clone)]
+pub struct Label(String);
+
+impl Label {
+    pub fn new(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}]", self.0)
+    }
+}
+
+/// Represents an FFmpeg filter
+#[derive(Debug)]
 pub struct Filter {
+    /// Filter label
+    pub label: Label,
     /// Filter name
     pub name: String,
     /// Filter parameters
     pub params: Vec<String>,
     /// Input streams or labels
-    pub inputs: Vec<String>,
-    /// Output labels
-    pub outputs: Vec<String>,
+    pub inputs: Vec<StreamInput>,
+    /// Output streams or labels
+    pub outputs: Vec<StreamInput>,
+}
+
+impl Into<StreamInput> for Filter {
+    fn into(self) -> StreamInput {
+        StreamInput::Filter(self)
+    }
 }
 
 impl Filter {
     /// Create a new filter with the given name
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
+            label: Label::new(format!("{:x}", rand::random::<u32>())),
             name: name.into(),
             params: Vec::new(),
             inputs: Vec::new(),
@@ -45,41 +69,34 @@ impl Filter {
         self
     }
 
+    pub fn r<S: Into<StreamInput>>(mut self, input: S) -> Self {
+        self.inputs.push(input.into());
+        self
+    }
+
     /// Set input streams or labels
-    pub fn inputs<I, S>(mut self, inputs: I) -> Self
+    pub fn refs<I, S>(mut self, inputs: I) -> Self
     where
         I: IntoIterator<Item = S>,
-        S: Into<String>,
+        S: Into<StreamInput>,
     {
         self.inputs = inputs.into_iter().map(|s| s.into()).collect();
         self
     }
 
-    /// Set output labels
+    /// Set a single output label
+    pub fn output<S: Into<StreamInput>>(mut self, label: S) -> Self {
+        self.outputs = vec![label.into()];
+        self
+    }
+
+    /// Set output streams or labels
     pub fn outputs<I, S>(mut self, outputs: I) -> Self
     where
         I: IntoIterator<Item = S>,
-        S: Into<String>,
+        S: Into<StreamInput>,
     {
         self.outputs = outputs.into_iter().map(|s| s.into()).collect();
-        self
-    }
-
-    /// Use specific streams as input
-    pub fn use_streams(mut self, streams: &[Stream]) -> Self {
-        self.inputs = streams.iter().map(|s| s.to_string()).collect();
-        self
-    }
-
-    /// Use a single stream as input
-    pub fn use_stream(mut self, stream: &Stream) -> Self {
-        self.inputs = vec![stream.to_string()];
-        self
-    }
-
-    /// Set a single output label
-    pub fn output<S: Into<String>>(mut self, label: S) -> Self {
-        self.outputs = vec![label.into()];
         self
     }
 
@@ -89,7 +106,12 @@ impl Filter {
 
         // Add inputs
         if !self.inputs.is_empty() {
-            result.push_str(&format!("[{}]", self.inputs.join("][")));
+            let input_strings: Vec<String> = self
+                .inputs
+                .iter()
+                .map(|input| input.to_stream().to_string())
+                .collect();
+            result.push_str(&format!("{}", input_strings.join("")));
         }
 
         // Add filter name
@@ -103,10 +125,29 @@ impl Filter {
 
         // Add outputs
         if !self.outputs.is_empty() {
-            result.push_str(&format!("[{}]", self.outputs.join("][")));
+            let output_strings: Vec<String> = self
+                .outputs
+                .iter()
+                .map(|output| output.to_stream().to_string())
+                .collect();
+            result.push_str(&format!("[{}]", output_strings.join("][")));
+        } else if !self.label.to_string().is_empty() {
+            result.push_str(&format!("{}", self.label));
         }
 
         result
+    }
+}
+
+impl Clone for Filter {
+    fn clone(&self) -> Self {
+        Self {
+            label: self.label.clone(),
+            name: self.name.clone(),
+            params: self.params.clone(),
+            inputs: self.inputs.clone(),
+            outputs: self.outputs.clone(),
+        }
     }
 }
 
@@ -131,17 +172,17 @@ impl Filter {
             height.to_string()
         };
 
-        Self::new("scale").params([w_str, h_str])
+        Self::with_name("scale").params([w_str, h_str])
     }
 
     /// Scale filter with aspect ratio preservation
     pub fn scale_keep_aspect(size: i32) -> Self {
-        Self::new("scale").params([format!("{}:-2", size)])
+        Self::with_name("scale").params([format!("{}:-2", size)])
     }
 
     /// Crop filter for cutting video
     pub fn crop(width: i32, height: i32, x: i32, y: i32) -> Self {
-        Self::new("crop").params([
+        Self::with_name("crop").params([
             width.to_string(),
             height.to_string(),
             x.to_string(),
@@ -151,7 +192,7 @@ impl Filter {
 
     /// Delogo filter for removing logos/watermarks
     pub fn delogo(x: i32, y: i32, width: i32, height: i32) -> Self {
-        Self::new("delogo").params([
+        Self::with_name("delogo").params([
             format!("x={}", x),
             format!("y={}", y),
             format!("w={}", width),
@@ -161,37 +202,37 @@ impl Filter {
 
     /// Overlay filter for adding watermarks
     pub fn overlay(x: i32, y: i32) -> Self {
-        Self::new("overlay").params([format!("{}:{}", x, y)])
+        Self::with_name("overlay").params([format!("{}:{}", x, y)])
     }
 
     /// Overlay filter with position string
     pub fn overlay_pos<S: Into<String>>(position: S) -> Self {
-        Self::new("overlay").param(position.into())
+        Self::with_name("overlay").param(position.into())
     }
 
     /// FPS filter for changing frame rate
     pub fn fps<S: Into<String>>(fps: S) -> Self {
-        Self::new("fps").param(fps.into())
+        Self::with_name("fps").param(fps.into())
     }
 
     /// Select filter for frame selection
     pub fn select<S: Into<String>>(expression: S) -> Self {
-        Self::new("select").param(expression.into())
+        Self::with_name("select").param(expression.into())
     }
 
     /// Tile filter for creating sprite sheets
     pub fn tile(cols: i32, rows: i32) -> Self {
-        Self::new("tile").params([format!("layout={}x{}", cols, rows)])
+        Self::with_name("tile").params([format!("layout={}x{}", cols, rows)])
     }
 
     /// SetPTS filter for video timestamps
     pub fn setpts<S: Into<String>>(expression: S) -> Self {
-        Self::new("setpts").param(expression.into())
+        Self::with_name("setpts").param(expression.into())
     }
 
     /// Fade filter for video transitions
     pub fn fade_in(start_frame: i32, duration: i32) -> Self {
-        Self::new("fade").params([
+        Self::with_name("fade").params([
             "t=in".to_string(),
             format!("st={}", start_frame),
             format!("d={}", duration),
@@ -200,7 +241,7 @@ impl Filter {
 
     /// Fade out filter
     pub fn fade_out(start_frame: i32, duration: i32) -> Self {
-        Self::new("fade").params([
+        Self::with_name("fade").params([
             "t=out".to_string(),
             format!("st={}", start_frame),
             format!("d={}", duration),
@@ -209,22 +250,22 @@ impl Filter {
 
     /// Rotate filter
     pub fn rotate(angle: f64) -> Self {
-        Self::new("rotate").param(angle.to_string())
+        Self::with_name("rotate").param(angle.to_string())
     }
 
     /// Flip horizontal
     pub fn hflip() -> Self {
-        Self::new("hflip")
+        Self::with_name("hflip")
     }
 
     /// Flip vertical
     pub fn vflip() -> Self {
-        Self::new("vflip")
+        Self::with_name("vflip")
     }
 
     /// Transpose filter
     pub fn transpose(direction: i32) -> Self {
-        Self::new("transpose").param(direction.to_string())
+        Self::with_name("transpose").param(direction.to_string())
     }
 }
 
@@ -232,12 +273,12 @@ impl Filter {
 impl Filter {
     /// Volume filter for audio
     pub fn volume(volume: f64) -> Self {
-        Self::new("volume").param(volume.to_string())
+        Self::with_name("volume").param(volume.to_string())
     }
 
     /// Audio fade in
     pub fn afade_in(start_time: f64, duration: f64) -> Self {
-        Self::new("afade").params([
+        Self::with_name("afade").params([
             "t=in".to_string(),
             format!("ss={}", start_time),
             format!("d={}", duration),
@@ -246,7 +287,7 @@ impl Filter {
 
     /// Audio fade out
     pub fn afade_out(start_time: f64, duration: f64) -> Self {
-        Self::new("afade").params([
+        Self::with_name("afade").params([
             "t=out".to_string(),
             format!("ss={}", start_time),
             format!("d={}", duration),
@@ -255,22 +296,22 @@ impl Filter {
 
     /// Resample audio
     pub fn resample(sample_rate: i32) -> Self {
-        Self::new("aresample").param(sample_rate.to_string())
+        Self::with_name("aresample").param(sample_rate.to_string())
     }
 
     /// Audio channels
     pub fn achannels(channels: i32) -> Self {
-        Self::new("aformat").param(format!("channel_layouts={}", channels))
+        Self::with_name("aformat").param(format!("channel_layouts={}", channels))
     }
 
     /// Audio SetPTS filter
     pub fn asetpts<S: Into<String>>(expression: S) -> Self {
-        Self::new("asetpts").param(expression.into())
+        Self::with_name("asetpts").param(expression.into())
     }
 
     /// Audio mix filter
     pub fn amix(inputs: i32) -> Self {
-        Self::new("amix").param(format!("inputs={}", inputs))
+        Self::with_name("amix").param(format!("inputs={}", inputs))
     }
 }
 
@@ -278,7 +319,7 @@ impl Filter {
 impl Filter {
     /// Split filter for duplicating streams
     pub fn split(outputs: i32) -> Self {
-        let mut filter = Self::new("split");
+        let mut filter = Self::with_name("split");
         if outputs > 1 {
             filter = filter.param(outputs.to_string());
         }
@@ -287,7 +328,7 @@ impl Filter {
 
     /// Audio split filter
     pub fn asplit(outputs: i32) -> Self {
-        let mut filter = Self::new("asplit");
+        let mut filter = Self::with_name("asplit");
         if outputs > 1 {
             filter = filter.param(outputs.to_string());
         }
@@ -296,7 +337,7 @@ impl Filter {
 
     /// Concat filter for video concatenation
     pub fn concat(n_segments: i32, v_streams: i32, a_streams: i32) -> Self {
-        Self::new("concat").params([
+        Self::with_name("concat").params([
             format!("n={}", n_segments),
             format!("v={}", v_streams),
             format!("a={}", a_streams),
@@ -305,12 +346,12 @@ impl Filter {
 
     /// Null filter (pass-through)
     pub fn null() -> Self {
-        Self::new("null")
+        Self::with_name("null")
     }
 
     /// Audio null filter
     pub fn anull() -> Self {
-        Self::new("anull")
+        Self::with_name("anull")
     }
 }
 
@@ -412,7 +453,7 @@ mod tests {
 
     #[test]
     fn test_filter_creation() {
-        let filter = Filter::new("scale").param("1920").param("1080");
+        let filter = Filter::with_name("scale").param("1920").param("1080");
 
         assert_eq!(filter.name, "scale");
         assert_eq!(filter.params, vec!["1920", "1080"]);
@@ -441,7 +482,40 @@ mod tests {
 
     #[test]
     fn test_filter_with_inputs_outputs() {
-        let filter = Filter::new("overlay").inputs(["0:v", "1:v"]).output("out");
+        let filter = Filter::with_name("overlay").refs(["0:v", "1:v"]);
+
+        assert_eq!(filter.build(), "[0:v][1:v]overlay[out]");
+    }
+
+    #[test]
+    fn test_filter_with_stream_inputs() {
+        use crate::ffmpeg::stream::Stream;
+
+        let stream1 = Stream::new(0, crate::ffmpeg::stream::StreamType::Video, false);
+        let stream2 = Stream::new(1, crate::ffmpeg::stream::StreamType::Video, false);
+
+        let filter = Filter::with_name("overlay").refs([stream1, stream2]);
+
+        assert_eq!(filter.build(), "[0:v][1:v]overlay[out]");
+    }
+
+    #[test]
+    fn test_filter_with_mixed_inputs() {
+        use crate::ffmpeg::stream::Stream;
+
+        let stream1 = Stream::new(0, crate::ffmpeg::stream::StreamType::Video, false);
+        let stream2 = "1:v";
+
+        let inputs: Vec<StreamInput> = vec![stream1.into(), stream2.into()];
+        let mut filter = Filter::with_name("overlay");
+        filter.inputs = inputs;
+
+        assert_eq!(filter.build(), "[0:v][1:v]overlay[out]");
+    }
+
+    #[test]
+    fn test_filter_use_streams_method() {
+        let filter = Filter::with_name("overlay").refs(["0:v", "1:v"]);
 
         assert_eq!(filter.build(), "[0:v][1:v]overlay[out]");
     }

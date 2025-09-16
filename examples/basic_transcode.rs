@@ -12,9 +12,6 @@ use cluv::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    println!("Basic Video Transcoding Example");
-    println!("===============================");
-
     let transcoder = Transcoder::new();
 
     // Configure transcoding parameters

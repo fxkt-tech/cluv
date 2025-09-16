@@ -139,10 +139,9 @@ impl Snapshot {
         match params.frame_type {
             0 => {
                 // Keyframes only
-                let select_filter = Filter::new("select")
+                let select_filter = Filter::with_name("select")
                     .param("'eq(pict_type,I)'")
-                    .inputs([&last_filter])
-                    .output("keyframes");
+                    .refs([&last_filter]);
 
                 last_filter = "keyframes".to_string();
                 filters.push(select_filter);
@@ -151,18 +150,16 @@ impl Snapshot {
                 // Interval-based screenshots
                 if params.max_count != Some(1) {
                     if let Some(interval_frames) = params.interval_frames {
-                        let select_filter = Filter::new("select")
+                        let select_filter = Filter::with_name("select")
                             .param(format!("'not(mod(n,{}))'", interval_frames))
-                            .inputs([&last_filter])
-                            .output("interval_frames");
+                            .refs([&last_filter]);
 
                         last_filter = "interval_frames".to_string();
                         filters.push(select_filter);
                     } else if let Some(interval) = params.interval {
-                        let fps_filter = Filter::new("fps")
+                        let fps_filter = Filter::with_name("fps")
                             .param(format!("{}", 1.0 / interval))
-                            .inputs([&last_filter])
-                            .output("interval_fps");
+                            .refs([&last_filter]);
 
                         last_filter = "interval_fps".to_string();
                         filters.push(fps_filter);
@@ -179,10 +176,9 @@ impl Snapshot {
                         .collect();
                     let select_expr = format!("'{}'", frame_expressions.join("+"));
 
-                    let select_filter = Filter::new("select")
+                    let select_filter = Filter::with_name("select")
                         .param(select_expr)
-                        .inputs([&last_filter])
-                        .output("specific_frames");
+                        .refs([&last_filter]);
 
                     last_filter = "specific_frames".to_string();
                     filters.push(select_filter);
@@ -198,10 +194,9 @@ impl Snapshot {
             let width = self.fix_pixel_len(params.width.unwrap_or(-2));
             let height = self.fix_pixel_len(params.height.unwrap_or(-2));
 
-            let scale_filter = Filter::new("scale")
+            let scale_filter = Filter::with_name("scale")
                 .params([width, height])
-                .inputs([&last_filter])
-                .output("scaled");
+                .refs([&last_filter]);
 
             last_filter = "scaled".to_string();
             filters.push(scale_filter);
@@ -217,7 +212,7 @@ impl Snapshot {
 
         // Map the final filter output
         if !last_filter.is_empty() && last_filter != "0:v" {
-            output = output.map(&last_filter);
+            output = output.map_stream(&last_filter);
         }
 
         // Set frame count if specified
@@ -267,29 +262,26 @@ impl Snapshot {
 
         // Create FPS filter for frame extraction
         let fps_value = frames as f32 / duration;
-        let fps_filter = Filter::new("fps")
+        let fps_filter = Filter::with_name("fps")
             .param(fps_value.to_string())
-            .use_stream(&Stream::video(0))
-            .output("fps_out");
+            .refs([Stream::video(0)]);
 
         // Scale individual frames
-        let scale_filter = Filter::new("scale")
+        let scale_filter = Filter::with_name("scale")
             .params([params.width.to_string(), params.height.to_string()])
-            .inputs(["fps_out"])
-            .output("scaled");
+            .refs(["fps_out"]);
 
         // Create tile layout
-        let tile_filter = Filter::new("tile")
+        let tile_filter = Filter::with_name("tile")
             .param(format!("layout={}x{}", params.cols, params.rows))
-            .inputs(["scaled"])
-            .output("tiled");
+            .refs(["scaled"]);
 
         ffmpeg = ffmpeg
             .add_filter(fps_filter)
             .add_filter(scale_filter)
             .add_filter(tile_filter);
 
-        let output = Output::new(&params.output_file).map("tiled");
+        let output = Output::new(&params.output_file).map_stream("tiled");
 
         ffmpeg = ffmpeg.add_output(output);
 

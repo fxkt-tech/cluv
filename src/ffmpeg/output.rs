@@ -1,7 +1,7 @@
 //! Output handling for FFmpeg operations
 
 use crate::ffmpeg::codec::{AudioCodec, Format, PixelFormat, VideoCodec};
-use crate::ffmpeg::stream::Stream;
+use crate::ffmpeg::stream::StreamInput;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -35,7 +35,7 @@ pub struct Output {
     /// Maximum video frames
     pub max_frames: Option<i32>,
     /// Stream mappings
-    pub mappings: Vec<String>,
+    pub mappings: Vec<StreamInput>,
     /// Metadata key-value pairs
     pub metadata: HashMap<String, String>,
     /// Custom options
@@ -161,14 +161,8 @@ impl Output {
     }
 
     /// Add a stream mapping
-    pub fn map<S: Into<String>>(mut self, mapping: S) -> Self {
+    pub fn map_stream<S: Into<StreamInput>>(mut self, mapping: S) -> Self {
         self.mappings.push(mapping.into());
-        self
-    }
-
-    /// Add a stream mapping from a stream reference
-    pub fn map_stream(mut self, stream: &Stream) -> Self {
-        self.mappings.push(stream.to_string());
         self
     }
 
@@ -253,7 +247,7 @@ impl Output {
         // Add stream mappings
         for mapping in &self.mappings {
             args.push("-map".to_string());
-            args.push(mapping.clone());
+            args.push(mapping.clone().to_string());
         }
 
         // Add video codec
@@ -422,7 +416,7 @@ pub struct OutputBuilder {
     start_time: Option<f32>,
     duration: Option<f32>,
     max_frames: Option<i32>,
-    mappings: Vec<String>,
+    mappings: Vec<StreamInput>,
     metadata: HashMap<String, String>,
     options: Vec<(String, String)>,
 }
@@ -464,7 +458,7 @@ impl OutputBuilder {
     }
 
     /// Add mapping
-    pub fn map<S: Into<String>>(mut self, mapping: S) -> Self {
+    pub fn map<S: Into<StreamInput>>(mut self, mapping: S) -> Self {
         self.mappings.push(mapping.into());
         self
     }
@@ -529,7 +523,7 @@ mod tests {
     fn test_output_with_codecs() {
         let output = Output::new("output.mp4")
             .video_codec(VideoCodec::H264)
-            .audio_codec(AudioCodec::Aac)
+            .audio_codec(AudioCodec::AAC)
             .crf(23);
 
         let args = output.to_args();

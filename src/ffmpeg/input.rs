@@ -1,10 +1,18 @@
 //! Input handling for FFmpeg operations
 
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::ffmpeg::stream::Stream;
+
+/// Global counter for input indices
+static INPUT_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 /// FFmpeg input configuration
 #[derive(Debug, Clone)]
 pub struct Input {
+    /// Input index for identification
+    pub idx: usize,
     /// Input file path or URL
     pub path: String,
     /// Start time offset (seek)
@@ -22,7 +30,9 @@ pub struct Input {
 impl Input {
     /// Create a new simple input from a file path
     pub fn new<S: Into<String>>(path: S) -> Self {
+        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
+            idx,
             path: path.into(),
             start_time: None,
             duration: None,
@@ -34,7 +44,9 @@ impl Input {
 
     /// Create an input with start time and duration
     pub fn with_time<S: Into<String>>(start_time: f32, duration: f32, path: S) -> Self {
+        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
+            idx,
             path: path.into(),
             start_time: Some(start_time),
             duration: Some(duration),
@@ -46,7 +58,9 @@ impl Input {
 
     /// Create an input for concatenation using a file list
     pub fn with_concat<S: Into<String>>(concat_file: S) -> Self {
+        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
+            idx,
             path: concat_file.into(),
             start_time: None,
             duration: None,
@@ -88,6 +102,23 @@ impl Input {
     {
         self.options.push((key.into(), value.into()));
         self
+    }
+
+    pub fn video(&self) -> Stream {
+        Stream::video(self.idx as i32)
+    }
+
+    pub fn may_video(&self) -> Stream {
+        Stream::may_video(self.idx as i32)
+    }
+
+    /// Get audio stream from this input
+    pub fn audio(&self) -> Stream {
+        Stream::audio(self.idx as i32)
+    }
+
+    pub fn may_audio(&self) -> Stream {
+        Stream::may_audio(self.idx as i32)
     }
 
     /// Convert to FFmpeg command line arguments
@@ -201,8 +232,10 @@ impl InputBuilder {
     /// Build the input
     pub fn build(self) -> Result<Input, String> {
         let path = self.path.ok_or("Path is required for input")?;
+        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
 
         Ok(Input {
+            idx,
             path,
             start_time: self.start_time,
             duration: self.duration,
@@ -274,6 +307,8 @@ mod tests {
         let args = input.to_args();
 
         assert_eq!(args, vec!["-i", "test.mp4"]);
+        // idx should be assigned automatically
+        assert!(input.idx < 1000); // reasonable upper bound for test
     }
 
     #[test]
@@ -299,6 +334,8 @@ mod tests {
         assert_eq!(input.path, "test.mp4");
         assert_eq!(input.start_time, Some(5.0));
         assert_eq!(input.framerate, Some("30".to_string()));
+        // idx should be assigned automatically
+        assert!(input.idx < 1000); // reasonable upper bound for test
     }
 
     #[test]
@@ -310,5 +347,60 @@ mod tests {
         assert!(args.contains(&"concat".to_string()));
         assert!(args.contains(&"-safe".to_string()));
         assert!(args.contains(&"0".to_string()));
+        // idx should be assigned automatically
+        assert!(input.idx < 1000); // reasonable upper bound for test
+    }
+
+    #[test]
+    fn test_idx_counter() {
+        // Create inputs in a single batch to ensure they are consecutive
+        let inputs = vec![
+            Input::new("test1.mp4"),
+            Input::new("test2.mp4"),
+            Input::with_time(10.0, 30.0, "test3.mp4"),
+            Input::with_concat("concat.txt"),
+            InputBuilder::new().path("builder.mp4").build().unwrap(),
+        ];
+
+        // Verify that consecutive inputs have incrementing indices
+        for i in 1..inputs.len() {
+            assert_eq!(
+                inputs[i].idx,
+                inputs[i - 1].idx + 1,
+                "Input {} should have idx {} but got {}",
+                i,
+                inputs[i - 1].idx + 1,
+                inputs[i].idx
+            );
+        }
+
+        // Verify all indices are unique
+        let indices: Vec<usize> = inputs.iter().map(|input| input.idx).collect();
+        let mut sorted_indices = indices.clone();
+        sorted_indices.sort();
+        sorted_indices.dedup();
+        assert_eq!(
+            indices.len(),
+            sorted_indices.len(),
+            "All indices should be unique"
+        );
+
+        // Verify that each input has an idx field
+        for input in &inputs {
+            assert!(input.idx < 10000, "idx should be reasonable: {}", input.idx);
+        }
+    }
+
+    #[test]
+    fn test_audio_method() {
+        let input = Input::new("test.mp4");
+        let audio_stream = input.audio();
+
+        // Verify that the audio stream has the correct input index
+        assert_eq!(audio_stream.input_index, input.idx as i32);
+        assert_eq!(
+            audio_stream.stream_type,
+            crate::ffmpeg::stream::StreamType::Audio
+        );
     }
 }

@@ -22,6 +22,7 @@ svg = { version = "0.13", optional = true }
 
 # For async file operations
 async-trait = "0.1"
+rand = "0.9.2"
 
 [features]
 default = []
@@ -29,3 +30,16 @@ svg-support = ["svg"]
 
 [dev-dependencies]
 tempfile = "3.0"
+
+[examples]
+amix = { path = "examples/amix.rs" }
+basic_transcode = { path = "examples/basic_transcode.rs" }
+concat = { path = "examples/concat.rs" }
+filter = { path = "examples/filter.rs" }
+hls = { path = "examples/hls.rs" }
+loudnorm = { path = "examples/loudnorm.rs" }
+mask = { path = "examples/mask.rs" }
+screenshot = { path = "examples/screenshot.rs" }
+subtitles = { path = "examples/subtitles.rs" }
+tc = { path = "examples/tc.rs" }
+two_pass = { path = "examples/two_pass.rs" }
