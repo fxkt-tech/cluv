@@ -8,17 +8,21 @@ pub mod stream;
 pub mod util;
 
 use crate::error::{CluvError, Result};
+use crate::ffmpeg::{filter::Filter, input::Input, output::Output};
 use crate::options::FFmpegOptions;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::process::Command;
 
 /// FFmpeg command builder and executor
 #[derive(Debug)]
 pub struct FFmpeg {
     options: FFmpegOptions,
-    inputs: Vec<input::Input>,
-    filters: Vec<filter::Filter>,
-    outputs: Vec<output::Output>,
+    inputs: Vec<Input>,
+    filters: Vec<Filter>,
+    outputs: Vec<Output>,
+    // input counter
+    input_counter: AtomicU32,
 }
 
 impl FFmpeg {
@@ -29,6 +33,7 @@ impl FFmpeg {
             inputs: Vec::new(),
             filters: Vec::new(),
             outputs: Vec::new(),
+            input_counter: AtomicU32::new(0),
         }
     }
 
@@ -39,22 +44,24 @@ impl FFmpeg {
     }
 
     /// Add an input to the FFmpeg command
-    pub fn add_input(mut self, input: input::Input) -> Self {
+    // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
+    pub fn add_input(mut self, input: Input) -> Self {
         self.inputs.push(input);
         self
     }
 
     /// Add multiple inputs to the FFmpeg command
+    // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
     pub fn add_inputs<I>(mut self, inputs: I) -> Self
     where
-        I: IntoIterator<Item = input::Input>,
+        I: IntoIterator<Item = Input>,
     {
         self.inputs.extend(inputs);
         self
     }
 
     /// Add a filter to the FFmpeg command
-    pub fn add_filter(mut self, filter: filter::Filter) -> Self {
+    pub fn add_filter(mut self, filter: Filter) -> Self {
         self.filters.push(filter);
         self
     }
@@ -62,14 +69,14 @@ impl FFmpeg {
     /// Add multiple filters to the FFmpeg command
     pub fn add_filters<I>(mut self, filters: I) -> Self
     where
-        I: IntoIterator<Item = filter::Filter>,
+        I: IntoIterator<Item = Filter>,
     {
         self.filters.extend(filters);
         self
     }
 
     /// Add an output to the FFmpeg command
-    pub fn add_output(mut self, output: output::Output) -> Self {
+    pub fn add_output(mut self, output: Output) -> Self {
         self.outputs.push(output);
         self
     }
@@ -77,15 +84,9 @@ impl FFmpeg {
     /// Add multiple outputs to the FFmpeg command
     pub fn add_outputs<I>(mut self, outputs: I) -> Self
     where
-        I: IntoIterator<Item = output::Output>,
+        I: IntoIterator<Item = Output>,
     {
         self.outputs.extend(outputs);
-        self
-    }
-
-    /// Clear all outputs
-    pub fn clear_outputs(mut self) -> Self {
-        self.outputs.clear();
         self
     }
 
@@ -138,7 +139,7 @@ impl FFmpeg {
     }
 
     /// Print the command that would be executed (dry run)
-    pub fn dry_run(&self) {
+    fn dry_run(&self) {
         let args = self.build_args();
         let mut command_parts = vec![self.options.binary_path.clone()];
         command_parts.extend(args);
@@ -183,47 +184,15 @@ impl FFmpeg {
 
         Ok(())
     }
+}
 
-    /// Execute FFmpeg command and return combined output
-    pub async fn run_with_output(&self) -> Result<String> {
-        if self.options.dry_run {
-            self.dry_run();
-            return Ok(String::new());
-        }
-
-        if self.options.debug {
-            self.dry_run();
-        }
-
-        let args = self.build_args();
-        let mut cmd = Command::new(&self.options.binary_path);
-        cmd.args(&args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        // Set environment variables
-        for (key, value) in &self.options.env_vars {
-            cmd.env(key, value);
-        }
-
-        let output = cmd
-            .output()
-            .await
-            .map_err(|e| CluvError::ffmpeg(format!("Failed to execute FFmpeg: {}", e)))?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{}\n{}", stdout, stderr);
-
-        if !output.status.success() {
-            return Err(CluvError::ffmpeg(format!(
-                "FFmpeg command failed with exit code {:?}: {}",
-                output.status.code(),
-                combined
-            )));
-        }
-
-        Ok(combined)
+impl FFmpeg {
+    /// Create a new input, add it to the inputs list, and return it
+    pub fn input<S: Into<String>>(&mut self, path: S) -> Input {
+        let idx = self.input_counter.fetch_add(1, Ordering::SeqCst);
+        let input = Input::new(path).set_idx(idx);
+        self.inputs.push(input.clone());
+        input
     }
 }
 

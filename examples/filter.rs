@@ -7,20 +7,20 @@
 use cluv::ffmpeg::{
     codec::{AudioCodec, VideoCodec},
     filter::Filter,
-    input::Input,
     output::Output,
     FFmpeg,
 };
 use cluv::options::FFmpegOptions;
-use cluv::LogLevel;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
+    let mut ff = FFmpeg::new().set_options(FFmpegOptions::new().debug(true).dry_run(true));
+
     // Define input video
-    let i_main = Input::new("examples/metadata/in.mp4");
-    let i_logo = Input::new("examples/metadata/logo.jpg");
+    let i_main = ff.input("examples/metadata/in.mp4");
+    let i_logo = ff.input("examples/metadata/logo.jpg");
 
     // Alternative filters you can try (uncomment to use):
     let f_scale = Filter::scale(1280, 720).refs([i_main.video()]);
@@ -35,14 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .metadata("comment", "iamcluv");
 
     // Build and execute the FFmpeg command
-    let result = FFmpeg::new()
-        .set_options(
-            FFmpegOptions::new()
-                .debug(true)
-                // .dry_run(true)
-                .log_level(LogLevel::Error),
-        )
-        .add_inputs([i_main, i_logo])
+    let result = ff
         .add_filters([f_scale, f_overlay])
         .add_outputs([output])
         .run()

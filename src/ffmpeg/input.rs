@@ -1,18 +1,14 @@
 //! Input handling for FFmpeg operations
 
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::ffmpeg::stream::Stream;
-
-/// Global counter for input indices
-static INPUT_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 /// FFmpeg input configuration
 #[derive(Debug, Clone)]
 pub struct Input {
     /// Input index for identification
-    pub idx: usize,
+    pub idx: u32,
     /// Input file path or URL
     pub path: String,
     /// Start time offset (seek)
@@ -30,9 +26,8 @@ pub struct Input {
 impl Input {
     /// Create a new simple input from a file path
     pub fn new<S: Into<String>>(path: S) -> Self {
-        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
-            idx,
+            idx: 0,
             path: path.into(),
             start_time: None,
             duration: None,
@@ -44,9 +39,8 @@ impl Input {
 
     /// Create an input with start time and duration
     pub fn with_time<S: Into<String>>(start_time: f32, duration: f32, path: S) -> Self {
-        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
-            idx,
+            idx: 0,
             path: path.into(),
             start_time: Some(start_time),
             duration: Some(duration),
@@ -58,9 +52,8 @@ impl Input {
 
     /// Create an input for concatenation using a file list
     pub fn with_concat<S: Into<String>>(concat_file: S) -> Self {
-        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
         Self {
-            idx,
+            idx: 0,
             path: concat_file.into(),
             start_time: None,
             duration: None,
@@ -68,6 +61,11 @@ impl Input {
             format: Some("concat".to_string()),
             options: vec![("safe".to_string(), "0".to_string())],
         }
+    }
+
+    pub fn set_idx(mut self, idx: u32) -> Self {
+        self.idx = idx;
+        self
     }
 
     /// Set the start time (seek position)
@@ -169,83 +167,6 @@ impl fmt::Display for Input {
     }
 }
 
-/// Collection of inputs
-pub type Inputs = Vec<Input>;
-
-/// Input builder for more complex configurations
-#[derive(Debug, Default)]
-pub struct InputBuilder {
-    path: Option<String>,
-    start_time: Option<f32>,
-    duration: Option<f32>,
-    framerate: Option<String>,
-    format: Option<String>,
-    options: Vec<(String, String)>,
-}
-
-impl InputBuilder {
-    /// Create a new input builder
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the input path
-    pub fn path<S: Into<String>>(mut self, path: S) -> Self {
-        self.path = Some(path.into());
-        self
-    }
-
-    /// Set the start time
-    pub fn start_time(mut self, time: f32) -> Self {
-        self.start_time = Some(time);
-        self
-    }
-
-    /// Set the duration
-    pub fn duration(mut self, duration: f32) -> Self {
-        self.duration = Some(duration);
-        self
-    }
-
-    /// Set the framerate
-    pub fn framerate<S: Into<String>>(mut self, fps: S) -> Self {
-        self.framerate = Some(fps.into());
-        self
-    }
-
-    /// Set the format
-    pub fn format<S: Into<String>>(mut self, format: S) -> Self {
-        self.format = Some(format.into());
-        self
-    }
-
-    /// Add an option
-    pub fn option<K, V>(mut self, key: K, value: V) -> Self
-    where
-        K: Into<String>,
-        V: Into<String>,
-    {
-        self.options.push((key.into(), value.into()));
-        self
-    }
-
-    /// Build the input
-    pub fn build(self) -> Result<Input, String> {
-        let path = self.path.ok_or("Path is required for input")?;
-        let idx = INPUT_COUNTER.fetch_add(1, Ordering::SeqCst);
-
-        Ok(Input {
-            idx,
-            path,
-            start_time: self.start_time,
-            duration: self.duration,
-            framerate: self.framerate,
-            format: self.format,
-            options: self.options,
-        })
-    }
-}
-
 /// Convenience functions for creating common input types
 impl Input {
     /// Create a simple file input
@@ -323,22 +244,6 @@ mod tests {
     }
 
     #[test]
-    fn test_input_builder() {
-        let input = InputBuilder::new()
-            .path("test.mp4")
-            .start_time(5.0)
-            .framerate("30")
-            .build()
-            .unwrap();
-
-        assert_eq!(input.path, "test.mp4");
-        assert_eq!(input.start_time, Some(5.0));
-        assert_eq!(input.framerate, Some("30".to_string()));
-        // idx should be assigned automatically
-        assert!(input.idx < 1000); // reasonable upper bound for test
-    }
-
-    #[test]
     fn test_concat_input() {
         let input = Input::with_concat("filelist.txt");
         let args = input.to_args();
@@ -349,46 +254,6 @@ mod tests {
         assert!(args.contains(&"0".to_string()));
         // idx should be assigned automatically
         assert!(input.idx < 1000); // reasonable upper bound for test
-    }
-
-    #[test]
-    fn test_idx_counter() {
-        // Create inputs in a single batch to ensure they are consecutive
-        let inputs = vec![
-            Input::new("test1.mp4"),
-            Input::new("test2.mp4"),
-            Input::with_time(10.0, 30.0, "test3.mp4"),
-            Input::with_concat("concat.txt"),
-            InputBuilder::new().path("builder.mp4").build().unwrap(),
-        ];
-
-        // Verify that consecutive inputs have incrementing indices
-        for i in 1..inputs.len() {
-            assert_eq!(
-                inputs[i].idx,
-                inputs[i - 1].idx + 1,
-                "Input {} should have idx {} but got {}",
-                i,
-                inputs[i - 1].idx + 1,
-                inputs[i].idx
-            );
-        }
-
-        // Verify all indices are unique
-        let indices: Vec<usize> = inputs.iter().map(|input| input.idx).collect();
-        let mut sorted_indices = indices.clone();
-        sorted_indices.sort();
-        sorted_indices.dedup();
-        assert_eq!(
-            indices.len(),
-            sorted_indices.len(),
-            "All indices should be unique"
-        );
-
-        // Verify that each input has an idx field
-        for input in &inputs {
-            assert!(input.idx < 10000, "idx should be reasonable: {}", input.idx);
-        }
     }
 
     #[test]
