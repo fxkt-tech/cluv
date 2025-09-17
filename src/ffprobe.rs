@@ -113,12 +113,10 @@ impl FFprobe {
         }
     }
 
-    /// Create a new FFprobe instance with custom options
-    pub fn with_options(options: FFprobeOptions) -> Self {
-        Self {
-            options,
-            input_file: None,
-        }
+    /// Set custom options
+    pub fn set_options(mut self, options: FFprobeOptions) -> Self {
+        self.options = options;
+        self
     }
 
     /// Set the input file
@@ -168,7 +166,9 @@ impl FFprobe {
 
         let args = self.build_args();
         let mut cmd = Command::new(&self.options.binary_path);
-        cmd.args(&args);
+        cmd.args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
 
         // Set environment variables
         for (key, value) in &self.options.env_vars {
@@ -179,8 +179,6 @@ impl FFprobe {
             .output()
             .await
             .map_err(|e| CluvError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
-
-        println!("FFprobe output: {:?}", output);
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -412,7 +410,7 @@ impl FFprobeBuilder {
 
     /// Build the FFprobe instance
     pub fn build(self) -> FFprobe {
-        FFprobe::with_options(self.options)
+        FFprobe::new().set_options(self.options)
     }
 }
 

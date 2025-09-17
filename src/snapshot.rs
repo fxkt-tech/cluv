@@ -121,7 +121,7 @@ impl Snapshot {
     pub async fn simple(&self, params: SnapshotParams) -> Result<()> {
         self.validate_snapshot_params(&params)?;
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
         let mut filters = Vec::new();
 
         // Add input with start time if specified
@@ -235,7 +235,9 @@ impl Snapshot {
         self.validate_sprite_params(&params)?;
 
         // Get video information to calculate duration and frame count
-        let ffprobe = FFprobe::with_options(self.options.ffprobe.clone()).input(&params.input_file);
+        let ffprobe = FFprobe::new()
+            .set_options(self.options.ffprobe.clone())
+            .input(&params.input_file);
 
         let media_info = ffprobe.run().await?;
 
@@ -256,7 +258,7 @@ impl Snapshot {
             }
         }
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
 

@@ -35,17 +35,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .metadata("comment", "iamcluv");
 
     // Build and execute the FFmpeg command
-    let result = FFmpeg::with_options(
-        FFmpegOptions::new()
-            .debug(true)
-            // .dry_run(true)
-            .log_level(LogLevel::Error),
-    )
-    .add_inputs([i_main, i_logo])
-    .add_filters([f_scale, f_overlay])
-    .add_outputs([output])
-    .run()
-    .await;
+    let result = FFmpeg::new()
+        .set_options(
+            FFmpegOptions::new()
+                .debug(true)
+                // .dry_run(true)
+                .log_level(LogLevel::Error),
+        )
+        .add_inputs([i_main, i_logo])
+        .add_filters([f_scale, f_overlay])
+        .add_outputs([output])
+        .run()
+        .await;
 
     match result {
         Ok(()) => {

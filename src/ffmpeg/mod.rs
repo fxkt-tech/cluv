@@ -32,14 +32,10 @@ impl FFmpeg {
         }
     }
 
-    /// Create a new FFmpeg instance with custom options
-    pub fn with_options(options: FFmpegOptions) -> Self {
-        Self {
-            options,
-            inputs: Vec::new(),
-            filters: Vec::new(),
-            outputs: Vec::new(),
-        }
+    /// Set custom options for the FFmpeg command
+    pub fn set_options(mut self, options: FFmpegOptions) -> Self {
+        self.options = options;
+        self
     }
 
     /// Add an input to the FFmpeg command
@@ -238,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_custom_options() {
-        let ffmpeg = FFmpeg::with_options(
+        let ffmpeg = FFmpeg::new().set_options(
             FFmpegOptions::new()
                 .log_level(LogLevel::Debug)
                 .overwrite(false),

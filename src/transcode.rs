@@ -263,7 +263,7 @@ impl Transcoder {
     pub async fn simple_mp4(&self, params: TranscodeParams) -> Result<()> {
         self.validate_transcode_params(&params)?;
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
         let logo_start_index = 1;
 
         // Add main input
@@ -431,7 +431,7 @@ impl Transcoder {
     pub async fn simple_mp3(&self, params: TranscodeParams) -> Result<()> {
         self.validate_transcode_params(&params)?;
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         // Add input
         ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
@@ -486,7 +486,7 @@ impl Transcoder {
     pub async fn simple_jpeg(&self, params: TranscodeParams) -> Result<()> {
         self.validate_transcode_params(&params)?;
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         // Add input
         ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
@@ -550,7 +550,7 @@ impl Transcoder {
 
     /// Convert container format without re-encoding
     pub async fn convert_container(&self, params: ConvertContainerParams) -> Result<()> {
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
 
@@ -576,7 +576,7 @@ impl Transcoder {
 
     /// Simple HLS transcoding
     pub async fn simple_hls(&self, params: TranscodeHlsParams) -> Result<()> {
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         // Add input with clipping if specified
         let input = if let Some(ref filters) = params.filters {
@@ -672,7 +672,7 @@ impl Transcoder {
 
     /// Extract audio from video
     pub async fn extract_audio(&self, params: ExtractAudioParams) -> Result<()> {
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         ffmpeg = ffmpeg.add_input(Input::new(&params.input_file)).add_output(
             Output::new(&params.output_file)
@@ -689,7 +689,7 @@ impl Transcoder {
         self.create_concat_file(&params.input_files, &params.concat_file)
             .await?;
 
-        let mut ffmpeg = FFmpeg::with_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         ffmpeg = ffmpeg.add_input(Input::with_concat(&params.concat_file));
 

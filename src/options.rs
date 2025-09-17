@@ -34,8 +34,6 @@ pub struct FFprobeOptions {
     pub show_format: bool,
     /// Whether to enable debug output
     pub debug: bool,
-    /// Whether to perform a dry run (print command only)
-    pub dry_run: bool,
     /// Additional custom arguments
     pub custom_args: Vec<String>,
     /// Environment variables
@@ -170,7 +168,6 @@ impl FFprobeOptions {
             show_streams: true,
             show_format: true,
             debug: false,
-            dry_run: false,
             custom_args: Vec::new(),
             env_vars: HashMap::new(),
         }
@@ -203,12 +200,6 @@ impl FFprobeOptions {
     /// Enable or disable debug output
     pub fn debug(mut self, debug: bool) -> Self {
         self.debug = debug;
-        self
-    }
-
-    /// Enable or disable dry run mode
-    pub fn dry_run(mut self, dry_run: bool) -> Self {
-        self.dry_run = dry_run;
         self
     }
 
