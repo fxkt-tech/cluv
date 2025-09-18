@@ -1,8 +1,8 @@
 //! Input handling for FFmpeg operations
 
-use std::fmt;
+use std::{fmt, sync::atomic::Ordering};
 
-use crate::ffmpeg::stream::Stream;
+use crate::ffmpeg::{stream::Stream, FFmpeg};
 
 /// FFmpeg input configuration
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub struct Input {
 
 impl Input {
     /// Create a new simple input from a file path
-    pub fn new<S: Into<String>>(path: S) -> Self {
+    pub fn with_simple<S: Into<String>>(path: S) -> Self {
         Self {
             idx: 0,
             path: path.into(),
@@ -63,7 +63,15 @@ impl Input {
         }
     }
 
-    pub fn set_idx(mut self, idx: u32) -> Self {
+    /// Add this input to an FFmpeg instance
+    pub fn ffcx(mut self, ffmpeg: &mut FFmpeg) -> Self {
+        let idx = ffmpeg.input_counter.fetch_add(1, Ordering::SeqCst);
+        self.set_idx(idx);
+        ffmpeg.add_input_mut(self.clone());
+        self
+    }
+
+    pub fn set_idx(&mut self, idx: u32) -> &mut Self {
         self.idx = idx;
         self
     }
@@ -102,20 +110,19 @@ impl Input {
         self
     }
 
-    pub fn video(&self) -> Stream {
+    pub fn v(&self) -> Stream {
         Stream::video(self.idx as i32)
     }
 
-    pub fn may_video(&self) -> Stream {
+    pub fn may_v(&self) -> Stream {
         Stream::may_video(self.idx as i32)
     }
 
-    /// Get audio stream from this input
-    pub fn audio(&self) -> Stream {
+    pub fn a(&self) -> Stream {
         Stream::audio(self.idx as i32)
     }
 
-    pub fn may_audio(&self) -> Stream {
+    pub fn may_a(&self) -> Stream {
         Stream::may_audio(self.idx as i32)
     }
 
@@ -167,64 +174,13 @@ impl fmt::Display for Input {
     }
 }
 
-/// Convenience functions for creating common input types
-impl Input {
-    /// Create a simple file input
-    pub fn file<S: Into<String>>(path: S) -> Self {
-        Self::new(path)
-    }
-
-    /// Create a time-limited input
-    pub fn timed<S: Into<String>>(path: S, start: f32, duration: f32) -> Self {
-        Self::with_time(start, duration, path)
-    }
-
-    /// Create an input for image sequences
-    pub fn image_sequence<S: Into<String>>(pattern: S, fps: f32) -> Self {
-        Self::new(pattern).framerate(fps.to_string())
-    }
-
-    /// Create an input from a webcam or camera device
-    pub fn camera<S: Into<String>>(device: S) -> Self {
-        #[cfg(target_os = "linux")]
-        let format = "v4l2";
-        #[cfg(target_os = "macos")]
-        let format = "avfoundation";
-        #[cfg(target_os = "windows")]
-        let format = "dshow";
-
-        Self::new(device).format(format)
-    }
-
-    /// Create an input from screen capture
-    pub fn screen_capture() -> Self {
-        #[cfg(target_os = "linux")]
-        {
-            Self::new(":0.0").format("x11grab")
-        }
-        #[cfg(target_os = "macos")]
-        {
-            Self::new("1").format("avfoundation")
-        }
-        #[cfg(target_os = "windows")]
-        {
-            Self::new("desktop").format("gdigrab")
-        }
-    }
-
-    /// Create an input for HTTP/RTMP streams
-    pub fn stream<S: Into<String>>(url: S) -> Self {
-        Self::new(url)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_simple_input() {
-        let input = Input::new("test.mp4");
+        let input = Input::with_simple("test.mp4");
         let args = input.to_args();
 
         assert_eq!(args, vec!["-i", "test.mp4"]);
@@ -258,8 +214,8 @@ mod tests {
 
     #[test]
     fn test_audio_method() {
-        let input = Input::new("test.mp4");
-        let audio_stream = input.audio();
+        let input = Input::with_simple("test.mp4");
+        let audio_stream = input.a();
 
         // Verify that the audio stream has the correct input index
         assert_eq!(audio_stream.input_index, input.idx as i32);

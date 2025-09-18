@@ -58,33 +58,33 @@ pub enum AudioCodec {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Format {
     /// MP4 container
-    Mp4,
+    MP4,
     /// AVI container
-    Avi,
+    AVI,
     /// MKV container
-    Mkv,
+    MKV,
     /// WebM container
-    Webm,
+    WEBM,
     /// MOV container
-    Mov,
+    MOV,
     /// FLV container
-    Flv,
+    FLV,
     /// MP3 format
-    Mp3,
+    MP3,
     /// AAC format
-    Aac,
+    AAC,
     /// WAV format
-    Wav,
+    WAV,
     /// JPEG image
-    Jpeg,
+    JPEG,
     /// PNG image
-    Png,
+    PNG,
     /// HLS format
-    Hls,
+    HLS,
     /// MPEG-TS format
-    Mpegts,
+    MPEGTS,
     /// Image2 format (for image sequences)
-    Image2,
+    IMAGE2,
     /// Custom format string
     Custom(String),
 }
@@ -150,20 +150,20 @@ impl Format {
     /// Get the FFmpeg format string
     pub fn as_str(&self) -> &str {
         match self {
-            Format::Mp4 => "mp4",
-            Format::Avi => "avi",
-            Format::Mkv => "matroska",
-            Format::Webm => "webm",
-            Format::Mov => "mov",
-            Format::Flv => "flv",
-            Format::Mp3 => "mp3",
-            Format::Aac => "aac",
-            Format::Wav => "wav",
-            Format::Jpeg => "image2",
-            Format::Png => "image2",
-            Format::Hls => "hls",
-            Format::Mpegts => "mpegts",
-            Format::Image2 => "image2",
+            Format::MP4 => "mp4",
+            Format::AVI => "avi",
+            Format::MKV => "matroska",
+            Format::WEBM => "webm",
+            Format::MOV => "mov",
+            Format::FLV => "flv",
+            Format::MP3 => "mp3",
+            Format::AAC => "aac",
+            Format::WAV => "wav",
+            Format::JPEG => "image2",
+            Format::PNG => "image2",
+            Format::HLS => "hls",
+            Format::MPEGTS => "mpegts",
+            Format::IMAGE2 => "image2",
             Format::Custom(s) => s,
         }
     }
@@ -176,20 +176,20 @@ impl Format {
     /// Get the typical file extension for this format
     pub fn extension(&self) -> &str {
         match self {
-            Format::Mp4 => "mp4",
-            Format::Avi => "avi",
-            Format::Mkv => "mkv",
-            Format::Webm => "webm",
-            Format::Mov => "mov",
-            Format::Flv => "flv",
-            Format::Mp3 => "mp3",
-            Format::Aac => "aac",
-            Format::Wav => "wav",
-            Format::Jpeg => "jpg",
-            Format::Png => "png",
-            Format::Hls => "m3u8",
-            Format::Mpegts => "ts",
-            Format::Image2 => "jpg",
+            Format::MP4 => "mp4",
+            Format::AVI => "avi",
+            Format::MKV => "mkv",
+            Format::WEBM => "webm",
+            Format::MOV => "mov",
+            Format::FLV => "flv",
+            Format::MP3 => "mp3",
+            Format::AAC => "aac",
+            Format::WAV => "wav",
+            Format::JPEG => "jpg",
+            Format::PNG => "png",
+            Format::HLS => "m3u8",
+            Format::MPEGTS => "ts",
+            Format::IMAGE2 => "jpg",
             Format::Custom(_) => "",
         }
     }
@@ -198,25 +198,25 @@ impl Format {
     pub fn is_video(&self) -> bool {
         matches!(
             self,
-            Format::Mp4
-                | Format::Avi
-                | Format::Mkv
-                | Format::Webm
-                | Format::Mov
-                | Format::Flv
-                | Format::Hls
-                | Format::Mpegts
+            Format::MP4
+                | Format::AVI
+                | Format::MKV
+                | Format::WEBM
+                | Format::MOV
+                | Format::FLV
+                | Format::HLS
+                | Format::MPEGTS
         )
     }
 
     /// Check if format is audio-only
     pub fn is_audio(&self) -> bool {
-        matches!(self, Format::Mp3 | Format::Aac | Format::Wav)
+        matches!(self, Format::MP3 | Format::AAC | Format::WAV)
     }
 
     /// Check if format is image-based
     pub fn is_image(&self) -> bool {
-        matches!(self, Format::Jpeg | Format::Png | Format::Image2)
+        matches!(self, Format::JPEG | Format::PNG | Format::IMAGE2)
     }
 }
 
@@ -288,20 +288,20 @@ impl From<String> for AudioCodec {
 impl From<&str> for Format {
     fn from(s: &str) -> Self {
         match s {
-            "mp4" => Format::Mp4,
-            "avi" => Format::Avi,
-            "matroska" | "mkv" => Format::Mkv,
-            "webm" => Format::Webm,
-            "mov" => Format::Mov,
-            "flv" => Format::Flv,
-            "mp3" => Format::Mp3,
-            "aac" => Format::Aac,
-            "wav" => Format::Wav,
-            "jpeg" | "jpg" => Format::Jpeg,
-            "png" => Format::Png,
-            "hls" => Format::Hls,
-            "mpegts" | "ts" => Format::Mpegts,
-            "image2" => Format::Image2,
+            "mp4" => Format::MP4,
+            "avi" => Format::AVI,
+            "matroska" | "mkv" => Format::MKV,
+            "webm" => Format::WEBM,
+            "mov" => Format::MOV,
+            "flv" => Format::FLV,
+            "mp3" => Format::MP3,
+            "aac" => Format::AAC,
+            "wav" => Format::WAV,
+            "jpeg" | "jpg" => Format::JPEG,
+            "png" => Format::PNG,
+            "hls" => Format::HLS,
+            "mpegts" | "ts" => Format::MPEGTS,
+            "image2" => Format::IMAGE2,
             _ => Format::Custom(s.to_string()),
         }
     }
@@ -403,9 +403,9 @@ mod tests {
 
     #[test]
     fn test_format_properties() {
-        assert!(Format::Mp4.is_video());
-        assert!(Format::Mp3.is_audio());
-        assert!(Format::Jpeg.is_image());
-        assert_eq!(Format::Mp4.extension(), "mp4");
+        assert!(Format::MP4.is_video());
+        assert!(Format::MP3.is_audio());
+        assert!(Format::JPEG.is_image());
+        assert_eq!(Format::MP4.extension(), "mp4");
     }
 }

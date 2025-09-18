@@ -2,6 +2,7 @@
 
 use crate::ffmpeg::codec::{AudioCodec, Format, PixelFormat, VideoCodec};
 use crate::ffmpeg::stream::StreamInput;
+use crate::ffmpeg::FFmpeg;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -58,7 +59,7 @@ pub struct Output {
 
 impl Output {
     /// Create a new output with just a file path
-    pub fn new<S: Into<String>>(path: S) -> Self {
+    pub fn with_simple<S: Into<String>>(path: S) -> Self {
         Self {
             path: path.into(),
             video_codec: None,
@@ -86,6 +87,11 @@ impl Output {
             hls_flags: None,
             hls_playlist_type: None,
         }
+    }
+
+    /// Add this input to an FFmpeg instance
+    pub fn ffcx(self, ffmpeg: &mut FFmpeg) {
+        ffmpeg.add_output_mut(self.clone());
     }
 
     /// Set video codec
@@ -518,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_simple_output() {
-        let output = Output::new("output.mp4");
+        let output = Output::with_simple("output.mp4");
         let args = output.to_args();
 
         assert_eq!(args, vec!["output.mp4"]);
@@ -526,7 +532,7 @@ mod tests {
 
     #[test]
     fn test_output_with_codecs() {
-        let output = Output::new("output.mp4")
+        let output = Output::with_simple("output.mp4")
             .video_codec(VideoCodec::H264)
             .audio_codec(AudioCodec::AAC)
             .crf(23);

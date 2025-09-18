@@ -1,6 +1,9 @@
 //! Filter handling for FFmpeg operations
 
-use crate::ffmpeg::stream::{StreamInput, Streamable};
+use crate::ffmpeg::{
+    stream::{StreamInput, Streamable},
+    FFmpeg,
+};
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -71,6 +74,12 @@ impl Filter {
 
     pub fn r<S: Into<StreamInput>>(mut self, input: S) -> Self {
         self.inputs.push(input.into());
+        self
+    }
+
+    /// Add this input to an FFmpeg instance
+    pub fn ffcx(self, ffmpeg: &mut FFmpeg) -> Self {
+        ffmpeg.add_filter_mut(self.clone());
         self
     }
 
@@ -203,11 +212,6 @@ impl Filter {
     /// Overlay filter for adding watermarks
     pub fn overlay(x: i32, y: i32) -> Self {
         Self::with_name("overlay").params([format!("{}:{}", x, y)])
-    }
-
-    /// Overlay filter with position string
-    pub fn overlay_pos<S: Into<String>>(position: S) -> Self {
-        Self::with_name("overlay").param(position.into())
     }
 
     /// FPS filter for changing frame rate

@@ -11,7 +11,7 @@ use crate::error::{CluvError, Result};
 use crate::ffmpeg::{filter::Filter, input::Input, output::Output};
 use crate::options::FFmpegOptions;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::AtomicU32;
 use tokio::process::Command;
 
 /// FFmpeg command builder and executor
@@ -50,6 +50,11 @@ impl FFmpeg {
         self
     }
 
+    /// Add an input to the FFmpeg command (mutable reference version)
+    pub fn add_input_mut(&mut self, input: Input) {
+        self.inputs.push(input);
+    }
+
     /// Add multiple inputs to the FFmpeg command
     // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
     pub fn add_inputs<I>(mut self, inputs: I) -> Self
@@ -75,6 +80,11 @@ impl FFmpeg {
         self
     }
 
+    pub fn add_filter_mut(&mut self, filter: Filter) -> &mut Self {
+        self.filters.push(filter);
+        self
+    }
+
     /// Add an output to the FFmpeg command
     pub fn add_output(mut self, output: Output) -> Self {
         self.outputs.push(output);
@@ -87,6 +97,11 @@ impl FFmpeg {
         I: IntoIterator<Item = Output>,
     {
         self.outputs.extend(outputs);
+        self
+    }
+
+    pub fn add_output_mut(&mut self, output: Output) -> &mut Self {
+        self.outputs.push(output);
         self
     }
 
@@ -183,16 +198,6 @@ impl FFmpeg {
         }
 
         Ok(())
-    }
-}
-
-impl FFmpeg {
-    /// Create a new input, add it to the inputs list, and return it
-    pub fn input<S: Into<String>>(&mut self, path: S) -> Input {
-        let idx = self.input_counter.fetch_add(1, Ordering::SeqCst);
-        let input = Input::new(path).set_idx(idx);
-        self.inputs.push(input.clone());
-        input
     }
 }
 

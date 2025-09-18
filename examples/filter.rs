@@ -7,6 +7,7 @@
 use cluv::ffmpeg::{
     codec::{AudioCodec, VideoCodec},
     filter::Filter,
+    input::Input,
     output::Output,
     FFmpeg,
 };
@@ -16,30 +17,31 @@ use cluv::options::FFmpegOptions;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let mut ff = FFmpeg::new().set_options(FFmpegOptions::new().debug(true).dry_run(true));
+    let ff_opts = FFmpegOptions::new().debug(true).dry_run(true);
+    let mut ff = FFmpeg::new().set_options(ff_opts);
 
     // Define input video
-    let i_main = ff.input("examples/metadata/in.mp4");
-    let i_logo = ff.input("examples/metadata/logo.jpg");
+    let i_main = Input::with_simple("examples/metadata/in.mp4").ffcx(&mut ff);
+    let i_logo = Input::with_simple("examples/metadata/logo.jpg").ffcx(&mut ff);
 
     // Alternative filters you can try (uncomment to use):
-    let f_scale = Filter::scale(1280, 720).refs([i_main.video()]);
-    let f_overlay = Filter::overlay(10, 10).r(f_scale.clone()).r(i_logo.video());
+    let f_scale = Filter::scale(1280, 720).r(i_main.v()).ffcx(&mut ff);
+    let f_overlay = Filter::overlay(10, 10)
+        .r(f_scale)
+        .r(i_logo.v())
+        .ffcx(&mut ff);
 
     // Create output with H.264 video codec and copy audio
-    let output = Output::new("examples/metadata/out.mp4")
-        .map_stream(f_overlay.clone())
-        .map_stream(i_main.may_audio())
+    Output::with_simple("examples/metadata/out.mp4")
+        .map_stream(f_overlay)
+        .map_stream(i_main.may_a())
         .video_codec(VideoCodec::H264)
         .audio_codec(AudioCodec::Copy)
-        .metadata("comment", "iamcluv");
+        .metadata("comment", "iamcluv")
+        .ffcx(&mut ff);
 
     // Build and execute the FFmpeg command
-    let result = ff
-        .add_filters([f_scale, f_overlay])
-        .add_outputs([output])
-        .run()
-        .await;
+    let result = ff.run().await;
 
     match result {
         Ok(()) => {
@@ -50,22 +52,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(e.into());
         }
     }
-
-    // println!();
-    // println!("💡 Tips:");
-    // println!("  - Adjust delogo coordinates (x, y, width, height) for your logo position");
-    // println!("  - Use preview mode to test filter parameters before final processing");
-    // println!("  - Combine multiple filters using filter chains");
-    // println!("  - Set dry_run to false in FFmpegOptions to actually execute");
-    // println!("  - Consider using split filter for multiple outputs with different filters");
-
-    // println!();
-    // println!("🔧 Other useful filters:");
-    // println!("  - Filter::scale(width, height) - Resize video");
-    // println!("  - Filter::blur(radius) - Apply blur effect");
-    // println!("  - Filter::brightness(value) - Adjust brightness");
-    // println!("  - Filter::contrast(value) - Adjust contrast");
-    // println!("  - Filter::overlay(x, y) - Add overlay/watermark");
 
     Ok(())
 }

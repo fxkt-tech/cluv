@@ -267,7 +267,7 @@ impl Transcoder {
         let logo_start_index = 1;
 
         // Add main input
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
+        ffmpeg = ffmpeg.add_input(Input::with_simple(&params.input_file));
 
         // Process each sub-transcode
         for (i, sub) in params.subs.iter().enumerate() {
@@ -330,7 +330,7 @@ impl Transcoder {
                 // Process logo overlays
                 for (logo_idx, logo) in filter_config.logo.iter().enumerate() {
                     // Add logo input
-                    ffmpeg = ffmpeg.add_input(Input::new(&logo.file));
+                    ffmpeg = ffmpeg.add_input(Input::with_simple(&logo.file));
 
                     let logo_stream = format!("{}:v", logo_start_index + logo_idx);
                     let mut logo_filter_stream = logo_stream.clone();
@@ -375,7 +375,7 @@ impl Transcoder {
             }
 
             // Create output
-            let mut output = Output::new(&sub.output_file);
+            let mut output = Output::with_simple(&sub.output_file);
 
             // Map video stream
             output = output.map_stream(&last_video_filter);
@@ -434,7 +434,7 @@ impl Transcoder {
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         // Add input
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
+        ffmpeg = ffmpeg.add_input(Input::with_simple(&params.input_file));
 
         // Create audio split if multiple outputs
         if params.subs.len() > 1 {
@@ -447,7 +447,7 @@ impl Transcoder {
 
         // Process each output
         for (i, sub) in params.subs.iter().enumerate() {
-            let mut output = Output::new(&sub.output_file);
+            let mut output = Output::with_simple(&sub.output_file);
 
             // Map audio stream
             let audio_stream = if params.subs.len() > 1 {
@@ -489,7 +489,7 @@ impl Transcoder {
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
         // Add input
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
+        ffmpeg = ffmpeg.add_input(Input::with_simple(&params.input_file));
 
         // Create split if multiple outputs
         if params.subs.len() > 1 {
@@ -524,9 +524,9 @@ impl Transcoder {
                 }
             }
 
-            let mut output = Output::new(&sub.output_file)
+            let mut output = Output::with_simple(&sub.output_file)
                 .map_stream(&last_filter)
-                .format(Format::Image2);
+                .format(Format::IMAGE2);
 
             if let Some(ref filters) = sub.filters {
                 if let Some(ref video) = filters.video {
@@ -552,9 +552,9 @@ impl Transcoder {
     pub async fn convert_container(&self, params: ConvertContainerParams) -> Result<()> {
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
+        ffmpeg = ffmpeg.add_input(Input::with_simple(&params.input_file));
 
-        let mut output = Output::new(&params.output_file)
+        let mut output = Output::with_simple(&params.output_file)
             .video_codec(VideoCodec::Copy)
             .audio_codec(AudioCodec::Copy)
             .mov_flags("faststart")
@@ -587,10 +587,10 @@ impl Transcoder {
                     &params.input_file,
                 )
             } else {
-                Input::new(&params.input_file)
+                Input::with_simple(&params.input_file)
             }
         } else {
-            Input::new(&params.input_file)
+            Input::with_simple(&params.input_file)
         };
 
         ffmpeg = ffmpeg.add_input(input);
@@ -615,10 +615,10 @@ impl Transcoder {
             }
         }
 
-        let mut output = Output::new(&params.output_file)
+        let mut output = Output::with_simple(&params.output_file)
             .map_stream(&last_video_filter)
             .map_stream("0:a")
-            .format(Format::Hls)
+            .format(Format::HLS)
             .option("sc_threshold", "0")
             .mov_flags("faststart");
 
@@ -674,11 +674,13 @@ impl Transcoder {
     pub async fn extract_audio(&self, params: ExtractAudioParams) -> Result<()> {
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file)).add_output(
-            Output::new(&params.output_file)
-                .audio_codec(AudioCodec::Copy)
-                .video_codec(VideoCodec::None),
-        );
+        ffmpeg = ffmpeg
+            .add_input(Input::with_simple(&params.input_file))
+            .add_output(
+                Output::with_simple(&params.output_file)
+                    .audio_codec(AudioCodec::Copy)
+                    .video_codec(VideoCodec::None),
+            );
 
         ffmpeg.run().await
     }
@@ -693,7 +695,7 @@ impl Transcoder {
 
         ffmpeg = ffmpeg.add_input(Input::with_concat(&params.concat_file));
 
-        let mut output = Output::new(&params.output_file)
+        let mut output = Output::with_simple(&params.output_file)
             .video_codec(VideoCodec::Copy)
             .audio_codec(AudioCodec::Copy);
 

@@ -126,9 +126,9 @@ impl Snapshot {
 
         // Add input with start time if specified
         let input = if let Some(start_time) = params.start_time {
-            Input::new(&params.input_file).start_time(start_time)
+            Input::with_simple(&params.input_file).start_time(start_time)
         } else {
-            Input::new(&params.input_file)
+            Input::with_simple(&params.input_file)
         };
 
         ffmpeg = ffmpeg.add_input(input);
@@ -208,7 +208,7 @@ impl Snapshot {
         }
 
         // Create output
-        let mut output = Output::new(&params.output_file).format(Format::Image2);
+        let mut output = Output::with_simple(&params.output_file).format(Format::IMAGE2);
 
         // Map the final filter output
         if !last_filter.is_empty() && last_filter != "0:v" {
@@ -260,7 +260,7 @@ impl Snapshot {
 
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
 
-        ffmpeg = ffmpeg.add_input(Input::new(&params.input_file));
+        ffmpeg = ffmpeg.add_input(Input::with_simple(&params.input_file));
 
         // Create FPS filter for frame extraction
         let fps_value = frames as f32 / duration;
@@ -283,7 +283,7 @@ impl Snapshot {
             .add_filter(scale_filter)
             .add_filter(tile_filter);
 
-        let output = Output::new(&params.output_file).map_stream("tiled");
+        let output = Output::with_simple(&params.output_file).map_stream("tiled");
 
         ffmpeg = ffmpeg.add_output(output);
 
