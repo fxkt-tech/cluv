@@ -365,80 +365,9 @@ impl StreamInfo {
     }
 }
 
-/// Builder for FFprobe instances
-pub struct FFprobeBuilder {
-    options: FFprobeOptions,
-}
-
-impl FFprobeBuilder {
-    /// Create a new builder
-    pub fn new() -> Self {
-        Self {
-            options: FFprobeOptions::new(),
-        }
-    }
-
-    /// Set binary path
-    pub fn binary_path<S: Into<String>>(mut self, path: S) -> Self {
-        self.options.binary_path = path.into();
-        self
-    }
-
-    /// Enable/disable JSON format
-    pub fn json_format(mut self, enabled: bool) -> Self {
-        self.options.json_format = enabled;
-        self
-    }
-
-    /// Enable/disable showing streams
-    pub fn show_streams(mut self, show: bool) -> Self {
-        self.options.show_streams = show;
-        self
-    }
-
-    /// Enable/disable showing format
-    pub fn show_format(mut self, show: bool) -> Self {
-        self.options.show_format = show;
-        self
-    }
-
-    /// Add custom argument
-    pub fn add_arg<S: Into<String>>(mut self, arg: S) -> Self {
-        self.options.custom_args.push(arg.into());
-        self
-    }
-
-    /// Build the FFprobe instance
-    pub fn build(self) -> FFprobe {
-        FFprobe::new().set_options(self.options)
-    }
-}
-
-impl Default for FFprobeBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_ffprobe_builder() {
-        let ffprobe = FFprobeBuilder::new()
-            .binary_path("ffprobe")
-            .json_format(true)
-            .show_streams(true)
-            .show_format(true)
-            .build();
-
-        let args = ffprobe.build_args();
-        assert!(args.contains(&"-print_format".to_string()));
-        assert!(args.contains(&"json".to_string()));
-        assert!(args.contains(&"-show_streams".to_string()));
-        assert!(args.contains(&"-show_format".to_string()));
-    }
 
     #[test]
     fn test_media_info_methods() {

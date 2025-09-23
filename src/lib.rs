@@ -30,14 +30,21 @@
 ///     Ok(())
 /// }
 /// ```
+pub mod edit;
 pub mod error;
 pub mod ffmpeg;
 pub mod ffprobe;
 pub mod options;
+pub mod pkg;
 pub mod snapshot;
 pub mod transcode;
 
 // Re-export main types
+pub use edit::{
+    AudioMaterial, CutProtocol, Dimension, EditSession, Editor, ExportConfig, ExportType,
+    ImageMaterial, Material, MaterialType, Position, Scale, Segment, Stage, TimeRange, Track,
+    TrackType, VideoMaterial,
+};
 pub use error::{CluvError, Result};
 pub use options::*;
 pub use snapshot::{Point, Snapshot, SnapshotParams, SpriteParams, SvgAnnotation, SvgMarkParams};
@@ -47,16 +54,3 @@ pub use transcode::{
     SubTranscodeParams, TranscodeHlsParams, TranscodeParams, TranscodeTsParams, Transcoder,
     VideoFilter as TranscodeVideoFilter,
 };
-
-/// Video filter trait for implementing custom filters
-pub trait VideoFilterTrait: Send + Sync {
-    /// Apply the filter to a video stream
-    fn apply(&self) -> String;
-}
-
-/// Main transcoder trait
-#[async_trait::async_trait]
-pub trait TranscoderTrait {
-    /// Transcode video with the given parameters
-    async fn transcode(&self, params: &TranscodeParams) -> Result<()>;
-}

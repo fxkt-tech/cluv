@@ -1,0 +1,49 @@
+{
+  "stage": {
+    "width": 1280,
+    "height": 720
+  },
+  "materials": {
+    "videos": [
+      {
+        "id": "9022275B-650A-4564-9397-CE6DEC419C5A",
+        "src": "video1.mp4",
+        "dimension": {
+          "width": 1920,
+          "height": 1080
+        }
+      }
+    ],
+    "images": [],
+    "audios": []
+  },
+  "tracks": [
+    {
+      "id": "36033738-8ab8-43bb-a22d-aa5fe9c0e691",
+      "type": "video",
+      "segments": [
+        {
+          "id": "36033738-8ab8-43bb-a22d-aa5fe9c0e691",
+          "type": "video",
+          "material_id": "9022275B-650A-4564-9397-CE6DEC419C5A",
+          "target_timerange": {
+            "start": 0,
+            "duration": 10000
+          },
+          "source_timerange": {
+            "start": 0,
+            "duration": 10000
+          },
+          "scale": {
+            "width": 1280,
+            "height": 720
+          },
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    }
+  ]
+}

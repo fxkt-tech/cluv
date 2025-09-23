@@ -1,4 +1,4 @@
-//! Snapshot functionality for screenshot and sprite generation
+//! Snapshot functionality for snapshot and sprite generation
 
 use crate::error::{CluvError, Result};
 use crate::ffmpeg::codec::Format;
@@ -11,30 +11,30 @@ use crate::ffprobe::FFprobe;
 use crate::options::CluvOptions;
 use serde::{Deserialize, Serialize};
 
-/// Snapshot processor for generating screenshots and sprites
+/// Snapshot processor for generating snapshots and sprites
 #[derive(Debug)]
 pub struct Snapshot {
     options: CluvOptions,
 }
 
-/// Parameters for taking screenshots
+/// Parameters for taking snapshots
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SnapshotParams {
     /// Input file path
     pub input_file: String,
     /// Output file path
     pub output_file: String,
-    /// Screenshot type (0: keyframes only, 1: interval, 2: specific frames)
+    /// snapshot type (0: keyframes only, 1: interval, 2: specific frames)
     pub frame_type: i32,
-    /// Interval in seconds between screenshots (for frame_type 1)
+    /// Interval in seconds between snapshots (for frame_type 1)
     pub interval: Option<f32>,
-    /// Interval in frames between screenshots (for frame_type 1)
+    /// Interval in frames between snapshots (for frame_type 1)
     pub interval_frames: Option<i32>,
     /// Specific frame numbers (for frame_type 2)
     pub frames: Vec<i32>,
     /// Start time offset
     pub start_time: Option<f32>,
-    /// Maximum number of screenshots
+    /// Maximum number of snapshots
     pub max_count: Option<i32>,
     /// Output width
     pub width: Option<i32>,
@@ -68,7 +68,7 @@ pub struct SvgMarkParams {
     pub input_file: String,
     /// Output SVG file path
     pub output_file: String,
-    /// Start time for screenshot
+    /// Start time for snapshot
     pub start_time: Option<f32>,
     /// Annotations to add
     pub annotations: Vec<SvgAnnotation>,
@@ -117,7 +117,7 @@ impl Snapshot {
         Self { options }
     }
 
-    /// Take simple screenshots
+    /// Take simple snapshots
     pub async fn simple(&self, params: SnapshotParams) -> Result<()> {
         self.validate_snapshot_params(&params)?;
 
@@ -147,7 +147,7 @@ impl Snapshot {
                 filters.push(select_filter);
             }
             1 => {
-                // Interval-based screenshots
+                // Interval-based snapshots
                 if params.max_count != Some(1) {
                     if let Some(interval_frames) = params.interval_frames {
                         let select_filter = Filter::with_name("select")
@@ -296,11 +296,11 @@ impl Snapshot {
         use std::fs::File;
         use std::io::Write;
 
-        // First, take a screenshot
-        let screenshot_path = format!("{}.tmp.jpg", params.output_file);
-        let screenshot_params = SnapshotParams {
+        // First, take a snapshot
+        let snapshot_path = format!("{}.tmp.jpg", params.output_file);
+        let snapshot_params = SnapshotParams {
             input_file: params.input_file.clone(),
-            output_file: screenshot_path.clone(),
+            output_file: snapshot_path.clone(),
             frame_type: 1,
             interval: None,
             interval_frames: None,
@@ -311,10 +311,10 @@ impl Snapshot {
             height: None,
         };
 
-        self.simple(screenshot_params).await?;
+        self.simple(snapshot_params).await?;
 
         // Get video dimensions
-        let ffprobe = FFprobe::with_options(self.options.ffprobe.clone()).input(&screenshot_path);
+        let ffprobe = FFprobe::with_options(self.options.ffprobe.clone()).input(&snapshot_path);
 
         let media_info = ffprobe.run().await?;
         let (width, height) = media_info
@@ -330,7 +330,7 @@ impl Snapshot {
         // Add background image
         svg_content.push_str(&format!(
             r#"<image x="0" y="0" width="{}" height="{}" href="{}"/>"#,
-            width, height, screenshot_path
+            width, height, snapshot_path
         ));
 
         // Add annotations
@@ -418,8 +418,8 @@ impl Snapshot {
         file.write_all(svg_content.as_bytes())
             .map_err(|e| CluvError::custom(format!("Failed to write SVG file: {}", e)))?;
 
-        // Clean up temporary screenshot
-        let _ = std::fs::remove_file(&screenshot_path);
+        // Clean up temporary snapshot
+        let _ = std::fs::remove_file(&snapshot_path);
 
         Ok(())
     }
@@ -447,14 +447,14 @@ impl Snapshot {
             return Err(CluvError::invalid_params("frame_type must be 0, 1, or 2"));
         }
 
-        // For interval screenshots with multiple frames, require interval
+        // For interval snapshots with multiple frames, require interval
         if params.frame_type == 1 && params.max_count != Some(1) {
             if params.interval.is_none() && params.interval_frames.is_none() {
                 return Err(CluvError::interval_required());
             }
         }
 
-        // For specific frame screenshots, require frames list
+        // For specific frame snapshots, require frames list
         if params.frame_type == 2 && params.frames.is_empty() {
             return Err(CluvError::invalid_params(
                 "frames list is required for frame_type 2",
@@ -533,7 +533,7 @@ impl SnapshotParamsBuilder {
         Self {
             input_file: None,
             output_file: None,
-            frame_type: 1, // Default to interval screenshots
+            frame_type: 1, // Default to interval snapshots
             interval: None,
             interval_frames: None,
             frames: Vec::new(),
@@ -596,7 +596,7 @@ impl SnapshotParamsBuilder {
         self
     }
 
-    pub fn single_screenshot(mut self) -> Self {
+    pub fn single_snapshot(mut self) -> Self {
         self.max_count = Some(1);
         self
     }
@@ -720,7 +720,7 @@ mod tests {
     fn test_snapshot_params_builder() {
         let params = SnapshotParams::builder()
             .input_file("input.mp4")
-            .output_file("screenshot_%03d.jpg")
+            .output_file("snapshot_%03d.jpg")
             .interval(5.0)
             .max_count(10)
             .resolution(1920, 1080)
@@ -728,7 +728,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(params.input_file, "input.mp4");
-        assert_eq!(params.output_file, "screenshot_%03d.jpg");
+        assert_eq!(params.output_file, "snapshot_%03d.jpg");
         assert_eq!(params.frame_type, 1);
         assert_eq!(params.interval, Some(5.0));
         assert_eq!(params.max_count, Some(10));
@@ -782,11 +782,11 @@ mod tests {
     }
 
     #[test]
-    fn test_single_screenshot() {
+    fn test_single_snapshot() {
         let params = SnapshotParams::builder()
             .input_file("input.mp4")
             .output_file("thumbnail.jpg")
-            .single_screenshot()
+            .single_snapshot()
             .start_time(30.0)
             .build()
             .unwrap();

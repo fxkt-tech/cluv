@@ -1,9 +1,3 @@
-//! Video filter example
-//!
-//! This example demonstrates how to apply various video filters
-//! including delogo filter to remove logos/watermarks from videos.
-//! It shows how to use filters with video streams and map outputs.
-
 use cluv::ffmpeg::{
     codec::{AudioCodec, VideoCodec},
     filter::Filter,

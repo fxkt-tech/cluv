@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let single_params = SnapshotParams::builder()
         .input_file("input.mp4") // Change this to your input file
         .output_file("thumbnail_30s.jpg")
-        .single_screenshot()
+        .single_snapshot()
         .start_time(30.0) // Screenshot at 30 seconds
         .resolution(1280, 720)
         .build()?;
@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hq_params = SnapshotParams::builder()
         .input_file("input.mp4")
         .output_file("high_quality_thumb.jpg")
-        .single_screenshot()
+        .single_snapshot()
         .start_time(60.0) // At 1 minute
         .resolution(1920, 1080) // Full HD
         .build()?;

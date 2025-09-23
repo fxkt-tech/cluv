@@ -26,12 +26,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             transcode_example(&args[2], &args[3]).await?;
         }
-        "screenshot" => {
+        "snapshot" => {
             if args.len() < 4 {
-                println!("Usage: {} screenshot <input_file> <output_file>", args[0]);
+                println!("Usage: {} snapshot <input_file> <output_file>", args[0]);
                 return Ok(());
             }
-            screenshot_example(&args[2], &args[3]).await?;
+            snapshot_example(&args[2], &args[3]).await?;
         }
         "sprite" => {
             if args.len() < 4 {
@@ -70,14 +70,14 @@ fn print_usage() {
     println!();
     println!("Commands:");
     println!("  transcode <input> <output>  - Transcode video to MP4");
-    println!("  screenshot <input> <output> - Take a screenshot");
+    println!("  snapshot <input> <output> - Take a snapshot");
     println!("  sprite <input> <output>     - Generate sprite sheet");
     println!("  hls <input> <output>        - Convert to HLS format");
     println!("  multi <input>               - Multiple output example");
     println!();
     println!("Examples:");
     println!("  cluv transcode input.mov output.mp4");
-    println!("  cluv screenshot input.mp4 thumbnail.jpg");
+    println!("  cluv snapshot input.mp4 thumbnail.jpg");
     println!("  cluv sprite input.mp4 sprite.jpg");
     println!("  cluv hls input.mp4 output.m3u8");
     println!("  cluv multi input.mp4");
@@ -138,22 +138,22 @@ async fn transcode_example(input: &str, output: &str) -> Result<(), Box<dyn std:
     Ok(())
 }
 
-/// Example: Taking a screenshot
-async fn screenshot_example(input: &str, output: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Taking screenshot from {} to {}", input, output);
+/// Example: Taking a snapshot
+async fn snapshot_example(input: &str, output: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Taking snapshot from {} to {}", input, output);
 
     let snapshot = Snapshot::new();
 
     let params = SnapshotParams::builder()
         .input_file(input)
         .output_file(output)
-        .single_screenshot()
-        .start_time(30.0) // Take screenshot at 30 seconds
+        .single_snapshot()
+        .start_time(30.0) // Take snapshot at 30 seconds
         .resolution(1280, 720)
         .build()?;
 
     snapshot.simple(params).await?;
-    println!("Screenshot taken successfully!");
+    println!("snapshot taken successfully!");
 
     Ok(())
 }
