@@ -3,6 +3,7 @@
 use crate::error::{CluvError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use uuid::Uuid;
 
 /// Represents a material that can be used in video editing
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,16 +161,14 @@ impl Material {
     }
 
     /// Create a video material
-    pub fn video<S1: Into<String>, S2: Into<String>>(
-        id: S1,
-        src: S2,
-        width: i32,
-        height: i32,
-    ) -> Self {
+    pub fn video<S: Into<String>>(src: S) -> Self {
         Material::Video(VideoMaterial {
-            id: id.into(),
+            id: Uuid::new_v4().into(),
             src: src.into(),
-            dimension: Dimension { width, height },
+            dimension: Dimension {
+                width: 0,
+                height: 0,
+            },
             duration: None,
             fps: None,
             codec: None,
@@ -507,7 +506,7 @@ mod tests {
 
     #[test]
     fn test_material_enum() {
-        let video = Material::video("v1", "test.mp4", 1920, 1080);
+        let video = Material::video("test.mp4");
         let audio = Material::audio("a1", "test.wav");
         let image = Material::image("i1", "test.jpg", 1920, 1080);
 

@@ -2,7 +2,7 @@
 
 use crate::edit::{
     material::{AudioMaterial, Dimension, ImageMaterial, Material, VideoMaterial},
-    segment::{Position, Scale, Segment, SegmentType, TimeRange},
+    segment::{Position, Segment, SegmentType, TimeRange},
     stage::Stage,
     track::{Track, TrackType},
     EditSession,
@@ -669,7 +669,7 @@ mod tests {
         session.add_material(video_material);
 
         // Add track with segment
-        let mut track = Track::video("track1");
+        let mut track = Track::video();
         let segment = Segment::video(
             "segment1",
             "video1",

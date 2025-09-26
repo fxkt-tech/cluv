@@ -19,6 +19,7 @@ use crate::ffmpeg::{
 use crate::options::CluvOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Main video editor for composition and export
 #[derive(Debug)]
@@ -134,8 +135,8 @@ impl Editor {
     }
 
     /// Create and add a video track
-    pub fn add_video_track<S: Into<String>>(&mut self, id: S) -> &mut Self {
-        let track = Track::video(id);
+    pub fn add_video_track(&mut self) -> &mut Self {
+        let track = Track::video();
         self.session.add_track(track);
         self
     }

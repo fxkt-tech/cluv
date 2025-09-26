@@ -3,6 +3,7 @@
 use crate::edit::segment::Segment;
 use crate::error::{CluvError, Result};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Track type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,8 +59,8 @@ impl Track {
     }
 
     /// Create a video track
-    pub fn video<S: Into<String>>(id: S) -> Self {
-        Self::new(id, TrackType::Video)
+    pub fn video() -> Self {
+        Self::new(Uuid::new_v4(), TrackType::Video)
     }
 
     /// Create an audio track
@@ -362,7 +363,7 @@ mod tests {
 
     #[test]
     fn test_track_convenience_constructors() {
-        let video_track = Track::video("video1");
+        let video_track = Track::video();
         assert_eq!(video_track.track_type, TrackType::Video);
 
         let audio_track = Track::audio("audio1");
@@ -520,7 +521,7 @@ mod tests {
 
     #[test]
     fn test_track_capabilities() {
-        let video_track = Track::video("v1");
+        let video_track = Track::video();
         assert!(!video_track.supports_volume());
         assert!(video_track.supports_opacity());
         assert!(video_track.supports_blend_mode());
