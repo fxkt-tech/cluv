@@ -32,6 +32,8 @@ pub enum StreamType {
     Data,
     /// Any stream type
     Any,
+    /// Filter stream
+    Filter,
 }
 
 impl Stream {
@@ -109,6 +111,7 @@ impl Stream {
             StreamType::Subtitle => "s",
             StreamType::Data => "d",
             StreamType::Any => "",
+            StreamType::Filter => "",
         };
 
         let may = if self.may_not { "?" } else { "" };
@@ -152,6 +155,7 @@ impl StreamType {
             StreamType::Subtitle => Some('s'),
             StreamType::Data => Some('d'),
             StreamType::Any => None,
+            StreamType::Filter => None,
         }
     }
 }
@@ -164,6 +168,7 @@ impl fmt::Display for StreamType {
             StreamType::Subtitle => "subtitle",
             StreamType::Data => "data",
             StreamType::Any => "any",
+            StreamType::Filter => "filter",
         };
         write!(f, "{}", s)
     }

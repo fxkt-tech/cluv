@@ -30,7 +30,7 @@
 ///     Ok(())
 /// }
 /// ```
-pub mod edit;
+pub mod ffcut;
 pub mod error;
 pub mod ffmpeg;
 pub mod ffprobe;
@@ -40,7 +40,7 @@ pub mod snapshot;
 pub mod transcode;
 
 // Re-export main types
-pub use edit::{
+pub use ffcut::{
     AudioMaterial, CutProtocol, Dimension, EditSession, Editor, ExportConfig, ExportType,
     ImageMaterial, Material, MaterialType, Position, Scale, Segment, Stage, TimeRange, Track,
     TrackType, VideoMaterial,

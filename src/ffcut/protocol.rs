@@ -1,13 +1,13 @@
 //! Protocol definitions and conversion for cut protocol format
 
-use crate::edit::{
+use crate::error::{CluvError, Result};
+use crate::ffcut::{
     material::{AudioMaterial, Dimension, ImageMaterial, Material, VideoMaterial},
     segment::{Position, Segment, SegmentType, TimeRange},
     stage::Stage,
     track::{Track, TrackType},
     EditSession,
 };
-use crate::error::{CluvError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

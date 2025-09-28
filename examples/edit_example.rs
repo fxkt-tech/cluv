@@ -4,7 +4,7 @@
 //! to create a composition similar to the Go fusion example.
 
 use cluv::{
-    edit::{
+    ffcut::{
         editor::{Editor, ExportOptions},
         material::Material,
         protocol::ExportType,

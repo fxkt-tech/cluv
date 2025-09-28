@@ -1,7 +1,7 @@
 //! Filter handling for FFmpeg operations
 
 use crate::ffmpeg::{
-    stream::{StreamInput, Streamable},
+    stream::{Stream, StreamInput, Streamable},
     FFmpeg,
 };
 use std::fmt;
@@ -41,6 +41,12 @@ impl Into<StreamInput> for Filter {
         StreamInput::Filter(self)
     }
 }
+
+// impl Into<Stream> for &Filter {
+//     fn into(self) -> Stream {
+//         Stream::any(0).with_label(self.label.to_string().clone())
+//     }
+// }
 
 impl Filter {
     /// Create a new filter with the given name
@@ -90,22 +96,6 @@ impl Filter {
         S: Into<StreamInput>,
     {
         self.inputs = inputs.into_iter().map(|s| s.into()).collect();
-        self
-    }
-
-    /// Set a single output label
-    pub fn output<S: Into<StreamInput>>(mut self, label: S) -> Self {
-        self.outputs = vec![label.into()];
-        self
-    }
-
-    /// Set output streams or labels
-    pub fn outputs<I, S>(mut self, outputs: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<StreamInput>,
-    {
-        self.outputs = outputs.into_iter().map(|s| s.into()).collect();
         self
     }
 
@@ -168,6 +158,16 @@ impl fmt::Display for Filter {
 
 /// Video filter constructors
 impl Filter {
+    /// color filter for creating a solid color video
+    pub fn color(width: i32, height: i32, duration: f64) -> Self {
+        Self::with_name("color").params([
+            "color=black".to_string(),
+            format!("size={}x{}", width, height),
+            format!("duration={}", duration),
+            "rate=30".to_string(),
+        ])
+    }
+
     /// Scale filter for resizing video
     pub fn scale(width: i32, height: i32) -> Self {
         let w_str = if width <= 0 {
@@ -182,6 +182,10 @@ impl Filter {
         };
 
         Self::with_name("scale").params([w_str, h_str])
+    }
+
+    pub fn trim(start: f64, end: f64) -> Self {
+        Self::with_name("trim").params([format!("start={}", start), format!("end={}", end)])
     }
 
     /// Scale filter with aspect ratio preservation
@@ -212,6 +216,11 @@ impl Filter {
     /// Overlay filter for adding watermarks
     pub fn overlay(x: i32, y: i32) -> Self {
         Self::with_name("overlay").params([format!("{}:{}", x, y)])
+    }
+
+    pub fn overlay_with_enable(x: i32, y: i32, enable_expr: String) -> Self {
+        Self::with_name("overlay")
+            .params([format!("{}:{}", x, y), format!("enable={}", enable_expr)])
     }
 
     /// FPS filter for changing frame rate

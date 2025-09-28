@@ -4,7 +4,7 @@
 //! creating a composition with video and audio tracks and exporting as audio.
 
 use cluv::{
-    edit::{
+    ffcut::{
         editor::{Editor, ExportOptions},
         material::Material,
         protocol::ExportType,

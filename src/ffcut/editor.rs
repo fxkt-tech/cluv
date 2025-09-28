@@ -1,6 +1,7 @@
 //! Main video editor implementation
 
-use crate::edit::{
+use crate::error::{CluvError, Result};
+use crate::ffcut::{
     material::Material,
     protocol::{CutProtocol, ExportType},
     segment::Segment,
@@ -8,7 +9,7 @@ use crate::edit::{
     track::Track,
     EditSession,
 };
-use crate::error::{CluvError, Result};
+use crate::ffmpeg::stream::Streamable;
 use crate::ffmpeg::{
     codec::{AudioCodec, Format, VideoCodec},
     filter::Filter,
@@ -19,7 +20,6 @@ use crate::ffmpeg::{
 use crate::options::CluvOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use uuid::Uuid;
 
 /// Main video editor for composition and export
 #[derive(Debug)]
@@ -171,50 +171,37 @@ impl Editor {
         self.validate()?;
 
         let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
-        let mut filter_idx = 0;
-
-        // Collect all unique materials
-        let mut material_inputs: HashMap<String, u32> = HashMap::new();
-        let mut input_idx = 0;
 
         // Add inputs for all referenced materials
+        let mut material_inputs: HashMap<String, Input> = HashMap::new();
         for track in &self.session.tracks {
             for segment in &track.segments {
                 if !material_inputs.contains_key(&segment.material_id) {
                     if let Some(material) = self.session.get_material(&segment.material_id) {
                         let input = Input::with_simple(material.src()).ffcx(&mut ffmpeg);
-                        material_inputs.insert(segment.material_id.clone(), input.idx);
-                        input_idx += 1;
+                        material_inputs.insert(segment.material_id.clone(), input);
                     }
                 }
             }
         }
 
         // Create stage background
-        let stage_bg = Filter::with_name("color")
-            .params([
-                "color=black".to_string(),
-                format!(
-                    "size={}x{}",
-                    self.session.stage.width, self.session.stage.height
-                ),
-                format!("duration={}", self.session.total_duration() as f64 / 1000.0),
-                "rate=30".to_string(),
-            ])
-            .ffcx(&mut ffmpeg);
-
-        let mut video_output = format!("[{}]", stage_bg.label);
+        let stage_bg = Filter::color(
+            self.session.stage.width,
+            self.session.stage.height,
+            self.session.total_duration() as f64 / 1000.0,
+        );
 
         // Process video tracks in reverse order (bottom to top)
-        let video_tracks: Vec<_> = self.session.video_tracks();
+        let video_tracks = self.session.video_tracks();
         for track in video_tracks.iter().rev() {
             if !track.enabled {
                 continue;
             }
 
             for segment in &track.segments {
-                if let Some(&input_idx) = material_inputs.get(&segment.material_id) {
-                    let mut last_filter = format!("{}:v", input_idx);
+                if let Some(&input) = material_inputs.get(&segment.material_id) {
+                    let mut f_last_v = input.v();
 
                     // Apply time-based trimming
                     let source_start = segment.source_timerange.start as f64 / 1000.0;
@@ -222,88 +209,45 @@ impl Editor {
                     let target_start = segment.target_timerange.start as f64 / 1000.0;
                     let target_duration = segment.target_timerange.duration as f64 / 1000.0;
 
-                    // Trim the source material
-                    if source_start > 0.0 || source_duration != target_duration {
-                        let trim_filter = Filter::with_name("trim")
-                            .params([
-                                format!("start={}", source_start),
-                                format!("duration={}", source_duration),
-                            ])
-                            .refs([&last_filter])
-                            .output(format!("trim_{}", filter_idx))
-                            .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[trim_{}]", filter_idx);
-                        filter_idx += 1;
-
-                        // Reset PTS
-                        let setpts_filter = Filter::with_name("setpts")
-                            .param("PTS-STARTPTS")
-                            .refs([&last_filter])
-                            .output(format!("setpts_{}", filter_idx))
-                            .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[setpts_{}]", filter_idx);
-                        filter_idx += 1;
-                    }
-
-                    // Apply scaling if needed
+                    // 视频流：缩放视频
                     if let Some(scale) = segment.scale {
-                        let scale_filter = Filter::with_name("scale")
-                            .params([scale.width.to_string(), scale.height.to_string()])
-                            .refs([&last_filter])
-                            .output(format!("scale_{}", filter_idx))
+                        let f_scale = Filter::scale(scale.width, scale.height)
+                            .r(f_last_v)
                             .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[scale_{}]", filter_idx);
-                        filter_idx += 1;
+                        f_last_v = f_scale.to_stream();
                     }
 
-                    // Apply speed adjustment if needed
+                    // 视频流：是否需要倍速
                     if segment.needs_speed_adjustment() {
                         let speed = segment.playback_speed();
-                        let setpts_filter = Filter::with_name("setpts")
-                            .param(format!("{}*PTS", 1.0 / speed))
-                            .refs([&last_filter])
-                            .output(format!("speed_{}", filter_idx))
+                        let f_setpts = Filter::setpts(format!("1/{speed}*PTS"))
+                            .r(f_last_v)
                             .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[speed_{}]", filter_idx);
-                        filter_idx += 1;
+                        f_last_v = f_setpts.to_stream();
                     }
 
-                    // Position the segment in time
-                    if target_start > 0.0 {
-                        let delay_filter = Filter::with_name("setpts")
-                            .param(format!("PTS+{}/TB", target_start))
-                            .refs([&last_filter])
-                            .output(format!("delay_{}", filter_idx))
-                            .ffcx(&mut ffmpeg);
+                    // 视频流：设置本段视频在时间线上的位置
+                    let f_delay = Filter::setpts(format!("PTS+{target_start}/TB"))
+                        .r(f_last_v)
+                        .ffcx(&mut ffmpeg);
+                    f_last_v = f_delay.to_stream();
 
-                        last_filter = format!("[delay_{}]", filter_idx);
-                        filter_idx += 1;
-                    }
-
-                    // Overlay onto the stage
+                    // 视频流：合并视频流到主舞台
                     let x = segment.position.map(|p| p.x).unwrap_or(0);
                     let y = segment.position.map(|p| p.y).unwrap_or(0);
-
-                    let overlay_filter = Filter::with_name("overlay")
-                        .params([
-                            format!("x={}", x),
-                            format!("y={}", y),
-                            format!(
-                                "enable='between(t,{},{})'",
-                                target_start,
-                                target_start + target_duration
-                            ),
-                        ])
-                        .refs([&video_output, &last_filter])
-                        .output(format!("overlay_{}", filter_idx))
-                        .ffcx(&mut ffmpeg);
-
-                    video_output = format!("[overlay_{}]", filter_idx);
-                    filter_idx += 1;
+                    let f_overlay = Filter::overlay_with_enable(
+                        x,
+                        y,
+                        format!(
+                            "enable='between(t,{},{})'",
+                            target_start,
+                            target_start + target_duration
+                        ),
+                    )
+                    .r(stage_bg)
+                    .r(f_last_v)
+                    .ffcx(&mut ffmpeg);
+                    f_last_v = f_overlay.to_stream();
                 }
             }
         }
@@ -573,7 +517,7 @@ impl ExportOptions {
 mod tests {
     use super::*;
     use crate::{
-        edit::{material::VideoMaterial, segment::SegmentType},
+        ffcut::{material::VideoMaterial, segment::SegmentType},
         TimeRange,
     };
 
@@ -601,7 +545,7 @@ mod tests {
         let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
         editor.add_material(material);
 
-        editor.add_video_track("track1");
+        editor.add_video_track();
 
         assert_eq!(editor.session.materials.len(), 1);
         assert_eq!(editor.session.tracks.len(), 1);
@@ -614,7 +558,7 @@ mod tests {
         let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
         editor.add_material(material);
 
-        editor.add_video_track("track1");
+        editor.add_video_track();
 
         let segment = Segment::new(
             "segment1",
@@ -697,7 +641,7 @@ mod tests {
         assert!(editor.validate().is_ok());
 
         // Test with invalid stage
-        let mut editor_invalid = Editor::with_stage(Stage::new(0, 1080));
+        let editor_invalid = Editor::with_stage(Stage::new(0, 1080));
         assert!(editor_invalid.validate().is_err());
     }
 }
