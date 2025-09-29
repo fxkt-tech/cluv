@@ -99,6 +99,22 @@ impl Filter {
         self
     }
 
+    /// Set a single output label
+    pub fn output<S: Into<StreamInput>>(mut self, label: S) -> Self {
+        self.outputs = vec![label.into()];
+        self
+    }
+
+    /// Set output streams or labels
+    pub fn outputs<I, S>(mut self, outputs: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<StreamInput>,
+    {
+        self.outputs = outputs.into_iter().map(|s| s.into()).collect();
+        self
+    }
+
     /// Build the filter string representation
     pub fn build(&self) -> String {
         let mut result = String::new();
@@ -307,6 +323,18 @@ impl Filter {
         ])
     }
 
+    /// Audio trim
+    pub fn atrim(start_time: f64, duration: f64) -> Self {
+        Self::with_name("atrim").params([
+            format!("start={}", start_time),
+            format!("duration={}", duration),
+        ])
+    }
+
+    pub fn atempo(speed: f64) -> Self {
+        Self::with_name("atempo").param(speed.to_string())
+    }
+
     /// Resample audio
     pub fn resample(sample_rate: i32) -> Self {
         Self::with_name("aresample").param(sample_rate.to_string())
@@ -365,6 +393,10 @@ impl Filter {
     /// Audio null filter
     pub fn anull() -> Self {
         Self::with_name("anull")
+    }
+
+    pub fn anullsrc(duration: f32) -> Self {
+        Self::with_name("anullsrc").params([format!("r=44100"), format!("d={duration}s")])
     }
 }
 

@@ -178,7 +178,12 @@ impl Editor {
             for segment in &track.segments {
                 if !material_inputs.contains_key(&segment.material_id) {
                     if let Some(material) = self.session.get_material(&segment.material_id) {
-                        let input = Input::with_simple(material.src()).ffcx(&mut ffmpeg);
+                        let input = Input::with_time(
+                            segment.source_timerange.start as f32 / 1000.0,
+                            segment.source_timerange.duration as f32 / 1000.0,
+                            material.src(),
+                        )
+                        .ffcx(&mut ffmpeg);
                         material_inputs.insert(segment.material_id.clone(), input);
                     }
                 }
@@ -186,11 +191,12 @@ impl Editor {
         }
 
         // Create stage background
-        let stage_bg = Filter::color(
+        let mut stage_bg = Filter::color(
             self.session.stage.width,
             self.session.stage.height,
             self.session.total_duration() as f64 / 1000.0,
-        );
+        )
+        .ffcx(&mut ffmpeg);
 
         // Process video tracks in reverse order (bottom to top)
         let video_tracks = self.session.video_tracks();
@@ -200,12 +206,10 @@ impl Editor {
             }
 
             for segment in &track.segments {
-                if let Some(&input) = material_inputs.get(&segment.material_id) {
+                if let Some(input) = material_inputs.get(&segment.material_id) {
                     let mut f_last_v = input.v();
 
                     // Apply time-based trimming
-                    let source_start = segment.source_timerange.start as f64 / 1000.0;
-                    let source_duration = segment.source_timerange.duration as f64 / 1000.0;
                     let target_start = segment.target_timerange.start as f64 / 1000.0;
                     let target_duration = segment.target_timerange.duration as f64 / 1000.0;
 
@@ -247,13 +251,13 @@ impl Editor {
                     .r(stage_bg)
                     .r(f_last_v)
                     .ffcx(&mut ffmpeg);
-                    f_last_v = f_overlay.to_stream();
+                    stage_bg = f_overlay;
                 }
             }
         }
 
         // Handle audio tracks
-        let audio_tracks: Vec<_> = self.session.audio_tracks();
+        let audio_tracks = self.session.audio_tracks();
         let mut audio_inputs = Vec::new();
 
         for track in &audio_tracks {
@@ -262,8 +266,8 @@ impl Editor {
             }
 
             for segment in &track.segments {
-                if let Some(&input_idx) = material_inputs.get(&segment.material_id) {
-                    let mut last_filter = format!("{}:a", input_idx);
+                if let Some(input) = material_inputs.get(&segment.material_id) {
+                    let mut f_last_a = input.a();
 
                     // Apply time-based trimming for audio
                     let source_start = segment.source_timerange.start as f64 / 1000.0;
@@ -272,93 +276,51 @@ impl Editor {
                     let target_duration = segment.target_timerange.duration as f64 / 1000.0;
 
                     if source_start > 0.0 || source_duration != target_duration {
-                        let atrim_filter = Filter::with_name("atrim")
-                            .params([
-                                format!("start={}", source_start),
-                                format!("duration={}", source_duration),
-                            ])
-                            .refs([&last_filter])
-                            .output(format!("atrim_{}", filter_idx))
+                        let f_atrim = Filter::atrim(source_start, source_duration)
+                            .r(f_last_a)
                             .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[atrim_{}]", filter_idx);
-                        filter_idx += 1;
+                        f_last_a = f_atrim.to_stream();
 
                         // Reset audio PTS
-                        let asetpts_filter = Filter::with_name("asetpts")
-                            .param("PTS-STARTPTS")
-                            .refs([&last_filter])
-                            .output(format!("asetpts_{}", filter_idx))
+                        let f_asetpts = Filter::asetpts("PTS-STARTPTS")
+                            .r(f_last_a)
                             .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[asetpts_{}]", filter_idx);
-                        filter_idx += 1;
-                    }
-
-                    // Apply volume adjustment
-                    if track.volume != 1.0 {
-                        let volume_filter = Filter::with_name("volume")
-                            .param(track.volume.to_string())
-                            .refs([&last_filter])
-                            .output(format!("volume_{}", filter_idx))
-                            .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[volume_{}]", filter_idx);
-                        filter_idx += 1;
+                        f_last_a = f_asetpts.to_stream();
                     }
 
                     // Apply speed adjustment for audio
                     if segment.needs_speed_adjustment() {
-                        let speed = segment.playback_speed() as f32;
-                        let atempo_filter = Filter::with_name("atempo")
-                            .param(speed.to_string())
-                            .refs([&last_filter])
-                            .output(format!("atempo_{}", filter_idx))
-                            .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[atempo_{}]", filter_idx);
-                        filter_idx += 1;
+                        let speed = segment.playback_speed();
+                        let f_atempo = Filter::atempo(speed).r(f_last_a).ffcx(&mut ffmpeg);
+                        f_last_a = f_atempo.to_stream();
                     }
 
                     // Add delay for positioning in time
                     if target_start > 0.0 {
                         let adelay_filter = Filter::with_name("adelay")
                             .param(format!("{}ms", (target_start * 1000.0) as i32))
-                            .refs([&last_filter])
-                            .output(format!("adelay_{}", filter_idx))
+                            .r(f_last_a)
                             .ffcx(&mut ffmpeg);
-
-                        last_filter = format!("[adelay_{}]", filter_idx);
-                        filter_idx += 1;
+                        f_last_a = adelay_filter.to_stream();
                     }
 
-                    audio_inputs.push(last_filter);
+                    audio_inputs.push(f_last_a);
                 }
             }
         }
 
         // Mix all audio tracks
-        let audio_output = if audio_inputs.is_empty() {
-            // Create silent audio
-            let silence_filter = Filter::with_name("anullsrc")
-                .params([
-                    "channel_layout=stereo".to_string(),
-                    "sample_rate=44100".to_string(),
-                    format!("duration={}", self.session.total_duration() as f64 / 1000.0),
-                ])
-                .ffcx(&mut ffmpeg);
-
-            format!("[{}]", silence_filter.label)
+        let sound_bg = if audio_inputs.is_empty() {
+            let sound_bg =
+                Filter::anullsrc(self.session.total_duration() as f32 / 1000.0).ffcx(&mut ffmpeg);
+            sound_bg.to_stream()
         } else if audio_inputs.len() == 1 {
             audio_inputs[0].clone()
         } else {
-            let amix_filter = Filter::with_name("amix")
-                .param(format!("inputs={}", audio_inputs.len()))
+            let f_amix = Filter::amix(audio_inputs.len() as i32)
                 .refs(audio_inputs)
-                .output(format!("amix_{}", filter_idx))
                 .ffcx(&mut ffmpeg);
-
-            format!("[amix_{}]", filter_idx)
+            f_amix.to_stream()
         };
 
         // Create output
@@ -367,8 +329,8 @@ impl Editor {
         match options.export_type {
             ExportType::Video => {
                 output = output
-                    .map_stream(&video_output)
-                    .map_stream(&audio_output)
+                    .map_stream(stage_bg)
+                    .map_stream(sound_bg)
                     .video_codec(VideoCodec::from(
                         options.video_codec.as_deref().unwrap_or("libx264"),
                     ))
@@ -391,21 +353,13 @@ impl Editor {
                 output = output.mov_flags("faststart");
             }
             ExportType::Audio => {
-                output = output
-                    .map_stream(&audio_output)
-                    .audio_codec(AudioCodec::from(
-                        options.audio_codec.as_deref().unwrap_or("mp3"),
-                    ));
+                output = output.map_stream(sound_bg).audio_codec(AudioCodec::from(
+                    options.audio_codec.as_deref().unwrap_or("mp3"),
+                ));
 
                 if let Some(bitrate) = options.audio_bitrate {
                     output = output.audio_bitrate(bitrate);
                 }
-            }
-            ExportType::Image => {
-                output = output
-                    .map_stream(&video_output)
-                    .format(Format::IMAGE2)
-                    .video_codec(VideoCodec::MJPEG);
             }
         }
 
@@ -414,7 +368,7 @@ impl Editor {
             output = output.option(key, value);
         }
 
-        ffmpeg = ffmpeg.add_output(output);
+        output.ffcx(&mut ffmpeg);
 
         ffmpeg.run().await
     }
@@ -443,11 +397,6 @@ impl Editor {
     /// Export as MP3 audio
     pub async fn export_mp3(&self, output_file: &str) -> Result<()> {
         self.simple_export(output_file, ExportType::Audio).await
-    }
-
-    /// Export as JPEG images
-    pub async fn export_images(&self, output_pattern: &str) -> Result<()> {
-        self.simple_export(output_pattern, ExportType::Image).await
     }
 }
 

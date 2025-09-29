@@ -38,12 +38,7 @@ async fn video_editing_example() -> Result<()> {
     let mut editor = Editor::with_stage(stage);
 
     // Add video material
-    let video_material = Material::video(
-        "video_material_1",
-        "/Users/justyer/Desktop/qwer.mp4",
-        1280,
-        720,
-    );
+    let video_material = Material::video("/Users/justyer/Desktop/qwer.mp4");
     editor.add_material(video_material);
 
     // Add audio material
@@ -51,7 +46,7 @@ async fn video_editing_example() -> Result<()> {
     editor.add_material(audio_material);
 
     // Create and add a video track
-    editor.add_video_track("video_track_1");
+    editor.add_video_track();
 
     // Create a video segment
     let video_segment = Segment::video(
@@ -210,15 +205,15 @@ async fn advanced_editing_example() -> Result<()> {
 
     // Add multiple materials
     editor
-        .add_material(Material::video("intro_video", "intro.mp4", 1920, 1080))
-        .add_material(Material::video("main_video", "main.mp4", 1920, 1080))
+        .add_material(Material::video("intro.mp4"))
+        .add_material(Material::video("main.mp4"))
         .add_material(Material::audio("bg_music", "background.mp3"))
         .add_material(Material::image("logo", "logo.png", 200, 100));
 
     // Create multiple tracks
     editor
-        .add_video_track("main_video_track")
-        .add_video_track("overlay_track")
+        .add_video_track()
+        .add_video_track()
         .add_audio_track("main_audio_track")
         .add_audio_track("music_track");
 
@@ -295,10 +290,10 @@ async fn speed_and_trim_example() -> Result<()> {
     let mut editor = Editor::with_stage(Stage::new(1920, 1080));
 
     // Add material
-    editor.add_material(Material::video("source", "source.mp4", 1920, 1080));
+    editor.add_material(Material::video("source.mp4"));
 
     // Create track
-    editor.add_video_track("main_track");
+    editor.add_video_track();
 
     // Create segments with different speeds
     let slow_segment = Segment::video(

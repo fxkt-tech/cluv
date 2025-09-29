@@ -184,8 +184,6 @@ pub enum ExportType {
     Video,
     /// Export as audio only
     Audio,
-    /// Export as image sequence
-    Image,
 }
 
 impl CutProtocol {
@@ -584,7 +582,6 @@ impl std::fmt::Display for ExportType {
         match self {
             ExportType::Video => write!(f, "video"),
             ExportType::Audio => write!(f, "audio"),
-            ExportType::Image => write!(f, "image"),
         }
     }
 }
