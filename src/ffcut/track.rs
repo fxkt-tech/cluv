@@ -58,29 +58,33 @@ impl Track {
         }
     }
 
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     /// Create a video track
     pub fn video() -> Self {
         Self::new(Uuid::new_v4(), TrackType::Video)
     }
 
     /// Create an audio track
-    pub fn audio<S: Into<String>>(id: S) -> Self {
-        Self::new(id, TrackType::Audio)
+    pub fn audio() -> Self {
+        Self::new(Uuid::new_v4(), TrackType::Audio)
     }
 
     /// Create an image track
-    pub fn image<S: Into<String>>(id: S) -> Self {
-        Self::new(id, TrackType::Image)
+    pub fn image() -> Self {
+        Self::new(Uuid::new_v4(), TrackType::Image)
     }
 
     /// Create a text track
-    pub fn text<S: Into<String>>(id: S) -> Self {
-        Self::new(id, TrackType::Text)
+    pub fn text() -> Self {
+        Self::new(Uuid::new_v4(), TrackType::Text)
     }
 
     /// Create a subtitle track
-    pub fn subtitle<S: Into<String>>(id: S) -> Self {
-        Self::new(id, TrackType::Subtitle)
+    pub fn subtitle() -> Self {
+        Self::new(Uuid::new_v4(), TrackType::Subtitle)
     }
 
     /// Add a segment to the track
@@ -366,16 +370,16 @@ mod tests {
         let video_track = Track::video();
         assert_eq!(video_track.track_type, TrackType::Video);
 
-        let audio_track = Track::audio("audio1");
+        let audio_track = Track::audio();
         assert_eq!(audio_track.track_type, TrackType::Audio);
 
-        let image_track = Track::image("image1");
+        let image_track = Track::image();
         assert_eq!(image_track.track_type, TrackType::Image);
 
-        let text_track = Track::text("text1");
+        let text_track = Track::text();
         assert_eq!(text_track.track_type, TrackType::Text);
 
-        let subtitle_track = Track::subtitle("subtitle1");
+        let subtitle_track = Track::subtitle();
         assert_eq!(subtitle_track.track_type, TrackType::Subtitle);
     }
 
@@ -526,7 +530,7 @@ mod tests {
         assert!(video_track.supports_opacity());
         assert!(video_track.supports_blend_mode());
 
-        let audio_track = Track::audio("a1");
+        let audio_track = Track::audio();
         assert!(audio_track.supports_volume());
         assert!(!audio_track.supports_opacity());
         assert!(!audio_track.supports_blend_mode());

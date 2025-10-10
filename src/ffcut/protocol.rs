@@ -667,14 +667,9 @@ mod tests {
 
         // Add track with segment
         let mut track = Track::video();
-        let segment = Segment::video(
-            "segment1",
-            "video1",
-            TimeRange::new(0, 10000),
-            TimeRange::new(0, 10000),
-        )
-        .with_scale(Dimension::new(1280, 720))
-        .with_position(Position::new(0, 0));
+        let segment = Segment::video("video1", TimeRange::new(0, 10000), TimeRange::new(0, 10000))
+            .scale(Dimension::new(1280, 720))
+            .position(Position::new(0, 0));
 
         track.add_segment(segment);
         session.add_track(track);

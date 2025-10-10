@@ -38,14 +38,14 @@ impl FFmpeg {
     }
 
     /// Set custom options for the FFmpeg command
-    pub fn set_options(mut self, options: FFmpegOptions) -> Self {
+    pub fn set_options(&mut self, options: FFmpegOptions) -> &mut Self {
         self.options = options;
         self
     }
 
     /// Add an input to the FFmpeg command
     // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
-    pub fn add_input(mut self, input: Input) -> Self {
+    pub fn add_input(&mut self, input: Input) -> &mut Self {
         self.inputs.push(input);
         self
     }
@@ -57,7 +57,7 @@ impl FFmpeg {
 
     /// Add multiple inputs to the FFmpeg command
     // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
-    pub fn add_inputs<I>(mut self, inputs: I) -> Self
+    pub fn add_inputs<I>(&mut self, inputs: I) -> &mut Self
     where
         I: IntoIterator<Item = Input>,
     {
@@ -66,13 +66,13 @@ impl FFmpeg {
     }
 
     /// Add a filter to the FFmpeg command
-    pub fn add_filter(mut self, filter: Filter) -> Self {
+    pub fn add_filter(&mut self, filter: Filter) -> &mut Self {
         self.filters.push(filter);
         self
     }
 
     /// Add multiple filters to the FFmpeg command
-    pub fn add_filters<I>(mut self, filters: I) -> Self
+    pub fn add_filters<I>(&mut self, filters: I) -> &mut Self
     where
         I: IntoIterator<Item = Filter>,
     {
@@ -80,7 +80,7 @@ impl FFmpeg {
         self
     }
 
-    pub fn add_filter_mut(&mut self, filter: Filter) -> &mut Self {
+    pub fn add_filter_mut(mut self, filter: Filter) -> Self {
         self.filters.push(filter);
         self
     }
@@ -154,7 +154,7 @@ impl FFmpeg {
     }
 
     /// Print the command that would be executed (dry run)
-    fn dry_run(&self) {
+    fn dry_run(&mut self) {
         let args = self.build_args();
         let mut command_parts = vec![self.options.binary_path.clone()];
         command_parts.extend(args);
@@ -162,7 +162,7 @@ impl FFmpeg {
     }
 
     /// Execute the FFmpeg command
-    pub async fn run(&self) -> Result<()> {
+    pub async fn run(&mut self) -> Result<()> {
         if self.options.dry_run {
             self.dry_run();
             return Ok(());
@@ -208,12 +208,13 @@ mod tests {
 
     #[test]
     fn test_custom_options() {
-        let ffmpeg = FFmpeg::new().set_options(
-            FFmpegOptions::new()
-                .log_level(LogLevel::Debug)
-                .overwrite(false),
-        );
-        let args = ffmpeg.build_args();
+        let args = FFmpeg::new()
+            .set_options(
+                FFmpegOptions::new()
+                    .log_level(LogLevel::Debug)
+                    .overwrite(true),
+            )
+            .build_args();
 
         assert!(args.contains(&"debug".to_string()));
         assert!(!args.contains(&"-y".to_string()));

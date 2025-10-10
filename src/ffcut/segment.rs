@@ -5,6 +5,7 @@ use crate::{
     Dimension,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Time range specification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,14 +91,13 @@ impl Segment {
     }
 
     /// Create a video segment
-    pub fn video<S1: Into<String>, S2: Into<String>>(
-        id: S1,
-        material_id: S2,
+    pub fn video<S: Into<String>>(
+        material_id: S,
         target_timerange: TimeRange,
         source_timerange: TimeRange,
     ) -> Self {
         Self::new(
-            id,
+            Uuid::new_v4(),
             SegmentType::Video,
             material_id,
             target_timerange,
@@ -154,26 +154,14 @@ impl Segment {
     }
 
     /// Set segment scale
-    pub fn with_scale(mut self, scale: Dimension) -> Self {
+    pub fn scale(mut self, scale: Dimension) -> Self {
         self.scale = Some(scale);
         self
     }
 
     /// Set segment position
-    pub fn with_position(mut self, position: Position) -> Self {
+    pub fn position(mut self, position: Position) -> Self {
         self.position = Some(position);
-        self
-    }
-
-    /// Set segment position by coordinates
-    pub fn with_position_xy(mut self, x: i32, y: i32) -> Self {
-        self.position = Some(Position { x, y });
-        self
-    }
-
-    /// Set segment scale by dimensions
-    pub fn with_scale_wh(mut self, width: i32, height: i32) -> Self {
-        self.scale = Some(Dimension { width, height });
         self
     }
 
@@ -399,6 +387,12 @@ impl TimeRange {
     }
 }
 
+// impl Into<TimeRange> for (u32, u32) {
+//     fn into(self) -> TimeRange {
+//         TimeRange::new(self.0, self.1)
+//     }
+// }
+
 impl Position {
     /// Create a new position
     pub fn new(x: i32, y: i32) -> Self {
@@ -613,7 +607,7 @@ mod tests {
     fn test_segment_creation() {
         let target = TimeRange::new(0, 1000);
         let source = TimeRange::new(500, 2000);
-        let segment = Segment::video("seg1", "mat1", target, source);
+        let segment = Segment::video("mat1", target, source);
 
         assert_eq!(segment.id, "seg1");
         assert_eq!(segment.segment_type, SegmentType::Video);
@@ -626,9 +620,9 @@ mod tests {
     fn test_segment_with_scale_and_position() {
         let target = TimeRange::new(0, 1000);
         let source = TimeRange::new(0, 1000);
-        let segment = Segment::video("seg1", "mat1", target, source)
-            .with_scale(Dimension::new(1920, 1080))
-            .with_position(Position::new(100, 200));
+        let segment = Segment::video("mat1", target, source)
+            .scale(Dimension::new(1920, 1080))
+            .position(Position::new(100, 200));
 
         assert!(segment.scale.is_some());
         assert!(segment.position.is_some());
@@ -640,7 +634,7 @@ mod tests {
     fn test_segment_timing() {
         let target = TimeRange::new(1000, 2000);
         let source = TimeRange::new(0, 1000);
-        let segment = Segment::video("seg1", "mat1", target, source);
+        let segment = Segment::video("mat1", target, source);
 
         assert_eq!(segment.target_end_time(), 3000);
         assert_eq!(segment.source_end_time(), 1000);
@@ -652,24 +646,9 @@ mod tests {
 
     #[test]
     fn test_segment_overlap() {
-        let seg1 = Segment::video(
-            "seg1",
-            "mat1",
-            TimeRange::new(0, 1000),
-            TimeRange::new(0, 1000),
-        );
-        let seg2 = Segment::video(
-            "seg2",
-            "mat2",
-            TimeRange::new(500, 1000),
-            TimeRange::new(0, 1000),
-        );
-        let seg3 = Segment::video(
-            "seg3",
-            "mat3",
-            TimeRange::new(2000, 1000),
-            TimeRange::new(0, 1000),
-        );
+        let seg1 = Segment::video("mat1", TimeRange::new(0, 1000), TimeRange::new(0, 1000));
+        let seg2 = Segment::video("mat2", TimeRange::new(500, 1000), TimeRange::new(0, 1000));
+        let seg3 = Segment::video("mat3", TimeRange::new(2000, 1000), TimeRange::new(0, 1000));
 
         assert!(seg1.overlaps_with(&seg2));
         assert!(!seg1.overlaps_with(&seg3));
@@ -677,34 +656,21 @@ mod tests {
 
     #[test]
     fn test_segment_validation() {
-        let valid_segment = Segment::video(
-            "seg1",
-            "mat1",
-            TimeRange::new(0, 1000),
-            TimeRange::new(0, 1000),
-        );
+        let valid_segment =
+            Segment::video("mat1", TimeRange::new(0, 1000), TimeRange::new(0, 1000));
         assert!(valid_segment.validate().is_ok());
 
-        let empty_id = Segment::video("", "mat1", TimeRange::new(0, 1000), TimeRange::new(0, 1000));
+        let empty_id = Segment::video("mat1", TimeRange::new(0, 1000), TimeRange::new(0, 1000));
         assert!(empty_id.validate().is_err());
 
-        let zero_duration = Segment::video(
-            "seg1",
-            "mat1",
-            TimeRange::new(0, 0),
-            TimeRange::new(0, 1000),
-        );
+        let zero_duration = Segment::video("mat1", TimeRange::new(0, 0), TimeRange::new(0, 1000));
         assert!(zero_duration.validate().is_err());
     }
 
     #[test]
     fn test_segment_trimming() {
-        let mut segment = Segment::video(
-            "seg1",
-            "mat1",
-            TimeRange::new(1000, 3000),
-            TimeRange::new(0, 3000),
-        );
+        let mut segment =
+            Segment::video("mat1", TimeRange::new(1000, 3000), TimeRange::new(0, 3000));
 
         // Trim 500ms from start
         segment.trim_start(500);
@@ -718,12 +684,7 @@ mod tests {
 
     #[test]
     fn test_segment_split() {
-        let segment = Segment::video(
-            "seg1",
-            "mat1",
-            TimeRange::new(0, 2000),
-            TimeRange::new(0, 2000),
-        );
+        let segment = Segment::video("mat1", TimeRange::new(0, 2000), TimeRange::new(0, 2000));
 
         let result = segment.split_at(800);
         assert!(result.is_ok());

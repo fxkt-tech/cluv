@@ -11,21 +11,21 @@ use crate::ffcut::{
 };
 use crate::ffmpeg::stream::Streamable;
 use crate::ffmpeg::{
-    codec::{AudioCodec, Format, VideoCodec},
+    codec::{AudioCodec, VideoCodec},
     filter::Filter,
     input::Input,
     output::Output,
     FFmpeg,
 };
-use crate::options::CluvOptions;
+use crate::FFmpegOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Main video editor for composition and export
 #[derive(Debug)]
 pub struct Editor {
-    /// Editor options
-    options: CluvOptions,
+    /// FFmpeg options
+    ffmpeg_options: FFmpegOptions,
     /// Current editing session
     session: EditSession,
 }
@@ -55,33 +55,21 @@ impl Editor {
     /// Create a new editor with default options
     pub fn new() -> Self {
         Self {
-            options: CluvOptions::new(),
+            ffmpeg_options: FFmpegOptions::new(),
             session: EditSession::default(),
         }
     }
 
-    /// Create a new editor with custom options
-    pub fn with_options(options: CluvOptions) -> Self {
-        Self {
-            options,
-            session: EditSession::default(),
-        }
+    /// Set stage configuration
+    pub fn set_stage(mut self, stage: Stage) -> Self {
+        self.session.stage = stage;
+        self
     }
 
-    /// Create a new editor with stage configuration
-    pub fn with_stage(stage: Stage) -> Self {
-        Self {
-            options: CluvOptions::new(),
-            session: EditSession::new(stage),
-        }
-    }
-
-    /// Create a new editor with stage and options
-    pub fn with_stage_and_options(stage: Stage, options: CluvOptions) -> Self {
-        Self {
-            options,
-            session: EditSession::new(stage),
-        }
+    /// Set ffmpeg options
+    pub fn set_ffmpeg_options(mut self, options: FFmpegOptions) -> Self {
+        self.ffmpeg_options = options;
+        self
     }
 
     /// Load session from cut protocol
@@ -117,11 +105,6 @@ impl Editor {
         &mut self.session
     }
 
-    /// Set stage configuration
-    pub fn set_stage(&mut self, stage: Stage) {
-        self.session.stage = stage;
-    }
-
     /// Add material to the session
     pub fn add_material(&mut self, material: Material) -> &mut Self {
         self.session.add_material(material);
@@ -142,8 +125,8 @@ impl Editor {
     }
 
     /// Create and add an audio track
-    pub fn add_audio_track<S: Into<String>>(&mut self, id: S) -> &mut Self {
-        let track = Track::audio(id);
+    pub fn add_audio_track(&mut self) -> &mut Self {
+        let track = Track::audio();
         self.session.add_track(track);
         self
     }
@@ -170,7 +153,7 @@ impl Editor {
     pub async fn export(&self, options: ExportOptions) -> Result<()> {
         self.validate()?;
 
-        let mut ffmpeg = FFmpeg::new().set_options(self.options.ffmpeg.clone());
+        let mut ffmpeg = FFmpeg::new().set_options(self.ffmpeg_options.clone());
 
         // Add inputs for all referenced materials
         let mut material_inputs: HashMap<String, Input> = HashMap::new();
@@ -480,14 +463,6 @@ mod tests {
     }
 
     #[test]
-    fn test_editor_with_stage() {
-        let stage = Stage::new(1280, 720);
-        let editor = Editor::with_stage(stage);
-        assert_eq!(editor.session.stage.width, 1280);
-        assert_eq!(editor.session.stage.height, 720);
-    }
-
-    #[test]
     fn test_add_materials_and_tracks() {
         let mut editor = Editor::new();
 
@@ -582,15 +557,5 @@ mod tests {
             options.custom_options.get("preset"),
             Some(&"medium".to_string())
         );
-    }
-
-    #[test]
-    fn test_validation() {
-        let editor = Editor::new();
-        assert!(editor.validate().is_ok());
-
-        // Test with invalid stage
-        let editor_invalid = Editor::with_stage(Stage::new(0, 1080));
-        assert!(editor_invalid.validate().is_err());
     }
 }
