@@ -126,6 +126,16 @@ impl Input {
         Stream::may_audio(self.idx as i32)
     }
 
+    /// Alias for v() - get video stream
+    pub fn video(&self) -> Stream {
+        self.v()
+    }
+
+    /// Alias for a() - get audio stream
+    pub fn audio(&self) -> Stream {
+        self.a()
+    }
+
     /// Convert to FFmpeg command line arguments
     pub fn to_args(&self) -> Vec<String> {
         let mut args = Vec::new();

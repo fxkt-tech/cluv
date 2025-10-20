@@ -336,6 +336,18 @@ impl From<&Stream> for StreamInput {
     }
 }
 
+impl From<&Filter> for StreamInput {
+    fn from(filter: &Filter) -> Self {
+        StreamInput::Filter(filter.clone())
+    }
+}
+
+impl From<&mut Filter> for StreamInput {
+    fn from(filter: &mut Filter) -> Self {
+        StreamInput::Filter(filter.clone())
+    }
+}
+
 impl Streamable for Stream {
     fn to_stream(&self) -> Stream {
         self.clone()

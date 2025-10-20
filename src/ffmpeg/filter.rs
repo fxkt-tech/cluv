@@ -78,15 +78,15 @@ impl Filter {
         self
     }
 
-    pub fn r<S: Into<StreamInput>>(&mut self, input: S) -> &mut Self {
+    pub fn r<S: Into<StreamInput>>(mut self, input: S) -> Self {
         self.inputs.push(input.into());
         self
     }
 
     // Add this input to an FFmpeg instance
-    pub fn ffcx(&mut self, ffmpeg: &mut FFmpeg) -> &mut Self {
-        ffmpeg.add_filter(self.clone());
-        self
+    pub fn ffcx(self, ffmpeg: &mut FFmpeg) -> Self {
+        let inputs = self.inputs.clone();
+        ffmpeg.add_filter(self, inputs)
     }
 
     /// Set input streams or labels
@@ -100,19 +100,34 @@ impl Filter {
     }
 
     /// Set a single output label
-    pub fn output<S: Into<StreamInput>>(mut self, label: S) -> Self {
+    pub fn set_output<S: Into<StreamInput>>(mut self, label: S) -> Self {
         self.outputs = vec![label.into()];
         self
     }
 
     /// Set output streams or labels
-    pub fn outputs<I, S>(mut self, outputs: I) -> Self
+    pub fn set_outputs<I, S>(mut self, outputs: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<StreamInput>,
     {
         self.outputs = outputs.into_iter().map(|s| s.into()).collect();
         self
+    }
+
+    /// Get the filter output as a StreamInput (for use in subsequent filters)
+    pub fn output(&self) -> StreamInput {
+        StreamInput::Filter(self.clone())
+    }
+
+    /// Get the filter as a video stream
+    pub fn video(&self) -> StreamInput {
+        StreamInput::Filter(self.clone())
+    }
+
+    /// Get the filter as an audio stream
+    pub fn audio(&self) -> StreamInput {
+        StreamInput::Filter(self.clone())
     }
 
     /// Build the filter string representation

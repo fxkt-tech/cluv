@@ -8,6 +8,7 @@ pub mod stream;
 pub mod util;
 
 use crate::error::{CluvError, Result};
+use crate::ffmpeg::stream::StreamInput;
 use crate::ffmpeg::{filter::Filter, input::Input, output::Output};
 use crate::options::FFmpegOptions;
 use std::process::Stdio;
@@ -17,7 +18,7 @@ use tokio::process::Command;
 /// FFmpeg command builder and executor
 #[derive(Debug)]
 pub struct FFmpeg {
-    options: FFmpegOptions,
+    ffmpeg_options: FFmpegOptions,
     inputs: Vec<Input>,
     filters: Vec<Filter>,
     outputs: Vec<Output>,
@@ -29,7 +30,7 @@ impl FFmpeg {
     /// Create a new FFmpeg instance with default options
     pub fn new() -> Self {
         Self {
-            options: FFmpegOptions::new(),
+            ffmpeg_options: FFmpegOptions::new(),
             inputs: Vec::new(),
             filters: Vec::new(),
             outputs: Vec::new(),
@@ -38,16 +39,20 @@ impl FFmpeg {
     }
 
     /// Set custom options for the FFmpeg command
-    pub fn set_options(&mut self, options: FFmpegOptions) -> &mut Self {
-        self.options = options;
+    pub fn set_ffmpeg_options(&mut self, options: FFmpegOptions) -> &mut Self {
+        self.ffmpeg_options = options;
         self
     }
 
     /// Add an input to the FFmpeg command
-    // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
-    pub fn add_input(&mut self, input: Input) -> &mut Self {
+    pub fn add_input(&mut self, mut input: Input) -> Input {
+        let idx = self
+            .input_counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        input.set_idx(idx);
+        let input_copy = input.clone();
         self.inputs.push(input);
-        self
+        input_copy
     }
 
     /// Add an input to the FFmpeg command (mutable reference version)
@@ -66,9 +71,15 @@ impl FFmpeg {
     }
 
     /// Add a filter to the FFmpeg command
-    pub fn add_filter(&mut self, filter: Filter) -> &mut Self {
+    pub fn add_filter<I>(&mut self, mut filter: Filter, inputs: I) -> Filter
+    where
+        I: IntoIterator<Item = StreamInput>,
+    {
+        // Set the filter inputs (similar to the r function in Filter)
+        filter.inputs = inputs.into_iter().collect();
+        let filter_copy = filter.clone();
         self.filters.push(filter);
-        self
+        filter_copy
     }
 
     /// Add multiple filters to the FFmpeg command
@@ -86,9 +97,8 @@ impl FFmpeg {
     }
 
     /// Add an output to the FFmpeg command
-    pub fn add_output(mut self, output: Output) -> Self {
+    pub fn add_output(&mut self, output: Output) {
         self.outputs.push(output);
-        self
     }
 
     /// Add multiple outputs to the FFmpeg command
@@ -111,15 +121,15 @@ impl FFmpeg {
 
         // Add log level
         args.push("-v".to_string());
-        args.push(self.options.log_level.to_string());
+        args.push(self.ffmpeg_options.log_level.to_string());
 
         // Add overwrite flag
-        if self.options.overwrite {
+        if self.ffmpeg_options.overwrite {
             args.push("-y".to_string());
         }
 
         // Add custom arguments
-        args.extend(self.options.custom_args.clone());
+        args.extend(self.ffmpeg_options.custom_args.clone());
 
         // Add inputs
         for input in &self.inputs {
@@ -156,30 +166,30 @@ impl FFmpeg {
     /// Print the command that would be executed (dry run)
     fn dry_run(&mut self) {
         let args = self.build_args();
-        let mut command_parts = vec![self.options.binary_path.clone()];
+        let mut command_parts = vec![self.ffmpeg_options.binary_path.clone()];
         command_parts.extend(args);
         println!("{}", command_parts.join(" "));
     }
 
     /// Execute the FFmpeg command
     pub async fn run(&mut self) -> Result<()> {
-        if self.options.dry_run {
+        if self.ffmpeg_options.dry_run {
             self.dry_run();
             return Ok(());
         }
 
-        if self.options.debug {
+        if self.ffmpeg_options.debug {
             self.dry_run();
         }
 
         let args = self.build_args();
-        let mut cmd = Command::new(&self.options.binary_path);
+        let mut cmd = Command::new(&self.ffmpeg_options.binary_path);
         cmd.args(&args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
         // Set environment variables
-        for (key, value) in &self.options.env_vars {
+        for (key, value) in &self.ffmpeg_options.env_vars {
             cmd.env(key, value);
         }
 
@@ -209,7 +219,7 @@ mod tests {
     #[test]
     fn test_custom_options() {
         let args = FFmpeg::new()
-            .set_options(
+            .set_ffmpeg_options(
                 FFmpegOptions::new()
                     .log_level(LogLevel::Debug)
                     .overwrite(true),

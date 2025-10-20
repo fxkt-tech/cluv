@@ -153,7 +153,8 @@ impl Editor {
     pub async fn export(&self, options: ExportOptions) -> Result<()> {
         self.validate()?;
 
-        let mut ffmpeg = FFmpeg::new().set_options(self.ffmpeg_options.clone());
+        let mut ffmpeg = FFmpeg::new();
+        ffmpeg.set_ffmpeg_options(self.ffmpeg_options.clone());
 
         // Add inputs for all referenced materials
         let mut material_inputs: HashMap<String, Input> = HashMap::new();

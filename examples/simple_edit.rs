@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
     .position(Position::new(100, 200))
     .scale(Dimension::new(1280, 720));
 
-    editor.add_segment_to_track(&video_track.id(), video_segment)?;
+    // editor.add_segment_to_track(&video_track.id(), video_segment)?;
 
     println!("Starting export...");
     let proto = editor.save_to_protocol().to_json()?;
