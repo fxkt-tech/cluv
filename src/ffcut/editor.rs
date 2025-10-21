@@ -112,9 +112,10 @@ impl Editor {
     }
 
     /// Add track to the session
-    pub fn add_track(&mut self, track: Track) -> &mut Self {
+    pub fn add_track(&mut self, track: Track) -> String {
+        let id = track.id().to_string();
         self.session.add_track(track);
-        self
+        id
     }
 
     /// Create and add a video track
@@ -143,6 +144,14 @@ impl Editor {
             )))
         }
     }
+
+    /// Fix the current session
+    // pub fn fix(&mut self) -> Result<()> {
+    //     for m in self.session.materials {
+    //         // self.ffmpeg_options
+    //         self.src()
+    //     }
+    // }
 
     /// Validate the current session
     pub fn validate(&self) -> Result<()> {

@@ -5,12 +5,12 @@
 
 use cluv::{
     ffcut::{
-        editor::Editor,
+        editor::{Editor, ExportOptions},
         material::Material,
         segment::{Position, Segment, TimeRange},
         stage::Stage,
     },
-    Dimension, FFmpegOptions, LogLevel, Result, Track,
+    Dimension, ExportType, FFmpegOptions, LogLevel, Result, Track,
 };
 
 #[tokio::main]
@@ -20,19 +20,19 @@ async fn main() -> Result<()> {
 
     // make a editor
     let mut editor = Editor::new()
-        .set_ffmpeg_options(FFmpegOptions::new().debug(true).log_level(LogLevel::Debug))
+        .set_ffmpeg_options(
+            FFmpegOptions::new()
+                .debug(true)
+                .dry_run(true)
+                .log_level(LogLevel::Debug),
+        )
         .set_stage(Stage::new(960, 540));
 
     // Add materials (equivalent to the Go example paths)
-    let video_material = Material::video("/Users/justyer/Desktop/qwer.mp4");
-    let video_material_id = video_material.id().to_string();
-
-    editor.add_material(video_material);
+    let video_material_id = editor.add_material(Material::video("examples/metadata/in.mp4"));
 
     // Create video track and add segment
-    let video_track = Track::video();
-    let video_track_id = video_track.id.clone();
-    editor.add_track(video_track);
+    let video_track_id = editor.add_track(Track::video());
 
     let video_segment = Segment::video(
         &video_material_id,
@@ -44,16 +44,21 @@ async fn main() -> Result<()> {
 
     editor.add_segment_to_track(&video_track_id, video_segment)?;
 
+    // editor.fix();
+
     println!("Starting export...");
-    let proto = editor.save_to_protocol().to_json()?;
-    println!("{proto}");
-    // match editor.export(export_options).await {
-    //     Ok(()) => println!("Export completed successfully: outout.wav"),
-    //     Err(e) => {
-    //         println!("Export failed: {}", e);
-    //         return Err(e);
-    //     }
-    // }
+
+    // let proto = editor.save_to_protocol().to_json()?;
+    // println!("{proto}");
+
+    let export_options = ExportOptions::new("outout.mp4", ExportType::Video);
+    match editor.export(export_options).await {
+        Ok(()) => println!("Export completed successfully: outout.mp4"),
+        Err(e) => {
+            println!("Export failed: {}", e);
+            return Err(e);
+        }
+    }
 
     println!("=== Simple Edit Example Completed ===");
     Ok(())
