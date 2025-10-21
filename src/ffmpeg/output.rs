@@ -2,7 +2,6 @@
 
 use crate::ffmpeg::codec::{AudioCodec, Format, PixelFormat, VideoCodec};
 use crate::ffmpeg::stream::StreamInput;
-use crate::ffmpeg::FFmpeg;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -87,11 +86,6 @@ impl Output {
             hls_flags: None,
             hls_playlist_type: None,
         }
-    }
-
-    /// Add this input to an FFmpeg instance
-    pub fn ffcx(self, ffmpeg: &mut FFmpeg) {
-        ffmpeg.add_output_mut(self.clone());
     }
 
     /// Set video codec

@@ -1,8 +1,8 @@
 //! Input handling for FFmpeg operations
 
-use std::{fmt, sync::atomic::Ordering};
+use std::fmt;
 
-use crate::ffmpeg::{stream::Stream, FFmpeg};
+use crate::ffmpeg::stream::Stream;
 
 /// FFmpeg input configuration
 #[derive(Debug, Clone)]
@@ -61,14 +61,6 @@ impl Input {
             format: Some("concat".to_string()),
             options: vec![("safe".to_string(), "0".to_string())],
         }
-    }
-
-    /// Add this input to an FFmpeg instance
-    pub fn ffcx(mut self, ffmpeg: &mut FFmpeg) -> Self {
-        let idx = ffmpeg.input_counter.fetch_add(1, Ordering::SeqCst);
-        self.set_idx(idx);
-        ffmpeg.add_input_mut(self.clone());
-        self
     }
 
     pub fn set_idx(&mut self, idx: u32) -> &mut Self {

@@ -8,11 +8,12 @@ pub mod stream;
 pub mod util;
 
 use crate::error::{CluvError, Result};
-use crate::ffmpeg::stream::StreamInput;
+use crate::ffmpeg::stream::{Stream, StreamInput, Streamable};
+
 use crate::ffmpeg::{filter::Filter, input::Input, output::Output};
 use crate::options::FFmpegOptions;
 use std::process::Stdio;
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::process::Command;
 
 /// FFmpeg command builder and executor
@@ -46,73 +47,34 @@ impl FFmpeg {
 
     /// Add an input to the FFmpeg command
     pub fn add_input(&mut self, mut input: Input) -> Input {
-        let idx = self
-            .input_counter
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let idx = self.input_counter.fetch_add(1, Ordering::SeqCst);
         input.set_idx(idx);
-        let input_copy = input.clone();
-        self.inputs.push(input);
-        input_copy
+        self.inputs.push(input.clone());
+        input
     }
 
-    /// Add an input to the FFmpeg command (mutable reference version)
-    pub fn add_input_mut(&mut self, input: Input) {
-        self.inputs.push(input);
-    }
-
-    /// Add multiple inputs to the FFmpeg command
-    // #[deprecated(since = "0.1.0", note = "ff会自动添加，不需要手动添加了")]
-    pub fn add_inputs<I>(&mut self, inputs: I) -> &mut Self
+    /// Add a filter to the FFmpeg command with automatic type conversion
+    pub fn add_filter<I, S>(&mut self, mut filter: Filter, inputs: I) -> Stream
     where
-        I: IntoIterator<Item = Input>,
+        I: IntoIterator<Item = S>,
+        S: Into<StreamInput>,
     {
-        self.inputs.extend(inputs);
-        self
-    }
-
-    /// Add a filter to the FFmpeg command
-    pub fn add_filter<I>(&mut self, mut filter: Filter, inputs: I) -> Filter
-    where
-        I: IntoIterator<Item = StreamInput>,
-    {
-        // Set the filter inputs (similar to the r function in Filter)
-        filter.inputs = inputs.into_iter().collect();
+        filter.inputs = inputs.into_iter().map(|s| s.into()).collect();
         let filter_copy = filter.clone();
         self.filters.push(filter);
-        filter_copy
+        filter_copy.to_stream()
     }
 
-    /// Add multiple filters to the FFmpeg command
-    pub fn add_filters<I>(&mut self, filters: I) -> &mut Self
-    where
-        I: IntoIterator<Item = Filter>,
-    {
-        self.filters.extend(filters);
-        self
-    }
-
-    pub fn add_filter_mut(mut self, filter: Filter) -> Self {
+    /// Add a filter to the FFmpeg command with automatic type conversion
+    pub fn add_filter_without_inputs(&mut self, filter: Filter) -> Stream {
+        let filter_copy = filter.clone();
         self.filters.push(filter);
-        self
+        filter_copy.to_stream()
     }
 
     /// Add an output to the FFmpeg command
     pub fn add_output(&mut self, output: Output) {
         self.outputs.push(output);
-    }
-
-    /// Add multiple outputs to the FFmpeg command
-    pub fn add_outputs<I>(mut self, outputs: I) -> Self
-    where
-        I: IntoIterator<Item = Output>,
-    {
-        self.outputs.extend(outputs);
-        self
-    }
-
-    pub fn add_output_mut(&mut self, output: Output) -> &mut Self {
-        self.outputs.push(output);
-        self
     }
 
     /// Build the command line arguments

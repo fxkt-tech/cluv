@@ -9,7 +9,6 @@ use crate::ffcut::{
     track::Track,
     EditSession,
 };
-use crate::ffmpeg::stream::Streamable;
 use crate::ffmpeg::{
     codec::{AudioCodec, VideoCodec},
     filter::Filter,
@@ -106,9 +105,10 @@ impl Editor {
     }
 
     /// Add material to the session
-    pub fn add_material(&mut self, material: Material) -> &mut Self {
+    pub fn add_material(&mut self, material: Material) -> String {
+        let id = material.id().to_string();
         self.session.add_material(material);
-        self
+        id
     }
 
     /// Add track to the session
@@ -162,12 +162,11 @@ impl Editor {
             for segment in &track.segments {
                 if !material_inputs.contains_key(&segment.material_id) {
                     if let Some(material) = self.session.get_material(&segment.material_id) {
-                        let input = Input::with_time(
+                        let input = ffmpeg.add_input(Input::with_time(
                             segment.source_timerange.start as f32 / 1000.0,
                             segment.source_timerange.duration as f32 / 1000.0,
                             material.src(),
-                        )
-                        .ffcx(&mut ffmpeg);
+                        ));
                         material_inputs.insert(segment.material_id.clone(), input);
                     }
                 }
@@ -175,12 +174,11 @@ impl Editor {
         }
 
         // Create stage background
-        let mut stage_bg = Filter::color(
+        let mut stage_bg = ffmpeg.add_filter_without_inputs(Filter::color(
             self.session.stage.width,
             self.session.stage.height,
             self.session.total_duration() as f64 / 1000.0,
-        )
-        .ffcx(&mut ffmpeg);
+        ));
 
         // Process video tracks in reverse order (bottom to top)
         let video_tracks = self.session.video_tracks();
@@ -199,43 +197,36 @@ impl Editor {
 
                     // 视频流：缩放视频
                     if let Some(scale) = segment.scale {
-                        let f_scale = Filter::scale(scale.width, scale.height)
-                            .r(f_last_v)
-                            .ffcx(&mut ffmpeg);
-                        f_last_v = f_scale.to_stream();
+                        f_last_v =
+                            ffmpeg.add_filter(Filter::scale(scale.width, scale.height), [f_last_v]);
                     }
 
                     // 视频流：是否需要倍速
                     if segment.needs_speed_adjustment() {
                         let speed = segment.playback_speed();
-                        let f_setpts = Filter::setpts(format!("1/{speed}*PTS"))
-                            .r(f_last_v)
-                            .ffcx(&mut ffmpeg);
-                        f_last_v = f_setpts.to_stream();
+                        f_last_v =
+                            ffmpeg.add_filter(Filter::setpts(format!("1/{speed}*PTS")), [f_last_v]);
                     }
 
                     // 视频流：设置本段视频在时间线上的位置
-                    let f_delay = Filter::setpts(format!("PTS+{target_start}/TB"))
-                        .r(f_last_v)
-                        .ffcx(&mut ffmpeg);
-                    f_last_v = f_delay.to_stream();
+                    f_last_v = ffmpeg
+                        .add_filter(Filter::setpts(format!("PTS+{target_start}/TB")), [f_last_v]);
 
                     // 视频流：合并视频流到主舞台
                     let x = segment.position.map(|p| p.x).unwrap_or(0);
                     let y = segment.position.map(|p| p.y).unwrap_or(0);
-                    let f_overlay = Filter::overlay_with_enable(
-                        x,
-                        y,
-                        format!(
-                            "enable='between(t,{},{})'",
-                            target_start,
-                            target_start + target_duration
+                    stage_bg = ffmpeg.add_filter(
+                        Filter::overlay_with_enable(
+                            x,
+                            y,
+                            format!(
+                                "enable='between(t,{},{})'",
+                                target_start,
+                                target_start + target_duration
+                            ),
                         ),
-                    )
-                    .r(stage_bg)
-                    .r(f_last_v)
-                    .ffcx(&mut ffmpeg);
-                    stage_bg = f_overlay;
+                        [stage_bg, f_last_v],
+                    );
                 }
             }
         }
@@ -260,32 +251,26 @@ impl Editor {
                     let target_duration = segment.target_timerange.duration as f64 / 1000.0;
 
                     if source_start > 0.0 || source_duration != target_duration {
-                        let f_atrim = Filter::atrim(source_start, source_duration)
-                            .r(f_last_a)
-                            .ffcx(&mut ffmpeg);
-                        f_last_a = f_atrim.to_stream();
+                        f_last_a = ffmpeg
+                            .add_filter(Filter::atrim(source_start, source_duration), [f_last_a]);
 
                         // Reset audio PTS
-                        let f_asetpts = Filter::asetpts("PTS-STARTPTS")
-                            .r(f_last_a)
-                            .ffcx(&mut ffmpeg);
-                        f_last_a = f_asetpts.to_stream();
+                        f_last_a = ffmpeg.add_filter(Filter::asetpts("PTS-STARTPTS"), [f_last_a]);
                     }
 
                     // Apply speed adjustment for audio
                     if segment.needs_speed_adjustment() {
                         let speed = segment.playback_speed();
-                        let f_atempo = Filter::atempo(speed).r(f_last_a).ffcx(&mut ffmpeg);
-                        f_last_a = f_atempo.to_stream();
+                        f_last_a = ffmpeg.add_filter(Filter::atempo(speed), [f_last_a]);
                     }
 
                     // Add delay for positioning in time
                     if target_start > 0.0 {
-                        let adelay_filter = Filter::with_name("adelay")
-                            .param(format!("{}ms", (target_start * 1000.0) as i32))
-                            .r(f_last_a)
-                            .ffcx(&mut ffmpeg);
-                        f_last_a = adelay_filter.to_stream();
+                        f_last_a = ffmpeg.add_filter(
+                            Filter::with_name("adelay")
+                                .param(format!("{}ms", (target_start * 1000.0) as i32)),
+                            [f_last_a],
+                        );
                     }
 
                     audio_inputs.push(f_last_a);
@@ -295,16 +280,13 @@ impl Editor {
 
         // Mix all audio tracks
         let sound_bg = if audio_inputs.is_empty() {
-            let sound_bg =
-                Filter::anullsrc(self.session.total_duration() as f32 / 1000.0).ffcx(&mut ffmpeg);
-            sound_bg.to_stream()
+            ffmpeg.add_filter_without_inputs(Filter::anullsrc(
+                self.session.total_duration() as f32 / 1000.0,
+            ))
         } else if audio_inputs.len() == 1 {
             audio_inputs[0].clone()
         } else {
-            let f_amix = Filter::amix(audio_inputs.len() as i32)
-                .refs(audio_inputs)
-                .ffcx(&mut ffmpeg);
-            f_amix.to_stream()
+            ffmpeg.add_filter(Filter::amix(audio_inputs.len() as i32), audio_inputs)
         };
 
         // Create output
@@ -347,12 +329,7 @@ impl Editor {
             }
         }
 
-        // Add custom options
-        for (key, value) in &options.custom_options {
-            output = output.option(key, value);
-        }
-
-        output.ffcx(&mut ffmpeg);
+        ffmpeg.add_output(output);
 
         ffmpeg.run().await
     }
@@ -483,7 +460,9 @@ mod tests {
         let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
         editor.add_material(material);
 
-        editor.add_video_track();
+        let track = Track::video();
+        let track_id = track.id.clone();
+        editor.add_track(track);
 
         let segment = Segment::new(
             "segment1",
@@ -493,10 +472,10 @@ mod tests {
             TimeRange::new(0, 5000),
         );
 
-        let result = editor.add_segment_to_track("track1", segment);
+        let result = editor.add_segment_to_track(&track_id, segment);
         assert!(result.is_ok());
 
-        let track = editor.session.get_track("track1").unwrap();
+        let track = editor.session.get_track(&track_id).unwrap();
         assert_eq!(track.segments.len(), 1);
     }
 

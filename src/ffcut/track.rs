@@ -58,8 +58,8 @@ impl Track {
         }
     }
 
-    pub fn id(&self) -> &str {
-        &self.id
+    pub fn id(self) -> String {
+        self.id.clone()
     }
 
     /// Create a video track

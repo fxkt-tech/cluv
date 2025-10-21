@@ -25,22 +25,24 @@ async fn main() -> Result<()> {
 
     // Add materials (equivalent to the Go example paths)
     let video_material = Material::video("/Users/justyer/Desktop/qwer.mp4");
+    let video_material_id = video_material.id().to_string();
 
-    editor.add_material(video_material.clone());
+    editor.add_material(video_material);
 
     // Create video track and add segment
     let video_track = Track::video();
+    let video_track_id = video_track.id.clone();
     editor.add_track(video_track);
 
     let video_segment = Segment::video(
-        video_material.id(),
+        &video_material_id,
         TimeRange::new(0, 5000),
         TimeRange::new(0, 5000),
     )
     .position(Position::new(100, 200))
     .scale(Dimension::new(1280, 720));
 
-    // editor.add_segment_to_track(&video_track.id(), video_segment)?;
+    editor.add_segment_to_track(&video_track_id, video_segment)?;
 
     println!("Starting export...");
     let proto = editor.save_to_protocol().to_json()?;

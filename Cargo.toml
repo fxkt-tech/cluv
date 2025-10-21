@@ -32,10 +32,3 @@ svg-support = ["svg"]
 
 [dev-dependencies]
 tempfile = "3.0"
-
-[examples]
-basic_transcode = { path = "examples/transcode.rs" }
-filter = { path = "examples/filter.rs" }
-mediainfo = { path = "examples/mediainfo.rs" }
-edit_example = { path = "examples/edit_example.rs" }
-simple_edit = { path = "examples/simple_edit.rs" }

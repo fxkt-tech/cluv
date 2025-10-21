@@ -17,11 +17,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let i_main = ff.add_input(Input::with_simple("examples/metadata/in.mp4"));
     let i_logo = ff.add_input(Input::with_simple("examples/metadata/logo.jpg"));
 
-    let f_scale = ff.add_filter(Filter::scale(1280, 720), [i_main.video().into()]);
-    let f_overlay = ff.add_filter(
-        Filter::overlay(10, 10),
-        [f_scale.into(), i_logo.video().into()],
-    );
+    let f_scale = ff.add_filter(Filter::scale(1280, 720), [i_main.video()]);
+    let f_overlay = ff.add_filter(Filter::overlay(10, 10), [f_scale, i_logo.video()]);
 
     ff.add_output(
         Output::with_simple("examples/metadata/out.mp4")

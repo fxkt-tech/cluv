@@ -1,9 +1,6 @@
 //! Filter handling for FFmpeg operations
 
-use crate::ffmpeg::{
-    stream::{StreamInput, Streamable},
-    FFmpeg,
-};
+use crate::ffmpeg::stream::{StreamInput, Streamable};
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -81,12 +78,6 @@ impl Filter {
     pub fn r<S: Into<StreamInput>>(mut self, input: S) -> Self {
         self.inputs.push(input.into());
         self
-    }
-
-    // Add this input to an FFmpeg instance
-    pub fn ffcx(self, ffmpeg: &mut FFmpeg) -> Self {
-        let inputs = self.inputs.clone();
-        ffmpeg.add_filter(self, inputs)
     }
 
     /// Set input streams or labels
