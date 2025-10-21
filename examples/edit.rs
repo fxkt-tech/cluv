@@ -10,49 +10,61 @@ use cluv::{
         segment::{Position, Segment, TimeRange},
         stage::Stage,
     },
-    Dimension, ExportType, FFmpegOptions, LogLevel, Result, Track,
+    Dimension, ExportType, FFmpegOptions, FFprobeOptions, LogLevel, Result, Track,
 };
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
     env_logger::init();
 
-    // make a editor
     let mut editor = Editor::new()
+        .set_stage(Stage::new(960, 540))
         .set_ffmpeg_options(
             FFmpegOptions::new()
                 .debug(true)
                 .dry_run(true)
                 .log_level(LogLevel::Debug),
         )
-        .set_stage(Stage::new(960, 540));
+        .set_ffprobe_options(FFprobeOptions::new().debug(true));
 
-    // Add materials (equivalent to the Go example paths)
     let video_material_id = editor.add_material(Material::video("examples/metadata/in.mp4"));
+    let video_material2_id = editor.add_material(Material::video("examples/metadata/in2.mp4"));
 
-    // Create video track and add segment
     let video_track_id = editor.add_track(Track::video());
 
-    let video_segment = Segment::video(
-        &video_material_id,
-        TimeRange::new(0, 5000),
-        TimeRange::new(0, 5000),
-    )
-    .position(Position::new(100, 200))
-    .scale(Dimension::new(1280, 720));
+    editor.add_segment_to_track(
+        &video_track_id,
+        Segment::video(
+            &video_material_id,
+            TimeRange::new(0, 5000),
+            TimeRange::new(0, 5000),
+        )
+        .position(Position::new(100, 200))
+        .scale(Dimension::new(1280, 720)),
+    )?;
 
-    editor.add_segment_to_track(&video_track_id, video_segment)?;
+    editor.add_segment_to_track(
+        &video_track_id,
+        Segment::video(
+            &video_material2_id,
+            TimeRange::new(5000, 5000),
+            TimeRange::new(0, 5000),
+        )
+        .position(Position::new(100, 200))
+        .scale(Dimension::new(1280, 720)),
+    )?;
 
-    // editor.fix();
+    editor.fix().await?;
 
     println!("Starting export...");
 
-    // let proto = editor.save_to_protocol().to_json()?;
-    // println!("{proto}");
+    let proto = editor.save_to_protocol().to_json()?;
+    println!("{proto}");
 
-    let export_options = ExportOptions::new("outout.mp4", ExportType::Video);
-    match editor.export(export_options).await {
+    match editor
+        .export(ExportOptions::new("outout.mp4", ExportType::Video))
+        .await
+    {
         Ok(()) => println!("Export completed successfully: outout.mp4"),
         Err(e) => {
             println!("Export failed: {}", e);

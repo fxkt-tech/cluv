@@ -16,7 +16,8 @@ use crate::ffmpeg::{
     output::Output,
     FFmpeg,
 };
-use crate::FFmpegOptions;
+use crate::ffprobe::FFprobe;
+use crate::{FFmpegOptions, FFprobeOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -25,6 +26,8 @@ use std::collections::HashMap;
 pub struct Editor {
     /// FFmpeg options
     ffmpeg_options: FFmpegOptions,
+    /// FFprobe options
+    ffprobe_options: FFprobeOptions,
     /// Current editing session
     session: EditSession,
 }
@@ -55,6 +58,7 @@ impl Editor {
     pub fn new() -> Self {
         Self {
             ffmpeg_options: FFmpegOptions::new(),
+            ffprobe_options: FFprobeOptions::new(),
             session: EditSession::default(),
         }
     }
@@ -68,6 +72,12 @@ impl Editor {
     /// Set ffmpeg options
     pub fn set_ffmpeg_options(mut self, options: FFmpegOptions) -> Self {
         self.ffmpeg_options = options;
+        self
+    }
+
+    /// Set ffprobe options
+    pub fn set_ffprobe_options(mut self, options: FFprobeOptions) -> Self {
+        self.ffprobe_options = options;
         self
     }
 
@@ -146,12 +156,167 @@ impl Editor {
     }
 
     /// Fix the current session
-    // pub fn fix(&mut self) -> Result<()> {
-    //     for m in self.session.materials {
-    //         // self.ffmpeg_options
-    //         self.src()
-    //     }
-    // }
+    pub async fn fix(&mut self) -> Result<()> {
+        let ffprobe_options = self.ffprobe_options.clone();
+
+        for material in &mut self.session.materials {
+            let src = material.src().to_string();
+            let media_info = FFprobe::new()
+                .set_options(ffprobe_options.clone())
+                .input(&src)
+                .run()
+                .await?;
+
+            // Fill missing fields based on material type
+            match material {
+                Material::Video(ref mut video) => {
+                    // Find video stream
+                    if let Some(video_stream) = media_info
+                        .streams
+                        .iter()
+                        .find(|s| s.codec_type.as_deref() == Some("video"))
+                    {
+                        // Fill dimensions if missing
+                        if video.dimension.width == 0 || video.dimension.height == 0 {
+                            if let (Some(width), Some(height)) =
+                                (video_stream.width, video_stream.height)
+                            {
+                                video.dimension.width = width;
+                                video.dimension.height = height;
+                            }
+                        }
+
+                        // Fill frame rate if missing
+                        if video.fps.is_none() {
+                            if let Some(r_frame_rate) = &video_stream.r_frame_rate {
+                                if let Ok(fps) = Self::parse_fraction_to_float(r_frame_rate) {
+                                    video.fps = Some(fps);
+                                }
+                            }
+                        }
+
+                        // Fill codec if missing
+                        if video.codec.is_none() {
+                            video.codec = video_stream.codec_name.clone();
+                        }
+
+                        // Fill bitrate if missing
+                        if video.bitrate.is_none() {
+                            if let Some(bit_rate) = &video_stream.bit_rate {
+                                if let Ok(bitrate) = bit_rate.parse::<u32>() {
+                                    video.bitrate = Some(bitrate / 1000); // Convert to kbps
+                                }
+                            }
+                        }
+                    }
+
+                    // Fill duration if missing
+                    if video.duration.is_none() {
+                        if let Some(format) = &media_info.format {
+                            if let Some(duration_str) = &format.duration {
+                                if let Ok(duration_seconds) = duration_str.parse::<f32>() {
+                                    video.duration = Some((duration_seconds * 1000.0) as u32);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Material::Audio(ref mut audio) => {
+                    // Find audio stream
+                    if let Some(audio_stream) = media_info
+                        .streams
+                        .iter()
+                        .find(|s| s.codec_type.as_deref() == Some("audio"))
+                    {
+                        // Fill sample rate if missing
+                        if audio.sample_rate.is_none() {
+                            if let Some(sample_rate_str) = &audio_stream.sample_rate {
+                                if let Ok(sample_rate) = sample_rate_str.parse::<u32>() {
+                                    audio.sample_rate = Some(sample_rate);
+                                }
+                            }
+                        }
+
+                        // Fill channels if missing
+                        if audio.channels.is_none() {
+                            if let Some(channels) = audio_stream.channels {
+                                audio.channels = Some(channels as u32);
+                            }
+                        }
+
+                        // Fill codec if missing
+                        if audio.codec.is_none() {
+                            audio.codec = audio_stream.codec_name.clone();
+                        }
+
+                        // Fill bitrate if missing
+                        if audio.bitrate.is_none() {
+                            if let Some(bit_rate) = &audio_stream.bit_rate {
+                                if let Ok(bitrate) = bit_rate.parse::<u32>() {
+                                    audio.bitrate = Some(bitrate / 1000); // Convert to kbps
+                                }
+                            }
+                        }
+                    }
+
+                    // Fill duration if missing
+                    if audio.duration.is_none() {
+                        if let Some(format) = &media_info.format {
+                            if let Some(duration_str) = &format.duration {
+                                if let Ok(duration_seconds) = duration_str.parse::<f32>() {
+                                    audio.duration = Some((duration_seconds * 1000.0) as u32);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Material::Image(ref mut image) => {
+                    // Find video stream (images are treated as video streams by ffprobe)
+                    if let Some(image_stream) = media_info
+                        .streams
+                        .iter()
+                        .find(|s| s.codec_type.as_deref() == Some("video"))
+                    {
+                        // Fill dimensions if missing
+                        if image.dimension.width == 0 || image.dimension.height == 0 {
+                            if let (Some(width), Some(height)) =
+                                (image_stream.width, image_stream.height)
+                            {
+                                image.dimension.width = width;
+                                image.dimension.height = height;
+                            }
+                        }
+
+                        // Fill format if missing
+                        if image.format.is_none() {
+                            image.format = image_stream.codec_name.clone();
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Helper function to parse fraction strings like "30/1" to float
+    fn parse_fraction_to_float(fraction: &str) -> Result<f32> {
+        let parts: Vec<&str> = fraction.split('/').collect();
+        if parts.len() == 2 {
+            let numerator: f32 = parts[0]
+                .parse()
+                .map_err(|_| CluvError::invalid_params("Invalid numerator in fraction"))?;
+            let denominator: f32 = parts[1]
+                .parse()
+                .map_err(|_| CluvError::invalid_params("Invalid denominator in fraction"))?;
+            if denominator != 0.0 {
+                return Ok(numerator / denominator);
+            }
+        }
+        Err(CluvError::invalid_params("Invalid fraction format"))
+    }
 
     /// Validate the current session
     pub fn validate(&self) -> Result<()> {
