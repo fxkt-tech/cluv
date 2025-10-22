@@ -177,9 +177,9 @@ impl Material {
     }
 
     /// Create an audio material
-    pub fn audio<S1: Into<String>, S2: Into<String>>(id: S1, src: S2) -> Self {
+    pub fn audio<S: Into<String>>(src: S) -> Self {
         Material::Audio(AudioMaterial {
-            id: id.into(),
+            id: Uuid::new_v4().into(),
             src: src.into(),
             duration: None,
             sample_rate: None,
@@ -190,16 +190,14 @@ impl Material {
     }
 
     /// Create an image material
-    pub fn image<S1: Into<String>, S2: Into<String>>(
-        id: S1,
-        src: S2,
-        width: i32,
-        height: i32,
-    ) -> Self {
+    pub fn image<S: Into<String>>(src: S) -> Self {
         Material::Image(ImageMaterial {
-            id: id.into(),
+            id: Uuid::new_v4().into(),
             src: src.into(),
-            dimension: Dimension { width, height },
+            dimension: Dimension {
+                width: 0,
+                height: 0,
+            },
             format: None,
         })
     }
@@ -507,8 +505,8 @@ mod tests {
     #[test]
     fn test_material_enum() {
         let video = Material::video("test.mp4");
-        let audio = Material::audio("a1", "test.wav");
-        let image = Material::image("i1", "test.jpg", 1920, 1080);
+        let audio = Material::audio("test.wav");
+        let image = Material::image("test.jpg");
 
         assert_eq!(video.id(), "v1");
         assert_eq!(video.material_type(), MaterialType::Video);

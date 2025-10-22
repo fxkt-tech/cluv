@@ -114,11 +114,28 @@ impl Editor {
         &mut self.session
     }
 
+    /// ---
+
     /// Add material to the session
     pub fn add_material(&mut self, material: Material) -> String {
         let id = material.id().to_string();
         self.session.add_material(material);
         id
+    }
+
+    /// Add video material to the session
+    pub fn add_video_material(&mut self, src: &str) -> String {
+        self.add_material(Material::video(src))
+    }
+
+    /// Add audio material to the session
+    pub fn add_audio_material(&mut self, src: &str) -> String {
+        self.add_material(Material::audio(src))
+    }
+
+    /// Add image material to the session
+    pub fn add_image_material(&mut self, src: &str) -> String {
+        self.add_material(Material::image(src))
     }
 
     /// Add track to the session
@@ -129,17 +146,13 @@ impl Editor {
     }
 
     /// Create and add a video track
-    pub fn add_video_track(&mut self) -> &mut Self {
-        let track = Track::video();
-        self.session.add_track(track);
-        self
+    pub fn add_video_track(&mut self) -> String {
+        self.add_track(Track::video())
     }
 
     /// Create and add an audio track
-    pub fn add_audio_track(&mut self) -> &mut Self {
-        let track = Track::audio();
-        self.session.add_track(track);
-        self
+    pub fn add_audio_track(&mut self) -> String {
+        self.add_track(Track::audio())
     }
 
     /// Add segment to track
@@ -156,13 +169,11 @@ impl Editor {
     }
 
     /// Fix the current session
-    pub async fn fix(&mut self) -> Result<()> {
-        let ffprobe_options = self.ffprobe_options.clone();
-
+    pub async fn fix_materials(&mut self) -> Result<()> {
         for material in &mut self.session.materials {
             let src = material.src().to_string();
             let media_info = FFprobe::new()
-                .set_options(ffprobe_options.clone())
+                .set_options(self.ffprobe_options.clone())
                 .input(&src)
                 .run()
                 .await?;
@@ -394,7 +405,7 @@ impl Editor {
                             x,
                             y,
                             format!(
-                                "enable='between(t,{},{})'",
+                                "'between(t,{},{})'",
                                 target_start,
                                 target_start + target_duration
                             ),

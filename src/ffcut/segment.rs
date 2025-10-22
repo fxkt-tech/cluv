@@ -91,17 +91,20 @@ impl Segment {
     }
 
     /// Create a video segment
-    pub fn video<S: Into<String>>(
+    pub fn video<S>(
         material_id: S,
         target_timerange: TimeRange,
         source_timerange: TimeRange,
-    ) -> Self {
+    ) -> Self
+    where
+        S: Into<String>,
+    {
         Self::new(
             Uuid::new_v4(),
             SegmentType::Video,
             material_id,
-            target_timerange,
-            source_timerange,
+            target_timerange.into(),
+            source_timerange.into(),
         )
     }
 
