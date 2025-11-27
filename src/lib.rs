@@ -15,6 +15,7 @@
 //!
 //! ## Example
 //!
+pub mod composer;
 pub mod error;
 pub mod ffcut;
 pub mod ffmpeg;
