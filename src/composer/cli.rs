@@ -38,6 +38,9 @@ pub struct Args {
     pub sample_rate: u32,
 
     #[arg(long)]
+    pub input_xml: Option<String>,
+
+    #[arg(long)]
     pub prompt: Option<String>,
 
     #[arg(long, default_value_t = 480)]
