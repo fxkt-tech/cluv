@@ -1,11 +1,11 @@
-use cluv::ffmpeg::{
+use kiva_cut::ffmpeg::{
     codec::{AudioCodec, VideoCodec},
     filter::Filter,
     input::Input,
     output::Output,
     FFmpeg,
 };
-use cluv::options::FFmpegOptions;
+use kiva_cut::options::FFmpegOptions;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -3,7 +3,7 @@
 //! This example closely follows the structure of the Go main.go example,
 //! creating a composition with video and audio tracks and exporting as audio.
 
-use cluv::{
+use kiva_cut::{
     ffcut::{
         editor::{Editor, ExportOptions},
         segment::Segment,

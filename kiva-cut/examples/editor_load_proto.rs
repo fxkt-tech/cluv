@@ -5,7 +5,7 @@
 //! 2. Load the composition from JSON back into an editor
 //! 3. Export the loaded composition
 
-use cluv::{
+use kiva_cut::{
     ffcut::{
         editor::{Editor, ExportOptions},
         segment::Segment,

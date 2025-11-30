@@ -1,4 +1,4 @@
-use cluv::{ffprobe::FFprobe, options::FFprobeOptions};
+use kiva_cut::{ffprobe::FFprobe, options::FFprobeOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
