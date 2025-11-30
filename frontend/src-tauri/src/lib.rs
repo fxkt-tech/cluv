@@ -6,7 +6,8 @@ mod resources;
 
 use commands::{
     create_project, delete_project, get_default_projects_dir, get_project_by_id, import_resource,
-    list_projects_history, list_resources, open_project_dir, update_project_last_modified,
+    import_resource_file, list_projects_history, list_resources, open_project_dir,
+    update_project_last_modified,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +28,7 @@ pub fn run() {
             create_project,
             list_resources,
             import_resource,
+            import_resource_file,
             open_project_dir,
             delete_project,
             list_projects_history,

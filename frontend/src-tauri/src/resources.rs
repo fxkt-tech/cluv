@@ -77,3 +77,40 @@ pub fn import_resource_to_project(
         resource_type,
     })
 }
+
+/// Import a resource into project from base64 content
+pub fn import_resource_from_base64(
+    project_path: &str,
+    file_name: &str,
+    base64_content: &str,
+) -> Result<Resource, String> {
+    use base64::engine::Engine;
+
+    let resources_dir = PathBuf::from(project_path).join("resources");
+    if !resources_dir.exists() {
+        fs::create_dir_all(&resources_dir)
+            .map_err(|e| format!("Failed to create resources directory: {}", e))?;
+    }
+
+    let dest_path = resources_dir.join(file_name);
+
+    // Decode base64 content
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(base64_content)
+        .map_err(|e| format!("Failed to decode base64: {}", e))?;
+
+    fs::write(&dest_path, decoded).map_err(|e| format!("Failed to write resource: {}", e))?;
+
+    let resource_type = dest_path
+        .extension()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    Ok(Resource {
+        id: Uuid::new_v4().to_string(),
+        name: file_name.to_string(),
+        path: dest_path.to_string_lossy().to_string(),
+        resource_type,
+    })
+}

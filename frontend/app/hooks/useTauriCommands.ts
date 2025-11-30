@@ -4,6 +4,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
+import { useMemo } from "react";
 
 export interface ProjectHistory {
   id: string;
@@ -59,6 +60,22 @@ export function useTauriCommands() {
     }
   };
 
+  const importResourceFile = async (
+    projectPath: string,
+    fileName: string,
+    base64Content: string
+  ): Promise<Resource> => {
+    try {
+      return await invoke<Resource>("import_resource_file", {
+        projectPath,
+        fileName,
+        base64Content,
+      });
+    } catch (error) {
+      throw new Error(`Failed to import resource file: ${error}`);
+    }
+  };
+
   const openProjectDir = async (projectPath: string): Promise<void> => {
     try {
       return await invoke<void>("open_project_dir", {
@@ -87,12 +104,16 @@ export function useTauriCommands() {
     }
   };
 
-  return {
-    createProject,
-    listResources,
-    importResource,
-    openProjectDir,
-    deleteProject,
-    getDefaultProjectsDir,
-  };
+  return useMemo(
+    () => ({
+      createProject,
+      listResources,
+      importResource,
+      importResourceFile,
+      openProjectDir,
+      deleteProject,
+      getDefaultProjectsDir,
+    }),
+    []
+  );
 }

@@ -16,13 +16,20 @@ export const RESOURCE_TABS: ResourceTab[] = [
 ];
 
 export const RESOURCE_TAB_LABELS: Record<ResourceTab, string> = {
-  media: "Media",
-  audio: "Audio",
-  text: "Text",
-  sticker: "Sticker",
-  effects: "Effects",
-  trans: "Trans",
-  filters: "Filters",
+  // media: "Media",
+  // audio: "Audio",
+  // text: "Text",
+  // sticker: "Sticker",
+  // effects: "Effects",
+  // trans: "Trans",
+  // filters: "Filters",
+  media: "素材",
+  audio: "音频",
+  text: "文本",
+  sticker: "贴纸",
+  effects: "特效",
+  trans: "转场",
+  filters: "滤镜",
 };
 
 export const PROPERTY_TABS = ["Video", "Audio", "Speed"] as const;

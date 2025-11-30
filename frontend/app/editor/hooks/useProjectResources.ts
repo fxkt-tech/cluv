@@ -47,7 +47,7 @@ export function useProjectResources(projectPath: string | null) {
     resources,
     isLoading,
     error,
-    loadResources,
     getResourcesByType,
+    loadResources,
   };
 }

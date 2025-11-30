@@ -1,14 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useProjectList, ProjectHistory } from "./hooks/useProjectList";
 import { ProjectCard } from "./components/ProjectCard";
+import { CreateProjectModal } from "./components/CreateProjectModal";
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { projects, isLoading, error } = useProjectList();
+  const searchParams = useSearchParams();
+  const { projects, isLoading, error, refreshProjects } = useProjectList();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
+  // Initialize modal state from URL param
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(() => {
+    return searchParams.get("create") === "true";
+  });
+
+  // Clean up URL param after initial render
+  useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      router.replace("/projects");
+    }
+  }, [router, searchParams]);
 
   const handleProjectSelect = (project: ProjectHistory) => {
     setSelectedProject(project.id);
@@ -16,29 +30,35 @@ export default function ProjectsPage() {
     router.push(`/editor?id=${encodeURIComponent(project.id)}`);
   };
 
-  const handleBackToHome = () => {
-    router.push("/");
+  const handleCreateProject = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCreateProjectClose = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleProjectCreated = () => {
+    refreshProjects();
+  };
+
+  const handleProjectDeleted = () => {
+    setSelectedProject(null);
+    refreshProjects();
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
-        <button
-          onClick={handleBackToHome}
-          className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-6"
-        >
-          <span className="text-xl">←</span>
-          <span>Back to Home</span>
-        </button>
-
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Open Project</h1>
-            <p className="text-slate-400">
-              Select a project to open and continue editing
-            </p>
-          </div>
+        <div className="mb-12">
+          <button
+            onClick={handleCreateProject}
+            style={{ height: "100px" }}
+            className="w-full bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-medium rounded-lg transition-colors shadow-md flex items-center justify-center"
+          >
+            {"开始创作"}
+          </button>
         </div>
 
         {/* Error Message */}
@@ -52,7 +72,7 @@ export default function ProjectsPage() {
         <div>
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-white">
-              Available Projects
+              {"草稿"}
               {projects.length > 0 && (
                 <span className="text-slate-400 ml-2">({projects.length})</span>
               )}
@@ -71,19 +91,25 @@ export default function ProjectsPage() {
                   project={project}
                   isSelected={selectedProject === project.id}
                   onSelect={() => handleProjectSelect(project)}
+                  onDelete={handleProjectDeleted}
                 />
               ))}
             </div>
           ) : (
             <div className="bg-slate-800 rounded-lg border border-slate-700 border-dashed p-8 text-center">
-              <p className="text-slate-400 mb-2">No projects found</p>
-              <p className="text-slate-500 text-sm">
-                Create a new project to get started
-              </p>
+              <p className="text-slate-400 mb-2">还没有项目捏~</p>
+              <p className="text-slate-500 text-sm">创建一个吧</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCreateProjectClose}
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   );
 }

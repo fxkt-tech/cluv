@@ -28,6 +28,7 @@ export default function EditorPage() {
     resources,
     isLoading: isLoadingResources,
     error: resourceError,
+    loadResources,
   } = useProjectResources(project?.path || null);
 
   const {
@@ -118,6 +119,8 @@ export default function EditorPage() {
             onTabChange={setActiveTab}
             resources={resources}
             isLoading={isLoadingResources}
+            projectPath={project?.path || null}
+            loadResources={loadResources}
           />
 
           {/* Center: Player */}

@@ -7,6 +7,8 @@ import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../constants/data";
 import { COLORS, SIZES } from "../constants/theme";
 import { ResourceGrid } from "./ResourceGrid";
 import { Resource as EditorResource, ResourceTab } from "../types/editor";
+import { useState, useRef } from "react";
+import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 
 interface BackendResource {
   id: string;
@@ -21,6 +23,8 @@ interface ResourcePanelProps {
   resources?: BackendResource[];
   isLoading?: boolean;
   onResourceSelect?: (resource: EditorResource) => void;
+  projectPath?: string | null;
+  loadResources?: () => Promise<void>;
 }
 
 export function ResourcePanel({
@@ -29,7 +33,12 @@ export function ResourcePanel({
   resources = [],
   isLoading = false,
   onResourceSelect,
+  projectPath = null,
+  loadResources,
 }: ResourcePanelProps) {
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { importResourceFile } = useTauriCommands();
   // Filter resources by active tab type
   const filteredResources = resources.filter(
     (r) => r.resource_type === activeTab || activeTab === "media"
@@ -89,14 +98,57 @@ export function ResourcePanel({
       {/* Resource Content */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="mb-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.currentTarget.files?.[0];
+              if (!file || !projectPath) return;
+              setIsImporting(true);
+              try {
+                const buffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(buffer);
+                const base64 = Array.from(uint8Array)
+                  .map((b) => String.fromCharCode(b))
+                  .join("");
+                const base64Data = btoa(base64);
+                const fileName = file.name;
+
+                await importResourceFile(projectPath, fileName, base64Data);
+
+                if (loadResources) await loadResources();
+              } catch (err) {
+                console.error("Import failed", err);
+              } finally {
+                setIsImporting(false);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }
+            }}
+          />
           <button
+            onClick={() => {
+              if (projectPath && !isImporting) {
+                fileInputRef.current?.click();
+              }
+            }}
+            disabled={!projectPath || isImporting}
             className="w-full py-2 rounded text-sm mb-4 transition-colors flex items-center justify-center gap-2 hover:opacity-80"
             style={{
               backgroundColor: COLORS.editor.hover,
+              opacity: !projectPath ? 0.6 : 1,
             }}
             aria-label="Import resources"
+            title={
+              !projectPath
+                ? "Open a project to import resources"
+                : "Import resources"
+            }
           >
-            <span>+</span> Import
+            <span>+</span>
+            {isImporting ? "导入中..." : "导入"}
           </button>
 
           {isLoading && (

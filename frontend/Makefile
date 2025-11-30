@@ -1,0 +1,7 @@
+.PHONY: fe
+fe:
+	pnpm dev
+
+.PHONY: tr
+tr:
+	cargo tauri dev
