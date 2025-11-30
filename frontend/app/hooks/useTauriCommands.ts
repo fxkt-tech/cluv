@@ -38,7 +38,8 @@ export function useTauriCommands() {
 
   const listResources = async (projectPath: string): Promise<Resource[]> => {
     try {
-      return await invoke<Resource[]>("list_resources", {
+      // Unified material system - list_materials is the single source of truth
+      return await invoke<Resource[]>("list_materials", {
         projectPath,
       });
     } catch (error) {
@@ -51,7 +52,8 @@ export function useTauriCommands() {
     sourcePath: string
   ): Promise<Resource> => {
     try {
-      return await invoke<Resource>("import_resource", {
+      // Unified material system - import_material is the single source of truth
+      return await invoke<Resource>("import_material", {
         projectPath,
         sourcePath,
       });
@@ -66,13 +68,52 @@ export function useTauriCommands() {
     base64Content: string
   ): Promise<Resource> => {
     try {
-      return await invoke<Resource>("import_resource_file", {
+      // Unified material system - import_material_from_base64_content is the new name
+      return await invoke<Resource>("import_material_from_base64_content", {
         projectPath,
         fileName,
         base64Content,
       });
     } catch (error) {
       throw new Error(`Failed to import resource file: ${error}`);
+    }
+  };
+
+  const importMaterial = async (
+    projectPath: string,
+    sourcePath: string
+  ): Promise<Resource> => {
+    try {
+      return await invoke<Resource>("import_material", {
+        projectPath,
+        sourcePath,
+      });
+    } catch (error) {
+      throw new Error(`Failed to import material: ${error}`);
+    }
+  };
+
+  const listMaterials = async (projectPath: string): Promise<Resource[]> => {
+    try {
+      return await invoke<Resource[]>("list_materials", {
+        projectPath,
+      });
+    } catch (error) {
+      throw new Error(`Failed to list materials: ${error}`);
+    }
+  };
+
+  const deleteMaterial = async (
+    projectPath: string,
+    materialId: string
+  ): Promise<void> => {
+    try {
+      return await invoke<void>("delete_material", {
+        projectPath,
+        materialId,
+      });
+    } catch (error) {
+      throw new Error(`Failed to delete material: ${error}`);
     }
   };
 
@@ -104,89 +145,18 @@ export function useTauriCommands() {
     }
   };
 
-  // Material management commands (operating on protocol.json)
-  const importMaterial = async (
-    projectPath: string,
-    sourcePath: string
-  ): Promise<Resource> => {
-    try {
-      return await invoke<Resource>("import_material", {
-        projectPath,
-        sourcePath,
-      });
-    } catch (error) {
-      throw new Error(`Failed to import material: ${error}`);
-    }
-  };
-
-  const deleteMaterial = async (
-    projectPath: string,
-    materialId: string
-  ): Promise<void> => {
-    try {
-      return await invoke<void>("delete_material", {
-        projectPath,
-        materialId,
-      });
-    } catch (error) {
-      throw new Error(`Failed to delete material: ${error}`);
-    }
-  };
-
-  const listMaterials = async (projectPath: string): Promise<Resource[]> => {
-    try {
-      return await invoke<Resource[]>("list_materials", {
-        projectPath,
-      });
-    } catch (error) {
-      throw new Error(`Failed to list materials: ${error}`);
-    }
-  };
-
-  const getMaterial = async (
-    projectPath: string,
-    materialId: string
-  ): Promise<Resource> => {
-    try {
-      return await invoke<Resource>("get_material", {
-        projectPath,
-        materialId,
-      });
-    } catch (error) {
-      throw new Error(`Failed to get material: ${error}`);
-    }
-  };
-
-  const addMaterialByPath = async (
-    projectPath: string,
-    materialPath: string,
-    materialType: string
-  ): Promise<Resource> => {
-    try {
-      return await invoke<Resource>("add_material_by_path", {
-        projectPath,
-        materialPath,
-        materialType,
-      });
-    } catch (error) {
-      throw new Error(`Failed to add material: ${error}`);
-    }
-  };
-
   return useMemo(
     () => ({
       createProject,
       listResources,
       importResource,
       importResourceFile,
+      importMaterial,
+      listMaterials,
+      deleteMaterial,
       openProjectDir,
       deleteProject,
       getDefaultProjectsDir,
-      importMaterial,
-      deleteMaterial,
-      listMaterials,
-      getMaterial,
-      addMaterialByPath,
     }),
     []
   );

@@ -97,6 +97,7 @@ export default function EditorPage() {
     >
       {/* Header */}
       <Header
+        projectId={project.id}
         projectName={projectName}
         onExport={handleExport}
         onBack={handleBackToHome}

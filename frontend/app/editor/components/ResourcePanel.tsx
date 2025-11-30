@@ -7,8 +7,9 @@ import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../constants/data";
 import { COLORS, SIZES } from "../constants/theme";
 import { ResourceGrid } from "./ResourceGrid";
 import { Resource as EditorResource, ResourceTab } from "../types/editor";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
+import { open } from "@tauri-apps/plugin-dialog";
 
 interface BackendResource {
   id: string;
@@ -37,8 +38,7 @@ export function ResourcePanel({
   loadResources,
 }: ResourcePanelProps) {
   const [isImporting, setIsImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { importResourceFile } = useTauriCommands();
+  const { importMaterial } = useTauriCommands();
   // Filter resources by active tab type
   const filteredResources = resources.filter(
     (r) => r.resource_type === activeTab || activeTab === "media"
@@ -98,40 +98,51 @@ export function ResourcePanel({
       {/* Resource Content */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="mb-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            style={{ display: "none" }}
-            onChange={async (e) => {
-              const file = e.currentTarget.files?.[0];
-              if (!file || !projectPath) return;
+          <button
+            onClick={async () => {
+              if (!projectPath || isImporting) return;
               setIsImporting(true);
               try {
-                const buffer = await file.arrayBuffer();
-                const uint8Array = new Uint8Array(buffer);
-                const base64 = Array.from(uint8Array)
-                  .map((b) => String.fromCharCode(b))
-                  .join("");
-                const base64Data = btoa(base64);
-                const fileName = file.name;
+                const selected = await open({
+                  multiple: false,
+                  filters: [
+                    {
+                      name: "Media Files",
+                      extensions: [
+                        "mp4",
+                        "avi",
+                        "mov",
+                        "mkv",
+                        "flv",
+                        "wmv",
+                        "webm",
+                        "mp3",
+                        "wav",
+                        "aac",
+                        "flac",
+                        "wma",
+                        "m4a",
+                        "ogg",
+                        "jpg",
+                        "jpeg",
+                        "png",
+                        "gif",
+                        "bmp",
+                        "webp",
+                        "svg",
+                      ],
+                    },
+                  ],
+                });
 
-                await importResourceFile(projectPath, fileName, base64Data);
-
-                if (loadResources) await loadResources();
+                if (selected && typeof selected === "string") {
+                  await importMaterial(projectPath, selected);
+                  if (loadResources) await loadResources();
+                }
               } catch (err) {
                 console.error("Import failed", err);
               } finally {
                 setIsImporting(false);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
-              }
-            }}
-          />
-          <button
-            onClick={() => {
-              if (projectPath && !isImporting) {
-                fileInputRef.current?.click();
               }
             }}
             disabled={!projectPath || isImporting}
@@ -159,7 +170,7 @@ export function ResourcePanel({
 
           {!isLoading && filteredResources.length === 0 && (
             <div className="text-center py-8 text-neutral-500 text-sm">
-              No resources found
+              暂无素材
             </div>
           )}
 
@@ -167,6 +178,8 @@ export function ResourcePanel({
             <ResourceGrid
               resources={filteredResources}
               onSelect={handleResourceSelect}
+              projectPath={projectPath}
+              onDelete={loadResources}
             />
           )}
         </div>

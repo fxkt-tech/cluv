@@ -10,7 +10,7 @@ export function useProjectResources(projectPath: string | null) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { listResources } = useTauriCommands();
+  const { listMaterials } = useTauriCommands();
 
   const loadResources = useCallback(async () => {
     if (!projectPath) {
@@ -22,7 +22,7 @@ export function useProjectResources(projectPath: string | null) {
     setError(null);
 
     try {
-      const loadedResources = await listResources(projectPath);
+      const loadedResources = await listMaterials(projectPath);
       setResources(loadedResources);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load resources");
@@ -30,7 +30,7 @@ export function useProjectResources(projectPath: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [projectPath, listResources]);
+  }, [projectPath, listMaterials]);
 
   useEffect(() => {
     loadResources();

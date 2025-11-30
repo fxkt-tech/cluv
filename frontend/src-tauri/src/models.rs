@@ -9,13 +9,13 @@ pub struct ProjectHistory {
     pub last_modified: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProjectMetadata {
-    pub name: String,
-    pub path: String,
-    pub created_at: String,
-    pub version: String,
-}
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct ProjectMetadata {
+//     pub name: String,
+//     pub path: String,
+//     pub created_at: String,
+//     pub version: String,
+// }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Resource {

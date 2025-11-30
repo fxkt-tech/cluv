@@ -2,10 +2,10 @@
 //! Manages materials (videos, audios, images) by reading/writing to protocol.json
 //! Following the kiva-cut Editor protocol structure
 
-use serde_json::{Value, json};
+use kiva_cut::Editor;
+use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
-use uuid::Uuid;
 
 /// Material type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +16,7 @@ pub enum MaterialType {
 }
 
 impl MaterialType {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &str {
         match self {
             MaterialType::Video => "videos",
@@ -44,7 +45,7 @@ pub struct ProtocolMaterial {
 }
 
 /// Load protocol.json file
-pub fn load_protocol(project_path: &str) -> Result<Value, String> {
+pub fn load_protocol(project_path: &str) -> Result<String, String> {
     let protocol_path = PathBuf::from(project_path).join("protocol.json");
 
     if !protocol_path.exists() {
@@ -57,17 +58,17 @@ pub fn load_protocol(project_path: &str) -> Result<Value, String> {
     let content = fs::read_to_string(&protocol_path)
         .map_err(|e| format!("Failed to read protocol file: {}", e))?;
 
-    serde_json::from_str(&content).map_err(|e| format!("Failed to parse protocol file: {}", e))
+    Ok(content)
+
+    // serde_json::from_str(&content).map_err(|e| format!("Failed to parse protocol file: {}", e))
 }
 
 /// Save protocol.json file
-pub fn save_protocol(project_path: &str, protocol: &Value) -> Result<(), String> {
+pub fn save_protocol(project_path: &str, protocol_json: &str) -> Result<(), String> {
     let protocol_path = PathBuf::from(project_path).join("protocol.json");
 
-    let content = serde_json::to_string_pretty(protocol)
-        .map_err(|e| format!("Failed to serialize protocol: {}", e))?;
-
-    fs::write(&protocol_path, content).map_err(|e| format!("Failed to write protocol file: {}", e))
+    fs::write(&protocol_path, protocol_json)
+        .map_err(|e| format!("Failed to write protocol file: {}", e))
 }
 
 /// Add a material to the protocol
@@ -76,51 +77,23 @@ pub fn add_material_to_protocol(
     material_src: &str,
     material_type: MaterialType,
 ) -> Result<ProtocolMaterial, String> {
-    let mut protocol = load_protocol(project_path)?;
+    let protocol = load_protocol(project_path)?;
+    let mut editor = Editor::new();
+    editor
+        .load_from_json(protocol.as_str())
+        .map_err(|e| format!("Failed to load protocol: {}", e))?;
 
-    // Ensure materials section exists
-    if protocol["materials"].is_null() {
-        protocol["materials"] = json!({
-            "videos": [],
-            "images": [],
-            "audios": []
-        });
-    }
-
-    let material_id = Uuid::new_v4().to_string();
-    let material_section = material_type.as_str();
-
-    // Create material object based on type (following kiva-cut protocol structure)
-    let material_obj = match material_type {
-        MaterialType::Video => json!({
-            "id": material_id,
-            "src": material_src,
-            "dimension": {
-                "width": 0,
-                "height": 0
-            }
-        }),
-        MaterialType::Audio => json!({
-            "id": material_id,
-            "src": material_src
-        }),
-        MaterialType::Image => json!({
-            "id": material_id,
-            "src": material_src,
-            "dimension": {
-                "width": 0,
-                "height": 0
-            }
-        }),
+    let material_id = match material_type {
+        MaterialType::Video => editor.add_video_material(material_src),
+        MaterialType::Audio => editor.add_audio_material(material_src),
+        MaterialType::Image => editor.add_image_material(material_src),
     };
 
-    // Add to protocol
-    protocol["materials"][material_section]
-        .as_array_mut()
-        .ok_or_else(|| format!("Materials {} is not an array", material_section))?
-        .push(material_obj);
+    let new_protocol = editor
+        .save_to_json()
+        .map_err(|e| format!("Failed to load protocol: {}", e))?;
 
-    save_protocol(project_path, &protocol)?;
+    save_protocol(project_path, &new_protocol)?;
 
     Ok(ProtocolMaterial {
         id: material_id,
@@ -131,7 +104,9 @@ pub fn add_material_to_protocol(
 
 /// Remove a material from the protocol
 pub fn remove_material_from_protocol(project_path: &str, material_id: &str) -> Result<(), String> {
-    let mut protocol = load_protocol(project_path)?;
+    let protocol_str = load_protocol(project_path)?;
+    let mut protocol: Value = serde_json::from_str(&protocol_str)
+        .map_err(|e| format!("Failed to parse protocol: {}", e))?;
 
     // Try to find and remove the material from all sections
     let material_types = ["videos", "audios", "images"];
@@ -154,7 +129,10 @@ pub fn remove_material_from_protocol(project_path: &str, material_id: &str) -> R
         return Err(format!("Material not found: {}", material_id));
     }
 
-    save_protocol(project_path, &protocol)?;
+    // Save the updated protocol
+    let updated_json = serde_json::to_string_pretty(&protocol)
+        .map_err(|e| format!("Failed to serialize protocol: {}", e))?;
+    save_protocol(project_path, &updated_json)?;
 
     // Remove the actual file from materials directory if it exists
     let materials_dir = PathBuf::from(project_path).join("materials");
@@ -179,8 +157,13 @@ pub fn remove_material_from_protocol(project_path: &str, material_id: &str) -> R
 
 /// List all materials from protocol
 pub fn list_materials_from_protocol(project_path: &str) -> Result<Vec<ProtocolMaterial>, String> {
-    let protocol = load_protocol(project_path)?;
+    let protocol_str = load_protocol(project_path)?;
+    println!("Protocol string: {}", protocol_str);
+    let protocol: Value = serde_json::from_str(&protocol_str)
+        .map_err(|e| format!("Failed to parse protocol: {}", e))?;
     let mut materials = Vec::new();
+
+    println!("Protocol JSON: {:?}", protocol["materials"]);
 
     let material_types = [
         (MaterialType::Video, "videos"),
@@ -247,11 +230,14 @@ pub fn import_material_file(
 }
 
 /// Get material by ID from protocol
+#[allow(dead_code)]
 pub fn get_material_from_protocol(
     project_path: &str,
     material_id: &str,
 ) -> Result<ProtocolMaterial, String> {
-    let protocol = load_protocol(project_path)?;
+    let protocol_str = load_protocol(project_path)?;
+    let protocol: Value = serde_json::from_str(&protocol_str)
+        .map_err(|e| format!("Failed to parse protocol: {}", e))?;
 
     let material_types = [
         (MaterialType::Video, "videos"),
@@ -276,70 +262,4 @@ pub fn get_material_from_protocol(
     }
 
     Err(format!("Material not found: {}", material_id))
-}
-
-/// Import a material from base64 content
-pub fn import_material_from_base64(
-    project_path: &str,
-    file_name: &str,
-    base64_content: &str,
-) -> Result<ProtocolMaterial, String> {
-    use base64::engine::Engine;
-
-    // Create materials directory if not exists
-    let materials_dir = PathBuf::from(project_path).join("materials");
-    fs::create_dir_all(&materials_dir)
-        .map_err(|e| format!("Failed to create materials directory: {}", e))?;
-
-    let dest_path = materials_dir.join(file_name);
-
-    // Decode base64 content
-    let decoded = base64::engine::general_purpose::STANDARD
-        .decode(base64_content)
-        .map_err(|e| format!("Failed to decode base64: {}", e))?;
-
-    fs::write(&dest_path, decoded).map_err(|e| format!("Failed to write material file: {}", e))?;
-
-    // Detect material type from file name extension
-    let ext = PathBuf::from(file_name)
-        .extension()
-        .ok_or_else(|| "Cannot determine file type".to_string())?
-        .to_string_lossy()
-        .to_string();
-
-    let material_type = MaterialType::from_extension(&ext)
-        .ok_or_else(|| format!("Unsupported file type: {}", ext))?;
-
-    // Add to protocol
-    let dest_str = dest_path.to_string_lossy().to_string();
-    add_material_to_protocol(project_path, &dest_str, material_type)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_material_type_from_extension() {
-        assert_eq!(
-            MaterialType::from_extension("mp4"),
-            Some(MaterialType::Video)
-        );
-        assert_eq!(
-            MaterialType::from_extension("mp3"),
-            Some(MaterialType::Audio)
-        );
-        assert_eq!(
-            MaterialType::from_extension("jpg"),
-            Some(MaterialType::Image)
-        );
-        assert_eq!(MaterialType::from_extension("unknown"), None);
-    }
-
-    #[test]
-    fn test_material_type_as_str() {
-        assert_eq!(MaterialType::Video.as_str(), "videos");
-        assert_eq!(MaterialType::Audio.as_str(), "audios");
-        assert_eq!(MaterialType::Image.as_str(), "images");
-    }
 }

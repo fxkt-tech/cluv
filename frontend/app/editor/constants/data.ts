@@ -23,7 +23,7 @@ export const RESOURCE_TAB_LABELS: Record<ResourceTab, string> = {
   // effects: "Effects",
   // trans: "Trans",
   // filters: "Filters",
-  media: "素材",
+  media: "媒体",
   audio: "音频",
   text: "文本",
   sticker: "贴纸",
@@ -41,8 +41,6 @@ export const TIMELINE_MARKS = [
   "00:45",
   "01:00",
 ] as const;
-
-export const MENU_ITEMS = ["File", "Edit", "View", "Help"] as const;
 
 export const TIMELINE_TOOLS = [
   { label: "Select", icon: "cursor" },

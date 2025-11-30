@@ -25,7 +25,7 @@ export const COLORS = {
 };
 
 export const SIZES = {
-  header: "h-12",
+  header: "h-8",
   playerControls: "h-12",
   timelineToolbar: "h-10",
   timeline: "h-[300px]",

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 /// Get KivaCut data directory path
-pub fn get_kiva_cut_dir(app: &AppHandle) -> Result<PathBuf, String> {
+fn get_kiva_cut_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let data_dir = app
         .path()
         .app_data_dir()

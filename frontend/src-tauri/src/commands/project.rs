@@ -119,19 +119,6 @@ pub fn get_project_by_id(app: AppHandle, id: String) -> Result<ProjectHistory, S
         .ok_or_else(|| "Project not found".to_string())
 }
 
-/// Update project last_modified time
-#[tauri::command]
-pub fn update_project_last_modified(app: AppHandle, project_id: String) -> Result<(), String> {
-    let mut histories = load_histories(&app)?;
-
-    if let Some(history) = histories.iter_mut().find(|h| h.id == project_id) {
-        history.last_modified = chrono::Local::now().to_rfc3339();
-    }
-
-    save_histories(&app, &histories)?;
-    Ok(())
-}
-
 /// Get default projects directory
 #[tauri::command]
 pub fn get_default_projects_dir(app: AppHandle) -> Result<String, String> {
