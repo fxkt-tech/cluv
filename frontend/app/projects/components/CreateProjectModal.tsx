@@ -38,9 +38,8 @@ export function CreateProjectModal({
 
       try {
         const projectsDir = await getDefaultProjectsDir();
-        const projectPath = `${projectsDir}/${projectName}`;
-
-        await createProject(projectName, projectPath);
+        // Pass only the base path; the backend will generate the project ID as the directory name
+        await createProject(projectName, projectsDir);
 
         setStatus("success");
         setProjectName("");

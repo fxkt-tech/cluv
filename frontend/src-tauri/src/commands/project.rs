@@ -1,5 +1,5 @@
 use crate::history::{load_histories, save_histories};
-use crate::models::{ProjectHistory, ProjectMetadata};
+use crate::models::ProjectHistory;
 use crate::paths::get_projects_dir;
 use std::fs;
 use std::path::PathBuf;
@@ -12,62 +12,55 @@ pub fn create_project(
     project_name: String,
     project_path: String,
 ) -> Result<ProjectHistory, String> {
-    let base_path = PathBuf::from(&project_path);
+    // Generate project ID from UUID
+    let project_id = uuid::Uuid::new_v4().to_string();
+
+    // Project directory is named using the project ID
+    let base_path = PathBuf::from(&project_path).join(&project_id);
 
     // Create main project directory
     fs::create_dir_all(&base_path)
         .map_err(|e| format!("Failed to create project directory: {}", e))?;
 
-    // Create subdirectories
-    let resources_dir = base_path.join("resources");
-    let assets_dir = base_path.join("assets");
-    let output_dir = base_path.join("output");
+    // Create materials directory for imported files
+    let materials_dir = base_path.join("materials");
+    fs::create_dir_all(&materials_dir)
+        .map_err(|e| format!("Failed to create materials directory: {}", e))?;
 
-    fs::create_dir_all(&resources_dir)
-        .map_err(|e| format!("Failed to create resources directory: {}", e))?;
-    fs::create_dir_all(&assets_dir)
-        .map_err(|e| format!("Failed to create assets directory: {}", e))?;
+    // Create output directory
+    let output_dir = base_path.join("output");
     fs::create_dir_all(&output_dir)
         .map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-    // Create project metadata file
-    let now = chrono::Local::now().to_rfc3339();
-    let metadata = ProjectMetadata {
-        name: project_name.clone(),
-        path: project_path.clone(),
-        created_at: now.clone(),
-        version: "0.1.0".to_string(),
-    };
-
-    let metadata_path = base_path.join("project.json");
-    let metadata_json = serde_json::to_string_pretty(&metadata)
-        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-
-    fs::write(&metadata_path, metadata_json)
-        .map_err(|e| format!("Failed to write project metadata: {}", e))?;
-
-    // Create protocol file
+    // Create protocol file following kiva-cut Editor protocol structure
     let protocol_path = base_path.join("protocol.json");
     let protocol_template = serde_json::json!({
-        "version": "1.0",
-        "tracks": [],
-        "timeline": {
-            "duration": 0,
-            "fps": 30
-        }
+        "stage": {
+            "width": 1920,
+            "height": 1080
+        },
+        "materials": {
+            "videos": [],
+            "images": [],
+            "audios": []
+        },
+        "tracks": []
     });
 
-    fs::write(&protocol_path, protocol_template.to_string())
-        .map_err(|e| format!("Failed to write protocol file: {}", e))?;
+    fs::write(
+        &protocol_path,
+        serde_json::to_string_pretty(&protocol_template).unwrap(),
+    )
+    .map_err(|e| format!("Failed to write protocol file: {}", e))?;
 
-    // Add to histories
-    let project_id = uuid::Uuid::new_v4().to_string();
+    // Add to histories with the actual project path
+    let now = chrono::Local::now().to_rfc3339();
     let mut histories = load_histories(&app)?;
 
     let history = ProjectHistory {
         id: project_id,
         name: project_name,
-        path: project_path,
+        path: base_path.to_string_lossy().to_string(),
         create_time: now.clone(),
         last_modified: now,
     };

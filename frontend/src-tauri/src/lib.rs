@@ -1,12 +1,14 @@
 mod commands;
 mod history;
+mod material_manager;
 mod models;
 mod paths;
 mod resources;
 
 use commands::{
-    create_project, delete_project, get_default_projects_dir, get_project_by_id, import_resource,
-    import_resource_file, list_projects_history, list_resources, open_project_dir,
+    add_material_by_path, create_project, delete_material, delete_project,
+    get_default_projects_dir, get_material, get_project_by_id, import_material, import_resource,
+    import_resource_file, list_materials, list_projects_history, list_resources, open_project_dir,
     update_project_last_modified,
 };
 
@@ -35,6 +37,11 @@ pub fn run() {
             get_project_by_id,
             update_project_last_modified,
             get_default_projects_dir,
+            import_material,
+            delete_material,
+            list_materials,
+            get_material,
+            add_material_by_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
