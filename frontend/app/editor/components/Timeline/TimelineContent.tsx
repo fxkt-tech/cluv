@@ -36,7 +36,7 @@ export function TimelineContent({
             className="h-8 px-2 flex items-center text-xs"
             style={{
               backgroundColor: COLORS.editor.panel,
-              color: COLORS.editor.border,
+              color: COLORS.text.secondary,
             }}
           >
             {track.name}

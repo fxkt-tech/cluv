@@ -24,7 +24,7 @@ export function PropertySlider({
 }: PropertySliderProps) {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between text-xs text-neutral-400">
+      <div className="flex justify-between text-xs" style={{ color: COLORS.text.secondary }}>
         <span>{label}</span>
         <span>
           {value.toFixed(1)}
@@ -40,7 +40,7 @@ export function PropertySlider({
         className="w-full h-1 rounded-lg appearance-none cursor-pointer"
         style={{
           backgroundColor: COLORS.editor.hover,
-          accentColor: COLORS.accent.cyan,
+          accentColor: COLORS.accent.blue,
         }}
       />
     </div>

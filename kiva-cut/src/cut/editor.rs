@@ -1,7 +1,6 @@
 //! Main video editor implementation
 
-use crate::error::{CluvError, Result};
-use crate::ffcut::{
+use crate::cut::{
     EditSession,
     material::Material,
     protocol::{CutProtocol, ExportType},
@@ -9,6 +8,7 @@ use crate::ffcut::{
     stage::Stage,
     track::Track,
 };
+use crate::error::{CluvError, Result};
 use crate::ffmpeg::{
     FFmpeg,
     codec::{AudioCodec, VideoCodec},
@@ -613,7 +613,7 @@ mod tests {
     use super::*;
     use crate::{
         TimeRange,
-        ffcut::{material::VideoMaterial, segment::SegmentType},
+        cut::{material::VideoMaterial, segment::SegmentType},
     };
 
     #[test]

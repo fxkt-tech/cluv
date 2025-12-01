@@ -16,18 +16,18 @@
 //! ## Example
 //!
 pub mod composer;
+pub mod cut;
 pub mod error;
-pub mod ffcut;
 pub mod ffmpeg;
 pub mod ffprobe;
 pub mod options;
 pub mod pkg;
 
 // Re-export main types
-pub use error::{CluvError, Result};
-pub use ffcut::{
+pub use cut::{
     AudioMaterial, CutProtocol, Dimension, EditSession, Editor, ExportConfig, ExportType,
     ImageMaterial, Material, MaterialType, Position, Scale, Segment, Stage, TimeRange, Track,
     TrackType, VideoMaterial,
 };
+pub use error::{CluvError, Result};
 pub use options::*;

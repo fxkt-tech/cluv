@@ -27,7 +27,14 @@ export function TimelineToolbar({
         {TIMELINE_TOOLS.map((tool) => (
           <button
             key={tool.label}
-            className="hover:text-white transition-colors"
+            className="transition-colors"
+            style={{ color: COLORS.text.secondary }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = COLORS.text.fg;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = COLORS.text.secondary;
+            }}
             aria-label={tool.label}
           >
             <span>{tool.label}</span>
@@ -35,7 +42,7 @@ export function TimelineToolbar({
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-neutral-500">-</span>
+        <span className="text-xs" style={{ color: COLORS.text.muted }}>-</span>
         <input
           type="range"
           min={0.5}
@@ -46,11 +53,11 @@ export function TimelineToolbar({
           className="w-24 h-1 rounded-lg appearance-none cursor-pointer"
           style={{
             backgroundColor: COLORS.editor.hover,
-            accentColor: COLORS.accent.cyan,
+            accentColor: COLORS.accent.blue,
           }}
           aria-label="Timeline zoom"
         />
-        <span className="text-xs text-neutral-500">+</span>
+        <span className="text-xs" style={{ color: COLORS.text.muted }}>+</span>
       </div>
     </div>
   );

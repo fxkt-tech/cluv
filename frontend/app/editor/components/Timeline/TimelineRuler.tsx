@@ -17,7 +17,7 @@ export function TimelineRuler() {
     >
       <div className="flex text-[10px] w-[2000px] justify-between px-2">
         {TIMELINE_MARKS.map((mark) => (
-          <span key={mark} style={{ color: COLORS.editor.border }}>
+          <span key={mark} style={{ color: COLORS.text.muted }}>
             {mark}
           </span>
         ))}

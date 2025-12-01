@@ -54,12 +54,21 @@ export function ResourceGrid({
         <div
           key={resource.id}
           onClick={() => onSelect?.(resource)}
-          className="aspect-square rounded hover:border-2 cursor-pointer group relative transition-all"
+          className="aspect-square rounded cursor-pointer group relative transition-all"
           style={{
             backgroundColor: COLORS.editor.panel,
+            border: `1px solid ${COLORS.editor.border}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = COLORS.accent.blue;
+            e.currentTarget.style.borderWidth = "2px";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = COLORS.editor.border;
+            e.currentTarget.style.borderWidth = "1px";
           }}
         >
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-neutral-600 group-hover:text-neutral-400 rounded p-1 text-center">
+          <div className="absolute inset-0 flex items-center justify-center text-xs rounded p-1 text-center" style={{ color: COLORS.text.muted }}>
             {resource.name}
           </div>
 
@@ -67,11 +76,17 @@ export function ResourceGrid({
           <button
             onClick={(e) => handleDelete(e, resource)}
             disabled={deletingId === resource.id}
-            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-600/80 disabled:opacity-50"
+            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded disabled:opacity-50"
             style={{
-              backgroundColor: "rgba(239, 68, 68, 0.6)",
+              backgroundColor: COLORS.accent.red,
               color: "white",
               fontSize: "12px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.8";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
             }}
             title="Delete material"
             aria-label="Delete material"

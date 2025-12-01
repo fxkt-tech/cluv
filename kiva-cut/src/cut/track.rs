@@ -1,7 +1,7 @@
 //! Track management for video editing
 
+use crate::cut::segment::Segment;
 use crate::error::{CluvError, Result};
-use crate::ffcut::segment::Segment;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -333,14 +333,14 @@ impl std::fmt::Display for Track {
 mod tests {
     use super::*;
     use crate::{
-        ffcut::segment::{Position, Segment, TimeRange},
         Dimension,
+        cut::segment::{Position, Segment, TimeRange},
     };
 
     fn create_test_segment(id: &str, start: u32, duration: u32) -> Segment {
         Segment {
             id: id.to_string(),
-            segment_type: crate::ffcut::segment::SegmentType::Video,
+            segment_type: crate::cut::segment::SegmentType::Video,
             material_id: "test_material".to_string(),
             target_timerange: TimeRange { start, duration },
             source_timerange: TimeRange { start: 0, duration },

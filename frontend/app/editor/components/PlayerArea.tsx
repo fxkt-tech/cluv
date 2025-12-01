@@ -27,10 +27,11 @@ export function PlayerArea({
       <div className="flex-1 flex items-center justify-center p-8">
         {/* Video Placeholder */}
         <div
-          className="aspect-video w-full max-h-full shadow-lg border flex items-center justify-center text-neutral-700 rounded"
+          className="aspect-video w-full max-h-full shadow-lg border flex items-center justify-center rounded"
           style={{
             backgroundColor: "black",
             borderColor: COLORS.editor.border,
+            color: COLORS.text.muted,
           }}
         >
           Preview Window
@@ -52,16 +53,23 @@ export function PlayerArea({
               btn.action === "play"
                 ? onPlayPause
                 : btn.action === "previous"
-                ? onPrevious
-                : onNext
+                  ? onPrevious
+                  : onNext
             }
-            className="text-neutral-400 hover:text-white transition-colors text-lg"
+            className="transition-colors text-lg"
+            style={{ color: COLORS.text.secondary }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = COLORS.text.fg;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = COLORS.text.secondary;
+            }}
             aria-label={btn.label}
           >
             {btn.symbol}
           </button>
         ))}
-        <div className="text-xs font-mono text-cyan-500 ml-4">
+        <div className="text-xs font-mono ml-4" style={{ color: COLORS.accent.cyan }}>
           {playbackTime}
         </div>
       </div>

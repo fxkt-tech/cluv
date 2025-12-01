@@ -79,14 +79,22 @@ export function ResourcePanel({
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
-              className={`px-3 py-1.5 text-xs rounded transition-colors ${
-                activeTab === tab
-                  ? "text-cyan-400"
-                  : "text-gray-300 hover:text-white"
-              }`}
+              className="px-3 py-1.5 text-xs rounded transition-colors"
               style={{
                 backgroundColor:
                   activeTab === tab ? COLORS.editor.hover : "transparent",
+                color:
+                  activeTab === tab ? COLORS.accent.blue : COLORS.text.secondary,
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== tab) {
+                  e.currentTarget.style.color = COLORS.text.fg;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab) {
+                  e.currentTarget.style.color = COLORS.text.secondary;
+                }
               }}
             >
               {RESOURCE_TAB_LABELS[tab as ResourceTab]}
@@ -164,12 +172,15 @@ export function ResourcePanel({
 
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+              <div
+                className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+                style={{ borderColor: COLORS.accent.blue, borderTopColor: "transparent" }}
+              />
             </div>
           )}
 
           {!isLoading && filteredResources.length === 0 && (
-            <div className="text-center py-8 text-neutral-500 text-sm">
+            <div className="text-center py-8 text-sm" style={{ color: COLORS.text.muted }}>
               暂无素材
             </div>
           )}

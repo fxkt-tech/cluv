@@ -4,12 +4,12 @@
 //! creating a composition with video and audio tracks and exporting as audio.
 
 use kiva_cut::{
-    ffcut::{
+    ExportType, FFmpegOptions, FFprobeOptions, Result,
+    cut::{
         editor::{Editor, ExportOptions},
         segment::Segment,
         stage::Stage,
     },
-    ExportType, FFmpegOptions, FFprobeOptions, Result,
 };
 
 #[tokio::main]

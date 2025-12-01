@@ -63,22 +63,32 @@ export default function EditorPage() {
 
   if (isLoadingProject) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+      <div className="flex items-center justify-center h-screen w-screen" style={{ backgroundColor: COLORS.editor.bg }}>
+        <div
+          className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
+          style={{ borderColor: COLORS.accent.blue, borderTopColor: "transparent", borderBottomColor: "transparent" }}
+        ></div>
       </div>
     );
   }
 
   if (projectError || !project) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-slate-900">
-        <div className="bg-slate-800 rounded-lg p-8 max-w-md">
-          <p className="text-red-400 mb-4">
+      <div className="flex items-center justify-center h-screen w-screen" style={{ backgroundColor: COLORS.editor.bg }}>
+        <div className="rounded-lg p-8 max-w-md" style={{ backgroundColor: COLORS.editor.panel }}>
+          <p className="mb-4" style={{ color: COLORS.accent.red }}>
             {projectError || "Project not found"}
           </p>
           <button
             onClick={handleBackToHome}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg"
+            className="px-4 py-2 text-white rounded-lg transition-colors"
+            style={{ backgroundColor: COLORS.accent.blue }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.accent.cyan;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = COLORS.accent.blue;
+            }}
           >
             Back to Home
           </button>
@@ -105,8 +115,8 @@ export default function EditorPage() {
 
       {/* Error Banner */}
       {resourceError && (
-        <div className="bg-red-900/20 border-b border-red-800 px-4 py-2">
-          <p className="text-sm text-red-400">⚠️ {resourceError}</p>
+        <div className="border-b px-4 py-2" style={{ backgroundColor: `${COLORS.accent.red}20`, borderBottomColor: COLORS.accent.red }}>
+          <p className="text-sm" style={{ color: COLORS.accent.red }}>⚠️ {resourceError}</p>
         </div>
       )}
 

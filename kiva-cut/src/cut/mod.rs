@@ -149,7 +149,7 @@ impl Default for EditSession {
 mod tests {
     use super::*;
     use crate::{
-        ffcut::{AudioMaterial, VideoMaterial},
+        cut::{AudioMaterial, VideoMaterial},
         ffmpeg::codec::AudioCodec,
     };
 
