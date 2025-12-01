@@ -2,19 +2,19 @@
 
 use crate::error::{CluvError, Result};
 use crate::ffcut::{
+    EditSession,
     material::Material,
     protocol::{CutProtocol, ExportType},
     segment::Segment,
     stage::Stage,
     track::Track,
-    EditSession,
 };
 use crate::ffmpeg::{
+    FFmpeg,
     codec::{AudioCodec, VideoCodec},
     filter::Filter,
     input::Input,
     output::Output,
-    FFmpeg,
 };
 use crate::ffprobe::FFprobe;
 use crate::{FFmpegOptions, FFprobeOptions};
@@ -180,7 +180,7 @@ impl Editor {
 
             // Fill missing fields based on material type
             match material {
-                Material::Video(ref mut video) => {
+                Material::Video(video) => {
                     // Find video stream
                     if let Some(video_stream) = media_info
                         .streams
@@ -233,7 +233,7 @@ impl Editor {
                     }
                 }
 
-                Material::Audio(ref mut audio) => {
+                Material::Audio(audio) => {
                     // Find audio stream
                     if let Some(audio_stream) = media_info
                         .streams
@@ -283,7 +283,7 @@ impl Editor {
                     }
                 }
 
-                Material::Image(ref mut image) => {
+                Material::Image(image) => {
                     // Find video stream (images are treated as video streams by ffprobe)
                     if let Some(image_stream) = media_info
                         .streams
@@ -612,8 +612,8 @@ impl ExportOptions {
 mod tests {
     use super::*;
     use crate::{
-        ffcut::{material::VideoMaterial, segment::SegmentType},
         TimeRange,
+        ffcut::{material::VideoMaterial, segment::SegmentType},
     };
 
     #[test]
