@@ -7,7 +7,7 @@ pub mod output;
 pub mod stream;
 pub mod util;
 
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use crate::ffmpeg::stream::{Stream, StreamInput, Streamable};
 
 use crate::ffmpeg::{filter::Filter, input::Input, output::Output};
@@ -158,11 +158,11 @@ impl FFmpeg {
         let output = cmd
             .output()
             .await
-            .map_err(|e| CluvError::ffmpeg(format!("Failed to execute FFmpeg: {}", e)))?;
+            .map_err(|e| CutError::ffmpeg(format!("Failed to execute FFmpeg: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(CluvError::ffmpeg(format!(
+            return Err(CutError::ffmpeg(format!(
                 "FFmpeg command failed with exit code {:?}: {}",
                 output.status.code(),
                 stderr

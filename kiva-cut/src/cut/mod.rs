@@ -20,7 +20,7 @@ pub use segment::{Position, Scale, Segment, TimeRange};
 pub use stage::Stage;
 pub use track::{Track, TrackType};
 
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use serde::{Deserialize, Serialize};
 
 /// Main editing session
@@ -75,7 +75,7 @@ impl EditSession {
     pub fn validate(&self) -> Result<()> {
         // Validate stage
         if self.stage.width <= 0 || self.stage.height <= 0 {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Stage dimensions must be positive",
             ));
         }
@@ -92,7 +92,7 @@ impl EditSession {
             // Check if all referenced materials exist
             for segment in &track.segments {
                 if self.get_material(&segment.material_id).is_none() {
-                    return Err(CluvError::invalid_params(format!(
+                    return Err(CutError::invalid_params(format!(
                         "Material '{}' not found",
                         segment.material_id
                     )));

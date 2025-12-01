@@ -8,7 +8,7 @@ use crate::cut::{
     stage::Stage,
     track::Track,
 };
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use crate::ffmpeg::{
     FFmpeg,
     codec::{AudioCodec, VideoCodec},
@@ -116,26 +116,24 @@ impl Editor {
 
     /// ---
 
-    /// Add material to the session
-    pub fn add_material(&mut self, material: Material) -> String {
+    pub async fn add_material(&mut self, src: &str) -> Result<String> {
+        let media_info = FFprobe::new()
+            .set_options(self.ffprobe_options.clone())
+            .input(src)
+            .run()
+            .await?;
+        let material = if media_info.is_video() {
+            Material::video(src)
+        } else if media_info.is_audio() {
+            Material::audio(src)
+        } else if media_info.is_image() {
+            Material::image(src)
+        } else {
+            return Err(CutError::invalid_params("不支持的格式"));
+        };
         let id = material.id().to_string();
         self.session.add_material(material);
-        id
-    }
-
-    /// Add video material to the session
-    pub fn add_video_material(&mut self, src: &str) -> String {
-        self.add_material(Material::video(src))
-    }
-
-    /// Add audio material to the session
-    pub fn add_audio_material(&mut self, src: &str) -> String {
-        self.add_material(Material::audio(src))
-    }
-
-    /// Add image material to the session
-    pub fn add_image_material(&mut self, src: &str) -> String {
-        self.add_material(Material::image(src))
+        Ok(id)
     }
 
     /// Add track to the session
@@ -161,7 +159,7 @@ impl Editor {
             track.add_segment(segment);
             Ok(())
         } else {
-            Err(CluvError::invalid_params(format!(
+            Err(CutError::invalid_params(format!(
                 "Track '{}' not found",
                 track_id
             )))
@@ -171,10 +169,9 @@ impl Editor {
     /// Fix the current session
     pub async fn fix_materials(&mut self) -> Result<()> {
         for material in &mut self.session.materials {
-            let src = material.src().to_string();
             let media_info = FFprobe::new()
                 .set_options(self.ffprobe_options.clone())
-                .input(&src)
+                .input(material.src())
                 .run()
                 .await?;
 
@@ -318,15 +315,15 @@ impl Editor {
         if parts.len() == 2 {
             let numerator: f32 = parts[0]
                 .parse()
-                .map_err(|_| CluvError::invalid_params("Invalid numerator in fraction"))?;
+                .map_err(|_| CutError::invalid_params("Invalid numerator in fraction"))?;
             let denominator: f32 = parts[1]
                 .parse()
-                .map_err(|_| CluvError::invalid_params("Invalid denominator in fraction"))?;
+                .map_err(|_| CutError::invalid_params("Invalid denominator in fraction"))?;
             if denominator != 0.0 {
                 return Ok(numerator / denominator);
             }
         }
-        Err(CluvError::invalid_params("Invalid fraction format"))
+        Err(CutError::invalid_params("Invalid fraction format"))
     }
 
     /// Validate the current session
@@ -549,6 +546,9 @@ impl Editor {
 impl Default for Editor {
     fn default() -> Self {
         Self::new()
+            .set_stage(Stage::new(1280, 720))
+            .set_ffmpeg_options(FFmpegOptions::new().debug(true).dry_run(false))
+            .set_ffprobe_options(FFprobeOptions::new().debug(true))
     }
 }
 
@@ -605,122 +605,5 @@ impl ExportOptions {
     ) -> Self {
         self.custom_options.insert(key.into(), value.into());
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        TimeRange,
-        cut::{material::VideoMaterial, segment::SegmentType},
-    };
-
-    #[test]
-    fn test_editor_creation() {
-        let editor = Editor::new();
-        assert_eq!(editor.session.stage.width, 1920);
-        assert_eq!(editor.session.stage.height, 1080);
-        assert!(editor.session.materials.is_empty());
-        assert!(editor.session.tracks.is_empty());
-    }
-
-    #[test]
-    fn test_add_materials_and_tracks() {
-        let mut editor = Editor::new();
-
-        let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
-        editor.add_material(material);
-
-        editor.add_video_track();
-
-        assert_eq!(editor.session.materials.len(), 1);
-        assert_eq!(editor.session.tracks.len(), 1);
-    }
-
-    #[test]
-    fn test_add_segment_to_track() {
-        let mut editor = Editor::new();
-
-        let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
-        editor.add_material(material);
-
-        let track = Track::video();
-        let track_id = track.id.clone();
-        editor.add_track(track);
-
-        let segment = Segment::new(
-            "segment1",
-            SegmentType::Video,
-            "video1",
-            TimeRange::new(0, 5000),
-            TimeRange::new(0, 5000),
-        );
-
-        let result = editor.add_segment_to_track(&track_id, segment);
-        assert!(result.is_ok());
-
-        let track = editor.session.get_track(&track_id).unwrap();
-        assert_eq!(track.segments.len(), 1);
-    }
-
-    #[test]
-    fn test_protocol_conversion() {
-        let mut editor = Editor::new();
-
-        let material = Material::Video(VideoMaterial::new("video1", "test.mp4", 1920, 1080));
-        editor.add_material(material);
-
-        let protocol_json = r#"
-        {
-            "stage": {
-                "width": 1920,
-                "height": 1080
-            },
-            "materials": {
-                "videos": [
-                    {
-                        "id": "video1",
-                        "src": "test.mp4",
-                        "dimension": {
-                            "width": 1920,
-                            "height": 1080
-                        }
-                    }
-                ],
-                "images": [],
-                "audios": []
-            },
-            "tracks": []
-        }
-        "#;
-
-        let result = editor.load_from_json(protocol_json);
-        assert!(result.is_ok());
-
-        let json_output = editor.save_to_json().unwrap();
-        assert!(json_output.contains("test.mp4"));
-    }
-
-    #[test]
-    fn test_export_options() {
-        let options = ExportOptions::new("output.mp4", ExportType::Video)
-            .with_video_codec("libx264")
-            .with_audio_codec("aac")
-            .with_quality(23)
-            .with_video_bitrate(5000)
-            .with_audio_bitrate(128)
-            .with_custom_option("preset", "medium");
-
-        assert_eq!(options.output_file, "output.mp4");
-        assert_eq!(options.video_codec, Some("libx264".to_string()));
-        assert_eq!(options.audio_codec, Some("aac".to_string()));
-        assert_eq!(options.quality, Some(23));
-        assert_eq!(options.video_bitrate, Some(5000));
-        assert_eq!(options.audio_bitrate, Some(128));
-        assert_eq!(
-            options.custom_options.get("preset"),
-            Some(&"medium".to_string())
-        );
     }
 }

@@ -1,6 +1,6 @@
 //! Material management for video editing
 
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use uuid::Uuid;
@@ -144,12 +144,12 @@ impl Material {
     pub fn validate(&self) -> Result<()> {
         // Check if ID is not empty
         if self.id().is_empty() {
-            return Err(CluvError::invalid_params("Material ID cannot be empty"));
+            return Err(CutError::invalid_params("Material ID cannot be empty"));
         }
 
         // Check if source path is not empty
         if self.src().is_empty() {
-            return Err(CluvError::invalid_params("Material source cannot be empty"));
+            return Err(CutError::invalid_params("Material source cannot be empty"));
         }
 
         // Validate specific material types
@@ -258,14 +258,14 @@ impl VideoMaterial {
     /// Validate the video material
     pub fn validate(&self) -> Result<()> {
         if self.dimension.width <= 0 {
-            return Err(CluvError::invalid_params("Video width must be positive"));
+            return Err(CutError::invalid_params("Video width must be positive"));
         }
         if self.dimension.height <= 0 {
-            return Err(CluvError::invalid_params("Video height must be positive"));
+            return Err(CutError::invalid_params("Video height must be positive"));
         }
         if let Some(fps) = self.fps {
             if fps <= 0.0 {
-                return Err(CluvError::invalid_params("Video FPS must be positive"));
+                return Err(CutError::invalid_params("Video FPS must be positive"));
             }
         }
         Ok(())
@@ -320,12 +320,12 @@ impl AudioMaterial {
     pub fn validate(&self) -> Result<()> {
         if let Some(sample_rate) = self.sample_rate {
             if sample_rate == 0 {
-                return Err(CluvError::invalid_params("Sample rate must be positive"));
+                return Err(CutError::invalid_params("Sample rate must be positive"));
             }
         }
         if let Some(channels) = self.channels {
             if channels == 0 {
-                return Err(CluvError::invalid_params("Channel count must be positive"));
+                return Err(CutError::invalid_params("Channel count must be positive"));
             }
         }
         Ok(())
@@ -366,10 +366,10 @@ impl ImageMaterial {
     /// Validate the image material
     pub fn validate(&self) -> Result<()> {
         if self.dimension.width <= 0 {
-            return Err(CluvError::invalid_params("Image width must be positive"));
+            return Err(CutError::invalid_params("Image width must be positive"));
         }
         if self.dimension.height <= 0 {
-            return Err(CluvError::invalid_params("Image height must be positive"));
+            return Err(CutError::invalid_params("Image height must be positive"));
         }
         Ok(())
     }

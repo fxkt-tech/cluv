@@ -23,8 +23,8 @@ async fn main() -> Result<()> {
         .set_ffprobe_options(FFprobeOptions::new().debug(true));
 
     // 添加素材
-    let video_material_id = editor.add_video_material("examples/metadata/in.mp4");
-    let video_material2_id = editor.add_video_material("examples/metadata/in2.mp4");
+    let video_material_id = editor.add_material("examples/metadata/in.mp4").await?;
+    let video_material2_id = editor.add_material("examples/metadata/in2.mp4").await?;
 
     // 添加轨道
     let video_track_id = editor.add_video_track();

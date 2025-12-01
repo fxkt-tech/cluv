@@ -7,7 +7,7 @@ use crate::cut::{
     stage::Stage,
     track::{Track, TrackType},
 };
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -344,7 +344,7 @@ impl CutProtocol {
                 "text" => TrackType::Text,
                 "subtitle" => TrackType::Subtitle,
                 _ => {
-                    return Err(CluvError::invalid_params(format!(
+                    return Err(CutError::invalid_params(format!(
                         "Unknown track type: {}",
                         protocol_track.track_type
                     )));
@@ -362,7 +362,7 @@ impl CutProtocol {
                     "text" => SegmentType::Text,
                     "subtitle" => SegmentType::Subtitle,
                     _ => {
-                        return Err(CluvError::invalid_params(format!(
+                        return Err(CutError::invalid_params(format!(
                             "Unknown segment type: {}",
                             protocol_segment.segment_type
                         )));
@@ -408,19 +408,19 @@ impl CutProtocol {
 
     /// Load from JSON string
     pub fn from_json(json: &str) -> Result<Self> {
-        serde_json::from_str(json).map_err(|e| CluvError::Json(e))
+        serde_json::from_str(json).map_err(|e| CutError::Json(e))
     }
 
     /// Save to JSON string
     pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(self).map_err(|e| CluvError::Json(e))
+        serde_json::to_string_pretty(self).map_err(|e| CutError::Json(e))
     }
 
     /// Validate the protocol
     pub fn validate(&self) -> Result<()> {
         // Validate stage
         if self.stage.width <= 0 || self.stage.height <= 0 {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Stage dimensions must be positive",
             ));
         }
@@ -430,12 +430,12 @@ impl CutProtocol {
 
         for video in &self.materials.videos {
             if video.id.is_empty() {
-                return Err(CluvError::invalid_params(
+                return Err(CutError::invalid_params(
                     "Video material ID cannot be empty",
                 ));
             }
             if !material_ids.insert(&video.id) {
-                return Err(CluvError::invalid_params(format!(
+                return Err(CutError::invalid_params(format!(
                     "Duplicate material ID: {}",
                     video.id
                 )));
@@ -444,12 +444,12 @@ impl CutProtocol {
 
         for audio in &self.materials.audios {
             if audio.id.is_empty() {
-                return Err(CluvError::invalid_params(
+                return Err(CutError::invalid_params(
                     "Audio material ID cannot be empty",
                 ));
             }
             if !material_ids.insert(&audio.id) {
-                return Err(CluvError::invalid_params(format!(
+                return Err(CutError::invalid_params(format!(
                     "Duplicate material ID: {}",
                     audio.id
                 )));
@@ -458,12 +458,12 @@ impl CutProtocol {
 
         for image in &self.materials.images {
             if image.id.is_empty() {
-                return Err(CluvError::invalid_params(
+                return Err(CutError::invalid_params(
                     "Image material ID cannot be empty",
                 ));
             }
             if !material_ids.insert(&image.id) {
-                return Err(CluvError::invalid_params(format!(
+                return Err(CutError::invalid_params(format!(
                     "Duplicate material ID: {}",
                     image.id
                 )));
@@ -474,10 +474,10 @@ impl CutProtocol {
         let mut track_ids = std::collections::HashSet::new();
         for track in &self.tracks {
             if track.id.is_empty() {
-                return Err(CluvError::invalid_params("Track ID cannot be empty"));
+                return Err(CutError::invalid_params("Track ID cannot be empty"));
             }
             if !track_ids.insert(&track.id) {
-                return Err(CluvError::invalid_params(format!(
+                return Err(CutError::invalid_params(format!(
                     "Duplicate track ID: {}",
                     track.id
                 )));
@@ -487,10 +487,10 @@ impl CutProtocol {
             let mut segment_ids = std::collections::HashSet::new();
             for segment in &track.segments {
                 if segment.id.is_empty() {
-                    return Err(CluvError::invalid_params("Segment ID cannot be empty"));
+                    return Err(CutError::invalid_params("Segment ID cannot be empty"));
                 }
                 if !segment_ids.insert(&segment.id) {
-                    return Err(CluvError::invalid_params(format!(
+                    return Err(CutError::invalid_params(format!(
                         "Duplicate segment ID: {}",
                         segment.id
                     )));
@@ -498,7 +498,7 @@ impl CutProtocol {
 
                 // Check if referenced material exists
                 if !material_ids.contains(&segment.material_id) {
-                    return Err(CluvError::invalid_params(format!(
+                    return Err(CutError::invalid_params(format!(
                         "Referenced material '{}' not found",
                         segment.material_id
                     )));
@@ -506,12 +506,12 @@ impl CutProtocol {
 
                 // Validate time ranges
                 if segment.target_timerange.duration == 0 {
-                    return Err(CluvError::invalid_params(
+                    return Err(CutError::invalid_params(
                         "Target duration must be positive",
                     ));
                 }
                 if segment.source_timerange.duration == 0 {
-                    return Err(CluvError::invalid_params(
+                    return Err(CutError::invalid_params(
                         "Source duration must be positive",
                     ));
                 }
@@ -519,7 +519,7 @@ impl CutProtocol {
                 // Validate scale if present
                 if let Some(scale) = &segment.scale {
                     if scale.width <= 0 || scale.height <= 0 {
-                        return Err(CluvError::invalid_params(
+                        return Err(CutError::invalid_params(
                             "Scale dimensions must be positive",
                         ));
                     }

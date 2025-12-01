@@ -1,7 +1,7 @@
 //! Track management for video editing
 
 use crate::cut::segment::Segment;
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -225,19 +225,19 @@ impl Track {
     /// Validate the track
     pub fn validate(&self) -> Result<()> {
         if self.id.is_empty() {
-            return Err(CluvError::invalid_params("Track ID cannot be empty"));
+            return Err(CutError::invalid_params("Track ID cannot be empty"));
         }
 
         // Validate volume range
         if !(0.0..=1.0).contains(&self.volume) {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Volume must be between 0.0 and 1.0",
             ));
         }
 
         // Validate opacity range
         if !(0.0..=1.0).contains(&self.opacity) {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Opacity must be between 0.0 and 1.0",
             ));
         }
@@ -245,7 +245,7 @@ impl Track {
         // Validate all segments
         for (i, segment) in self.segments.iter().enumerate() {
             segment.validate().map_err(|e| {
-                CluvError::invalid_params(format!("Segment {} validation failed: {}", i, e))
+                CutError::invalid_params(format!("Segment {} validation failed: {}", i, e))
             })?;
         }
 

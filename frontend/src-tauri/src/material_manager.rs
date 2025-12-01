@@ -72,7 +72,7 @@ pub fn save_protocol(project_path: &str, protocol_json: &str) -> Result<(), Stri
 }
 
 /// Add a material to the protocol
-pub fn add_material_to_protocol(
+pub async fn add_material_to_protocol(
     project_path: &str,
     material_src: &str,
     material_type: MaterialType,
@@ -84,9 +84,18 @@ pub fn add_material_to_protocol(
         .map_err(|e| format!("Failed to load protocol: {}", e))?;
 
     let material_id = match material_type {
-        MaterialType::Video => editor.add_video_material(material_src),
-        MaterialType::Audio => editor.add_audio_material(material_src),
-        MaterialType::Image => editor.add_image_material(material_src),
+        MaterialType::Video => editor
+            .add_material(material_src)
+            .await
+            .map_err(|e| format!("Failed to add video material: {}", e))?,
+        MaterialType::Audio => editor
+            .add_material(material_src)
+            .await
+            .map_err(|e| format!("Failed to add audio material: {}", e))?,
+        MaterialType::Image => editor
+            .add_material(material_src)
+            .await
+            .map_err(|e| format!("Failed to add image material: {}", e))?,
     };
 
     let new_protocol = editor
@@ -192,7 +201,7 @@ pub fn list_materials_from_protocol(project_path: &str) -> Result<Vec<ProtocolMa
 }
 
 /// Import a material file to project
-pub fn import_material_file(
+pub async fn import_material_file(
     project_path: &str,
     source_path: &str,
 ) -> Result<ProtocolMaterial, String> {
@@ -227,6 +236,8 @@ pub fn import_material_file(
     // Add to protocol
     let dest_str = dest_path.to_string_lossy().to_string();
     add_material_to_protocol(project_path, &dest_str, material_type)
+        .await
+        .map_err(|e| format!("{}", e))
 }
 
 /// Get material by ID from protocol

@@ -1,6 +1,6 @@
 //! Stage configuration for video editing
 
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use serde::{Deserialize, Serialize};
 
 /// Stage represents the canvas/viewport for video composition
@@ -75,10 +75,10 @@ impl Stage {
     /// Validate stage dimensions
     pub fn validate(&self) -> Result<()> {
         if self.width <= 0 {
-            return Err(CluvError::invalid_params("Stage width must be positive"));
+            return Err(CutError::invalid_params("Stage width must be positive"));
         }
         if self.height <= 0 {
-            return Err(CluvError::invalid_params("Stage height must be positive"));
+            return Err(CutError::invalid_params("Stage height must be positive"));
         }
         Ok(())
     }

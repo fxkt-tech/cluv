@@ -29,5 +29,5 @@ pub use cut::{
     ImageMaterial, Material, MaterialType, Position, Scale, Segment, Stage, TimeRange, Track,
     TrackType, VideoMaterial,
 };
-pub use error::{CluvError, Result};
+pub use error::{CutError, Result};
 pub use options::*;

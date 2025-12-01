@@ -1,8 +1,8 @@
 //! Segment management for video editing tracks
 
 use crate::{
-    error::{CluvError, Result},
     Dimension,
+    error::{CutError, Result},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -210,21 +210,21 @@ impl Segment {
     /// Validate the segment
     pub fn validate(&self) -> Result<()> {
         if self.id.is_empty() {
-            return Err(CluvError::invalid_params("Segment ID cannot be empty"));
+            return Err(CutError::invalid_params("Segment ID cannot be empty"));
         }
 
         if self.material_id.is_empty() {
-            return Err(CluvError::invalid_params("Material ID cannot be empty"));
+            return Err(CutError::invalid_params("Material ID cannot be empty"));
         }
 
         if self.target_timerange.duration == 0 {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Target duration must be positive",
             ));
         }
 
         if self.source_timerange.duration == 0 {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Source duration must be positive",
             ));
         }
@@ -232,7 +232,7 @@ impl Segment {
         // Validate scale if present
         if let Some(scale) = self.scale {
             if scale.width <= 0 || scale.height <= 0 {
-                return Err(CluvError::invalid_params(
+                return Err(CutError::invalid_params(
                     "Scale dimensions must be positive",
                 ));
             }
@@ -301,7 +301,7 @@ impl Segment {
     /// Split segment at a specific time
     pub fn split_at(&self, time: u32) -> Result<(Segment, Segment)> {
         if !self.contains_time(time) {
-            return Err(CluvError::invalid_params(
+            return Err(CutError::invalid_params(
                 "Split time is not within segment",
             ));
         }

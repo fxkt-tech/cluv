@@ -6,15 +6,17 @@ use crate::models::Resource;
 /// Import a material file (video, audio, or image) to the project
 /// The file will be copied to the materials directory and added to protocol.json
 #[tauri::command]
-pub fn import_material(project_path: String, source_path: String) -> Result<Resource, String> {
-    let material = import_material_file(&project_path, &source_path)?;
+pub async fn import_material(
+    project_path: String,
+    source_path: String,
+) -> Result<Resource, String> {
+    let material = import_material_file(&project_path, &source_path).await?;
 
     Ok(Resource {
         id: material.id,
-        name: source_path
-            .split('\\')
-            .last()
-            .or_else(|| source_path.split('/').last())
+        name: std::path::Path::new(&source_path)
+            .file_name()
+            .and_then(|name| name.to_str())
             .unwrap_or("unknown")
             .to_string(),
         path: material.src,
@@ -44,11 +46,9 @@ pub fn list_materials(project_path: String) -> Result<Vec<Resource>, String> {
         .into_iter()
         .map(|material| Resource {
             id: material.id,
-            name: material
-                .src
-                .split('\\')
-                .last()
-                .or_else(|| material.src.split('/').last())
+            name: std::path::Path::new(&material.src)
+                .file_name()
+                .and_then(|name| name.to_str())
                 .unwrap_or("unknown")
                 .to_string(),
             path: material.src,

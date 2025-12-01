@@ -1,6 +1,6 @@
 //! FFprobe module for extracting media information
 
-use crate::error::{CluvError, Result};
+use crate::error::{CutError, Result};
 use crate::options::FFprobeOptions;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -162,7 +162,7 @@ impl FFprobe {
         let _input_file = self
             .input_file
             .as_ref()
-            .ok_or_else(|| CluvError::missing_param("input file"))?;
+            .ok_or_else(|| CutError::missing_param("input file"))?;
 
         let args = self.build_args();
         let mut cmd = Command::new(&self.options.binary_path);
@@ -178,11 +178,11 @@ impl FFprobe {
         let output = cmd
             .output()
             .await
-            .map_err(|e| CluvError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
+            .map_err(|e| CutError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(CluvError::ffprobe(format!(
+            return Err(CutError::ffprobe(format!(
                 "FFprobe command failed: {}",
                 stderr
             )));
@@ -192,7 +192,7 @@ impl FFprobe {
 
         if self.options.json_format {
             serde_json::from_str(&stdout).map_err(|e| {
-                CluvError::ffprobe(format!("Failed to parse FFprobe JSON output: {}", e))
+                CutError::ffprobe(format!("Failed to parse FFprobe JSON output: {}", e))
             })
         } else {
             // For non-JSON output, return minimal structure
@@ -219,11 +219,11 @@ impl FFprobe {
         let output = cmd
             .output()
             .await
-            .map_err(|e| CluvError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
+            .map_err(|e| CutError::ffprobe(format!("Failed to execute FFprobe: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(CluvError::ffprobe(format!(
+            return Err(CutError::ffprobe(format!(
                 "FFprobe command failed: {}",
                 stderr
             )));
@@ -325,6 +325,66 @@ impl MediaInfo {
     /// Get audio channels
     pub fn audio_channels(&self) -> Option<i32> {
         self.first_audio_stream().and_then(|stream| stream.channels)
+    }
+
+    /// Check if this is a video file (has video stream and either multiple frames or no frame count)
+    pub fn is_video(&self) -> bool {
+        if let Some(video_stream) = self.first_video_stream() {
+            // If we have frame count, check if it's more than 1
+            if let Some(frame_count) = video_stream.frame_count() {
+                return frame_count > 1;
+            }
+            // If no frame count available, assume it's a video if it has video stream
+            // and duration is more than a threshold (e.g., 0.1 seconds)
+            if let Some(duration) = video_stream.duration_seconds() {
+                return duration > 0.1;
+            }
+            // If we can't determine, default to true if has video stream
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Check if this is an audio file (has audio but no video, or is audio-only)
+    pub fn is_audio(&self) -> bool {
+        self.has_audio() && !self.is_video()
+    }
+
+    /// Check if this is an image file (single frame or image format)
+    pub fn is_image(&self) -> bool {
+        // Check if format name contains common image formats
+        if let Some(ref format) = self.format {
+            if let Some(ref format_name) = format.format_name {
+                let image_formats = [
+                    "image2",
+                    "png_pipe",
+                    "jpeg_pipe",
+                    "mjpeg",
+                    "bmp_pipe",
+                    "gif",
+                    "webp_pipe",
+                    "tiff_pipe",
+                    "svg_pipe",
+                ];
+                if image_formats.iter().any(|&fmt| format_name.contains(fmt)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check if it's a video with exactly 1 frame
+        if let Some(video_stream) = self.first_video_stream() {
+            if let Some(frame_count) = video_stream.frame_count() {
+                return frame_count == 1;
+            }
+            // Check if duration is very short (less than 0.1 seconds) which might indicate an image
+            if let Some(duration) = video_stream.duration_seconds() {
+                return duration <= 0.1 && !self.has_audio();
+            }
+        }
+
+        false
     }
 }
 

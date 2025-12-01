@@ -1,11 +1,11 @@
 //! Error handling for the cluv library
 
 /// Result type alias for cluv operations
-pub type Result<T> = std::result::Result<T, CluvError>;
+pub type Result<T> = std::result::Result<T, CutError>;
 
 /// Main error type for cluv operations
 #[derive(Debug, thiserror::Error)]
-pub enum CluvError {
+pub enum CutError {
     /// FFmpeg execution error
     #[error("FFmpeg error: {0}")]
     FFmpeg(String),
@@ -47,61 +47,59 @@ pub enum CluvError {
     Custom(String),
 }
 
-impl CluvError {
+impl CutError {
     /// Create a new FFmpeg error
     pub fn ffmpeg<S: Into<String>>(msg: S) -> Self {
-        CluvError::FFmpeg(msg.into())
+        CutError::FFmpeg(msg.into())
     }
 
     /// Create a new FFprobe error
     pub fn ffprobe<S: Into<String>>(msg: S) -> Self {
-        CluvError::FFprobe(msg.into())
+        CutError::FFprobe(msg.into())
     }
 
     /// Create a new invalid parameters error
     pub fn invalid_params<S: Into<String>>(msg: S) -> Self {
-        CluvError::InvalidParams(msg.into())
+        CutError::InvalidParams(msg.into())
     }
 
     /// Create a new missing parameter error
     pub fn missing_param<S: Into<String>>(param: S) -> Self {
-        CluvError::MissingParam(param.into())
+        CutError::MissingParam(param.into())
     }
 
     /// Create a new file not found error
     pub fn file_not_found<S: Into<String>>(path: S) -> Self {
-        CluvError::FileNotFound(path.into())
+        CutError::FileNotFound(path.into())
     }
 
     /// Create a new unsupported format error
     pub fn unsupported_format<S: Into<String>>(format: S) -> Self {
-        CluvError::UnsupportedFormat(format.into())
+        CutError::UnsupportedFormat(format.into())
     }
 
     /// Create a new custom error
     pub fn custom<S: Into<String>>(msg: S) -> Self {
-        CluvError::Custom(msg.into())
+        CutError::Custom(msg.into())
     }
 }
 
 /// Predefined error instances for common scenarios
-impl CluvError {
+impl CutError {
     /// Error for when interval is required for normal frame type
-    pub fn interval_required() -> CluvError {
-        CluvError::InvalidParams(
-            "interval required when frame_type is 1 (normal frame)".to_string(),
-        )
+    pub fn interval_required() -> CutError {
+        CutError::InvalidParams("interval required when frame_type is 1 (normal frame)".to_string())
     }
 
     /// Error for invalid parameters
-    pub fn params_invalid() -> CluvError {
-        CluvError::InvalidParams("params is invalid".to_string())
+    pub fn params_invalid() -> CutError {
+        CutError::InvalidParams("params is invalid".to_string())
     }
 }
 
 // Convert from common error types
-impl From<uuid::Error> for CluvError {
+impl From<uuid::Error> for CutError {
     fn from(err: uuid::Error) -> Self {
-        CluvError::Custom(format!("UUID error: {}", err))
+        CutError::Custom(format!("UUID error: {}", err))
     }
 }

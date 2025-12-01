@@ -23,13 +23,10 @@ async fn main() -> Result<()> {
     // Step 1: Create a simple composition and save to JSON
     println!("1. Creating initial composition...");
 
-    let mut editor = Editor::new()
-        .set_stage(Stage::new(960, 540))
-        .set_ffmpeg_options(FFmpegOptions::new().debug(true).dry_run(false))
-        .set_ffprobe_options(FFprobeOptions::new().debug(true));
+    let mut editor = Editor::default();
 
     // Add materials
-    let video_material_id = editor.add_video_material("examples/metadata/in.mp4");
+    let video_material_id = editor.add_material("examples/metadata/in.mp4").await?;
 
     // Add track
     let video_track_id = editor.add_video_track();
