@@ -1,5 +1,5 @@
 use crate::models::ProjectHistory;
-use crate::paths::get_histories_file;
+use crate::service::paths::get_histories_file;
 use std::fs;
 use tauri::AppHandle;
 

@@ -6,11 +6,10 @@
 //! 3. Export the loaded composition
 
 use kiva_cut::{
-    ExportType, FFmpegOptions, FFprobeOptions, Result,
+    ExportType, Result,
     cut::{
         editor::{Editor, ExportOptions},
         segment::Segment,
-        stage::Stage,
     },
 };
 
@@ -59,10 +58,7 @@ async fn main() -> Result<()> {
     // Step 2: Create a new editor and load from JSON
     println!("3. Creating new editor and loading from JSON...");
 
-    let mut loaded_editor = Editor::new()
-        .set_stage(Stage::new(960, 540))
-        .set_ffmpeg_options(FFmpegOptions::new().debug(true).dry_run(false))
-        .set_ffprobe_options(FFprobeOptions::new().debug(true));
+    let mut loaded_editor = Editor::default();
 
     // Load the composition from JSON
     loaded_editor.load_from_json(&json_proto)?;

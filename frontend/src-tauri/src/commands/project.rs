@@ -1,6 +1,7 @@
-use crate::history::{load_histories, save_histories};
 use crate::models::ProjectHistory;
-use crate::paths::get_projects_dir;
+use crate::service::history::{load_histories, save_histories};
+use crate::service::paths::get_projects_dir;
+use kiva_cut::Editor;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -17,7 +18,6 @@ pub fn create_project(
 
     // Project directory is named using the project ID
     let base_path = PathBuf::from(&project_path).join(&project_id);
-
     // Create main project directory
     fs::create_dir_all(&base_path)
         .map_err(|e| format!("Failed to create project directory: {}", e))?;
@@ -27,31 +27,12 @@ pub fn create_project(
     fs::create_dir_all(&materials_dir)
         .map_err(|e| format!("Failed to create materials directory: {}", e))?;
 
-    // Create output directory
-    let output_dir = base_path.join("output");
-    fs::create_dir_all(&output_dir)
-        .map_err(|e| format!("Failed to create output directory: {}", e))?;
-
     // Create protocol file following kiva-cut Editor protocol structure
     let protocol_path = base_path.join("protocol.json");
-    let protocol_template = serde_json::json!({
-        "stage": {
-            "width": 1920,
-            "height": 1080
-        },
-        "materials": {
-            "videos": [],
-            "images": [],
-            "audios": []
-        },
-        "tracks": []
-    });
-
-    fs::write(
-        &protocol_path,
-        serde_json::to_string_pretty(&protocol_template).unwrap(),
-    )
-    .map_err(|e| format!("Failed to write protocol file: {}", e))?;
+    let editor = Editor::new();
+    editor
+        .save_to_file(protocol_path)
+        .map_err(|e| format!("Failed to create protocol: {}", e))?;
 
     // Add to histories with the actual project path
     let now = chrono::Local::now().to_rfc3339();

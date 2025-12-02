@@ -375,6 +375,16 @@ impl ImageMaterial {
     }
 }
 
+impl MaterialType {
+    pub fn to_string(&self) -> String {
+        match self {
+            MaterialType::Image => "image".to_string(),
+            MaterialType::Audio => "audio".to_string(),
+            MaterialType::Video => "video".to_string(),
+        }
+    }
+}
+
 impl Dimension {
     /// Create a new dimension
     pub fn new(width: i32, height: i32) -> Self {

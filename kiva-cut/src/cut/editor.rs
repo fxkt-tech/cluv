@@ -19,7 +19,7 @@ use crate::ffmpeg::{
 use crate::ffprobe::FFprobe;
 use crate::{FFmpegOptions, FFprobeOptions};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 /// Main video editor for composition and export
 #[derive(Debug)]
@@ -93,6 +93,15 @@ impl Editor {
         self.load_from_protocol(&protocol)
     }
 
+    pub fn load_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+        let source = path.as_ref();
+        if !source.exists() {
+            return Err(CutError::file_not_found("Source file does not exist"));
+        }
+        let content = std::fs::read_to_string(source)?;
+        self.load_from_json(&content)
+    }
+
     /// Save session to cut protocol
     pub fn save_to_protocol(&self) -> CutProtocol {
         self.session.to_protocol()
@@ -102,6 +111,13 @@ impl Editor {
     pub fn save_to_json(&self) -> Result<String> {
         let protocol = self.save_to_protocol();
         protocol.to_json()
+    }
+
+    /// Save session to file
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let content = self.save_to_json()?;
+        std::fs::write(path, content)?;
+        Ok(())
     }
 
     /// Get current editing session
@@ -162,6 +178,40 @@ impl Editor {
             Err(CutError::invalid_params(format!(
                 "Track '{}' not found",
                 track_id
+            )))
+        }
+    }
+
+    /// query materials
+    pub fn list_materials(&self) -> &Vec<Material> {
+        &self.session.materials
+    }
+
+    /// query material from materials
+    pub fn query_material(&self, material_id: &str) -> Result<&Material> {
+        self.session
+            .materials
+            .iter()
+            .find(|m| m.id() == material_id)
+            .ok_or_else(|| {
+                CutError::invalid_params(format!("Material '{}' not found", material_id))
+            })
+    }
+
+    /// delete material from materials
+    pub fn delete_material(&mut self, material_id: &str) -> Result<()> {
+        if let Some(index) = self
+            .session
+            .materials
+            .iter()
+            .position(|m| m.id() == material_id)
+        {
+            self.session.materials.remove(index);
+            Ok(())
+        } else {
+            Err(CutError::invalid_params(format!(
+                "Material '{}' not found",
+                material_id
             )))
         }
     }
