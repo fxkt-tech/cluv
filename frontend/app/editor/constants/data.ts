@@ -50,7 +50,7 @@ export const TIMELINE_TOOLS = [
 
 export const PLAYBACK_BUTTONS = [
   { symbol: "⏮", label: "Previous frame", action: "previous" },
-  { symbol: "▶", label: "Play/Pause", action: "play" },
+  { symbol: "▶️", label: "Play/Pause", action: "play" },
   { symbol: "⏭", label: "Next frame", action: "next" },
 ] as const;
 

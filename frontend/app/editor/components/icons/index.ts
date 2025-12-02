@@ -1,0 +1,6 @@
+/**
+ * Icons Export
+ * Central export point for all icon components
+ */
+
+export * from './PlayerIcons';

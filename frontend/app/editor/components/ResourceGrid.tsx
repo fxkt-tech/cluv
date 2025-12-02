@@ -15,7 +15,7 @@ interface BackendResource {
 
 interface ResourceGridProps {
   resources: BackendResource[];
-  onSelect?: (resource: BackendResource) => void;
+  onSelect?: (resource: BackendResource | null) => void;
   projectPath?: string | null;
   onDelete?: () => void;
 }
@@ -27,6 +27,7 @@ export function ResourceGrid({
   onDelete,
 }: ResourceGridProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { deleteMaterial } = useTauriCommands();
 
   const handleDelete = async (
@@ -47,13 +48,29 @@ export function ResourceGrid({
     }
   };
 
+  const handleResourceClick = (resource: BackendResource) => {
+    if (selectedId === resource.id) {
+      // If clicking the same resource, deselect it
+      setSelectedId(null);
+      onSelect?.(null);
+    } else {
+      // Select new resource
+      setSelectedId(resource.id);
+      onSelect?.(resource);
+    }
+  };
+
   return (
     <div className="grid grid-cols-3 gap-2">
       {resources.map((resource) => (
         <div
           key={resource.id}
-          onClick={() => onSelect?.(resource)}
-          className="aspect-square rounded cursor-pointer group relative transition-all bg-editor-panel border border-editor-border hover:border-2 hover:border-accent-blue"
+          onClick={() => handleResourceClick(resource)}
+          className={`aspect-video rounded cursor-pointer group relative transition-all bg-editor-panel border-2 ${
+            selectedId === resource.id
+              ? "border-accent-blue bg-accent-blue/10"
+              : "border-editor-border hover:border-accent-blue"
+          }`}
         >
           <div className="absolute inset-0 flex items-center justify-center text-xs rounded p-1 text-center text-text-muted">
             {resource.name}

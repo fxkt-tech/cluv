@@ -22,7 +22,7 @@ interface ResourcePanelProps {
   onTabChange: (tab: string) => void;
   resources?: BackendResource[];
   isLoading?: boolean;
-  onResourceSelect?: (resource: EditorResource) => void;
+  onResourceSelect?: (resource: EditorResource | null) => void;
   projectPath?: string | null;
   loadResources?: () => Promise<void>;
 }
@@ -44,8 +44,14 @@ export function ResourcePanel({
   );
 
   // Convert BackendResource to EditorResource for callbacks
-  const handleResourceSelect = (backendResource: BackendResource) => {
+  const handleResourceSelect = (backendResource: BackendResource | null) => {
     if (onResourceSelect) {
+      // Handle null case (deselection)
+      if (!backendResource) {
+        onResourceSelect(null);
+        return;
+      }
+
       // Map backend resource type to editor ResourceTab type
       let resourceType: EditorResource["type"] = "media";
       if (backendResource.resource_type === "video") {

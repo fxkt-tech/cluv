@@ -14,6 +14,7 @@ import { useEditorState } from "./hooks/useEditorState";
 import { useProjectResources } from "./hooks/useProjectResources";
 import { useProjectById } from "./hooks/useProjectById";
 import { Resource } from "./types/editor";
+import { formatTimeWithDuration } from "./utils/time";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -42,6 +43,9 @@ export default function EditorPage() {
   } = useEditorState();
 
   const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const projectName = useMemo(() => {
     if (project) {
@@ -56,19 +60,45 @@ export default function EditorPage() {
   };
 
   const handlePlayPause = () => {
-    console.log("Play/Pause clicked");
-    // TODO: Implement playback
+    setIsPlaying(!isPlaying);
+    console.log("Play/Pause clicked", { isPlaying: !isPlaying });
+  };
+
+  const handlePrevious = () => {
+    console.log("Previous frame clicked");
+  };
+
+  const handleNext = () => {
+    console.log("Next frame clicked");
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
+  };
+
+  const handleDurationChange = (newDuration: number) => {
+    setDuration(newDuration);
   };
 
   const handleBackToHome = () => {
     router.push("/");
   };
 
-  const handleResourceSelect = (resource: Resource) => {
-    if (resource.type === "media" && resource.src) {
+  const handleResourceSelect = (resource: Resource | null) => {
+    if (resource && resource.type === "media" && resource.src) {
       // Convert file path to Tauri asset protocol URL
       const assetUrl = convertFileSrc(resource.src);
       setSelectedVideoSrc(assetUrl);
+      // Reset playback state when new video is selected
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+    } else {
+      // Clear video when resource is deselected
+      setSelectedVideoSrc(null);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
     }
   };
 
@@ -132,8 +162,16 @@ export default function EditorPage() {
 
           {/* Center: Player */}
           <PlayerArea
-            playbackTime={state.playbackTime}
+            playbackTime={
+              duration > 0
+                ? formatTimeWithDuration(currentTime, duration)
+                : formatTimeWithDuration(currentTime, currentTime)
+            }
             onPlayPause={handlePlayPause}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            onTimeUpdate={handleTimeUpdate}
+            onDurationChange={handleDurationChange}
             videoSrc={selectedVideoSrc}
           />
 

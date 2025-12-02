@@ -15,7 +15,7 @@ export function TimelineToolbar({
   onZoomChange,
 }: TimelineToolbarProps) {
   return (
-    <div className="h-timeline-toolbar border-b border-editor-border bg-editor-bg flex items-center px-4 gap-4 justify-between">
+    <div className="h-8 border-b border-editor-border bg-editor-bg flex items-center px-4 gap-4 justify-between">
       <div className="flex gap-4 text-sm">
         {TIMELINE_TOOLS.map((tool) => (
           <button
