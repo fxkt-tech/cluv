@@ -4,7 +4,6 @@
  */
 
 import { Track } from "../../types/editor";
-import { COLORS, SIZES } from "../../constants/theme";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { TimelineContent } from "./TimelineContent";
 
@@ -24,19 +23,12 @@ export function Timeline({
   onZoomChange,
 }: TimelineProps) {
   return (
-    <div
-      className={`${SIZES.timeline} border-t flex flex-col shrink-0`}
-      style={{
-        borderTopColor: COLORS.editor.border,
-        backgroundColor: COLORS.editor.bg,
-      }}
-    >
+    <div className="h-timeline border-t border-editor-border flex flex-col shrink-0 bg-editor-bg">
       <TimelineToolbar zoomLevel={zoomLevel} onZoomChange={onZoomChange} />
       <TimelineContent
         tracks={tracks}
         selectedClipId={selectedClipId}
         onClipSelect={onClipSelect}
-        zoomLevel={zoomLevel}
       />
     </div>
   );

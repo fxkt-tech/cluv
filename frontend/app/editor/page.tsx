@@ -12,7 +12,6 @@ import {
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectResources } from "./hooks/useProjectResources";
 import { useProjectById } from "./hooks/useProjectById";
-import { COLORS } from "./constants/theme";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -63,32 +62,22 @@ export default function EditorPage() {
 
   if (isLoadingProject) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen" style={{ backgroundColor: COLORS.editor.bg }}>
-        <div
-          className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
-          style={{ borderColor: COLORS.accent.blue, borderTopColor: "transparent", borderBottomColor: "transparent" }}
-        ></div>
+      <div className="flex items-center justify-center h-screen w-screen bg-editor-bg">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent-blue border-t-transparent" />
       </div>
     );
   }
 
   if (projectError || !project) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen" style={{ backgroundColor: COLORS.editor.bg }}>
-        <div className="rounded-lg p-8 max-w-md" style={{ backgroundColor: COLORS.editor.panel }}>
-          <p className="mb-4" style={{ color: COLORS.accent.red }}>
+      <div className="flex items-center justify-center h-screen w-screen bg-editor-bg">
+        <div className="rounded-lg p-8 max-w-md bg-editor-panel">
+          <p className="mb-4 text-accent-red">
             {projectError || "Project not found"}
           </p>
           <button
             onClick={handleBackToHome}
-            className="px-4 py-2 text-white rounded-lg transition-colors"
-            style={{ backgroundColor: COLORS.accent.blue }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = COLORS.accent.cyan;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = COLORS.accent.blue;
-            }}
+            className="px-4 py-2 text-white rounded-lg bg-accent-blue hover:bg-accent-cyan transition-colors"
           >
             Back to Home
           </button>
@@ -98,13 +87,7 @@ export default function EditorPage() {
   }
 
   return (
-    <div
-      className="flex flex-col h-screen w-screen overflow-hidden font-sans"
-      style={{
-        backgroundColor: COLORS.editor.bg,
-        color: COLORS.text.primary,
-      }}
-    >
+    <div className="flex flex-col h-screen w-screen overflow-hidden font-sans bg-editor-bg text-text-primary">
       {/* Header */}
       <Header
         projectId={project.id}
@@ -115,8 +98,8 @@ export default function EditorPage() {
 
       {/* Error Banner */}
       {resourceError && (
-        <div className="border-b px-4 py-2" style={{ backgroundColor: `${COLORS.accent.red}20`, borderBottomColor: COLORS.accent.red }}>
-          <p className="text-sm" style={{ color: COLORS.accent.red }}>⚠️ {resourceError}</p>
+        <div className="border-b border-accent-red bg-accent-red/10 px-4 py-2">
+          <p className="text-sm text-accent-red">⚠️ {resourceError}</p>
         </div>
       )}
 

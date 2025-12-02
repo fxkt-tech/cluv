@@ -3,8 +3,6 @@
  * Reusable slider input for properties
  */
 
-import { COLORS } from "../constants/theme";
-
 interface PropertySliderProps {
   label: string;
   value: number;
@@ -24,7 +22,7 @@ export function PropertySlider({
 }: PropertySliderProps) {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between text-xs" style={{ color: COLORS.text.secondary }}>
+      <div className="flex justify-between text-xs text-text-secondary">
         <span>{label}</span>
         <span>
           {value.toFixed(1)}
@@ -37,11 +35,7 @@ export function PropertySlider({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1 rounded-lg appearance-none cursor-pointer"
-        style={{
-          backgroundColor: COLORS.editor.hover,
-          accentColor: COLORS.accent.blue,
-        }}
+        className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-editor-hover accent-accent-blue"
       />
     </div>
   );

@@ -4,7 +4,6 @@
  */
 
 import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../constants/data";
-import { COLORS, SIZES } from "../constants/theme";
 import { ResourceGrid } from "./ResourceGrid";
 import { Resource as EditorResource, ResourceTab } from "../types/editor";
 import { useState } from "react";
@@ -41,7 +40,7 @@ export function ResourcePanel({
   const { importMaterial } = useTauriCommands();
   // Filter resources by active tab type
   const filteredResources = resources.filter(
-    (r) => r.resource_type === activeTab || activeTab === "media"
+    (r) => r.resource_type === activeTab || activeTab === "media",
   );
 
   // Convert BackendResource to EditorResource for callbacks
@@ -65,13 +64,7 @@ export function ResourcePanel({
   };
 
   return (
-    <aside
-      className={`${SIZES.sidebar} flex flex-col border-r`}
-      style={{
-        borderRightColor: COLORS.editor.border,
-        backgroundColor: COLORS.editor.bg,
-      }}
-    >
+    <aside className="w-sidebar flex flex-col border-r border-editor-border bg-editor-bg">
       {/* Resource Tabs */}
       <div className="flex items-center justify-between px-2 pt-2 pb-2 overflow-x-auto">
         <div className="flex gap-1 overflow-x-auto no-scrollbar">
@@ -79,23 +72,11 @@ export function ResourcePanel({
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
-              className="px-3 py-1.5 text-xs rounded transition-colors"
-              style={{
-                backgroundColor:
-                  activeTab === tab ? COLORS.editor.hover : "transparent",
-                color:
-                  activeTab === tab ? COLORS.accent.blue : COLORS.text.secondary,
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== tab) {
-                  e.currentTarget.style.color = COLORS.text.fg;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== tab) {
-                  e.currentTarget.style.color = COLORS.text.secondary;
-                }
-              }}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                activeTab === tab
+                  ? "bg-editor-hover text-accent-blue"
+                  : "text-text-secondary hover:text-text-fg"
+              }`}
             >
               {RESOURCE_TAB_LABELS[tab as ResourceTab]}
             </button>
@@ -154,11 +135,9 @@ export function ResourcePanel({
               }
             }}
             disabled={!projectPath || isImporting}
-            className="w-full py-2 rounded text-sm mb-4 transition-colors flex items-center justify-center gap-2 hover:opacity-80"
-            style={{
-              backgroundColor: COLORS.editor.hover,
-              opacity: !projectPath ? 0.6 : 1,
-            }}
+            className={`w-full py-2 rounded text-sm mb-4 transition-colors flex items-center justify-center gap-2 bg-editor-hover hover:opacity-80 ${
+              !projectPath ? "opacity-60" : ""
+            }`}
             aria-label="Import resources"
             title={
               !projectPath
@@ -172,15 +151,12 @@ export function ResourcePanel({
 
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div
-                className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: COLORS.accent.blue, borderTopColor: "transparent" }}
-              />
+              <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
           {!isLoading && filteredResources.length === 0 && (
-            <div className="text-center py-8 text-sm" style={{ color: COLORS.text.muted }}>
+            <div className="text-center py-8 text-sm text-text-muted">
               暂无素材
             </div>
           )}

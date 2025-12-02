@@ -4,7 +4,6 @@
  */
 
 import { Track } from "../../types/editor";
-import { COLORS } from "../../constants/theme";
 import { TimelineRuler } from "./TimelineRuler";
 import { TimelineClip } from "./TimelineClip";
 import { Playhead } from "./Playhead";
@@ -23,21 +22,11 @@ export function TimelineContent({
   return (
     <div className="flex-1 flex relative overflow-hidden">
       {/* Track Headers */}
-      <div
-        className="w-32 border-r z-10 flex flex-col pt-8"
-        style={{
-          backgroundColor: COLORS.editor.bg,
-          borderRightColor: COLORS.editor.border,
-        }}
-      >
+      <div className="w-track-header border-r border-editor-border z-10 flex flex-col pt-8 bg-editor-bg">
         {tracks.map((track) => (
           <div
             key={track.id}
-            className="h-8 px-2 flex items-center text-xs"
-            style={{
-              backgroundColor: COLORS.editor.panel,
-              color: COLORS.text.secondary,
-            }}
+            className="h-8 px-2 flex items-center text-xs bg-editor-panel text-text-secondary"
           >
             {track.name}
           </div>
@@ -45,10 +34,7 @@ export function TimelineContent({
       </div>
 
       {/* Tracks Area */}
-      <div
-        className="flex-1 relative overflow-x-auto"
-        style={{ backgroundColor: COLORS.editor.dark }}
-      >
+      <div className="flex-1 relative overflow-x-auto bg-editor-dark">
         {/* Ruler */}
         <TimelineRuler />
 
@@ -68,7 +54,7 @@ export function TimelineContent({
                 isSelected={selectedClipId === clip.id}
                 onSelect={onClipSelect}
               />
-            ))
+            )),
           )}
         </div>
       </div>

@@ -4,7 +4,6 @@
  */
 
 import { Clip } from "../../types/editor";
-import { COLORS } from "../../constants/theme";
 
 interface TimelineClipProps {
   clip: Clip;
@@ -17,42 +16,23 @@ export function TimelineClip({
   isSelected,
   onSelect,
 }: TimelineClipProps) {
-  const clipColors =
-    clip.type === "video"
-      ? {
-        bg: `${COLORS.accent.blue}40`,
-        border: COLORS.accent.blue,
-        text: COLORS.accent.blue,
-      }
-      : {
-        bg: `${COLORS.accent.green}40`,
-        border: COLORS.accent.green,
-        text: COLORS.accent.green,
-      };
+  const isVideo = clip.type === "video";
 
   return (
     <div
       onClick={() => onSelect?.(clip.id)}
-      className="h-8 border rounded-sm absolute flex items-center px-2 overflow-hidden cursor-pointer transition-opacity"
+      className={`h-8 border rounded-sm absolute flex items-center px-2 overflow-hidden cursor-pointer transition-opacity hover:opacity-80 ${
+        isVideo
+          ? "bg-accent-blue/25 border-accent-blue text-accent-blue"
+          : "bg-accent-green/25 border-accent-green text-accent-green"
+      } ${isSelected ? "outline outline-2 outline-accent-orange outline-offset-1" : ""}`}
       style={{
         left: `${clip.position.x}px`,
         top: `${clip.position.y}px`,
         width: "300px",
-        backgroundColor: clipColors.bg,
-        borderColor: clipColors.border,
-        outline: isSelected ? `2px solid ${COLORS.accent.orange}` : "none",
-        outlineOffset: isSelected ? "1px" : "0",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.opacity = "0.8";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.opacity = "1";
       }}
     >
-      <span className="text-xs truncate" style={{ color: clipColors.text }}>
-        {clip.name}
-      </span>
+      <span className="text-xs truncate">{clip.name}</span>
     </div>
   );
 }

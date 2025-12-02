@@ -3,7 +3,6 @@
  * Central preview window with playback controls
  */
 
-import { COLORS, SIZES } from "../constants/theme";
 import { PLAYBACK_BUTTONS } from "../constants/data";
 
 interface PlayerAreaProps {
@@ -20,32 +19,16 @@ export function PlayerArea({
   onNext,
 }: PlayerAreaProps) {
   return (
-    <main
-      className="flex-1 flex flex-col relative min-w-0"
-      style={{ backgroundColor: COLORS.editor.dark }}
-    >
+    <main className="flex-1 flex flex-col relative min-w-0 bg-editor-dark">
       <div className="flex-1 flex items-center justify-center p-8">
         {/* Video Placeholder */}
-        <div
-          className="aspect-video w-full max-h-full shadow-lg border flex items-center justify-center rounded"
-          style={{
-            backgroundColor: "black",
-            borderColor: COLORS.editor.border,
-            color: COLORS.text.muted,
-          }}
-        >
+        <div className="aspect-video w-full max-h-full shadow-lg border border-editor-border flex items-center justify-center rounded bg-black text-text-muted">
           Preview Window
         </div>
       </div>
 
       {/* Player Controls */}
-      <div
-        className={`${SIZES.playerControls} flex items-center justify-center gap-4 shrink-0 border-t`}
-        style={{
-          backgroundColor: COLORS.editor.bg,
-          borderTopColor: COLORS.editor.border,
-        }}
-      >
+      <div className="h-12 flex items-center justify-center gap-4 shrink-0 border-t border-editor-border bg-editor-bg">
         {PLAYBACK_BUTTONS.map((btn) => (
           <button
             key={btn.action}
@@ -56,20 +39,13 @@ export function PlayerArea({
                   ? onPrevious
                   : onNext
             }
-            className="transition-colors text-lg"
-            style={{ color: COLORS.text.secondary }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = COLORS.text.fg;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = COLORS.text.secondary;
-            }}
+            className="transition-colors text-lg text-text-secondary hover:text-text-fg"
             aria-label={btn.label}
           >
             {btn.symbol}
           </button>
         ))}
-        <div className="text-xs font-mono ml-4" style={{ color: COLORS.accent.cyan }}>
+        <div className="text-xs font-mono ml-4 text-accent-cyan">
           {playbackTime}
         </div>
       </div>
