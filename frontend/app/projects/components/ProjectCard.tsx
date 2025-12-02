@@ -18,12 +18,12 @@ export function ProjectCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { deleteProject } = useTauriCommands();
+  const { deleteProject, openProjectDir } = useTauriCommands();
 
   const createdDate = new Date(project.create_time).toLocaleString("sv-SE");
 
   const lastModifiedDate = new Date(project.last_modified).toLocaleString(
-    "sv-SE"
+    "sv-SE",
   );
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -50,6 +50,15 @@ export function ProjectCard({
     setIsDeleteConfirming(false);
   };
 
+  const handleOpenFolder = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await openProjectDir(project.path);
+    } catch (error) {
+      console.error("Failed to open folder:", error);
+    }
+  };
+
   return (
     <div
       className="relative"
@@ -72,13 +81,19 @@ export function ProjectCard({
             {project.name}
           </h3>
           {isSelected && (
-            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
+            <div className="shrink-0 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
               <span className="text-white text-xs font-bold">✓</span>
             </div>
           )}
         </div>
 
-        <p className="text-slate-400 text-xs mb-2 truncate">{project.path}</p>
+        <p
+          className="text-slate-400 text-xs mb-2 truncate hover:text-cyan-400 cursor-pointer transition-colors"
+          onClick={handleOpenFolder}
+          title="打开项目所在位置"
+        >
+          {project.path}
+        </p>
 
         <div className="flex flex-col gap-1 pt-2 border-t border-slate-700">
           <span className="text-slate-500 text-xs">创建: {createdDate}</span>

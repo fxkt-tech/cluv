@@ -48,14 +48,14 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 to-slate-800 p-6">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
         <div className="mb-12">
           <button
             onClick={handleCreateProject}
             style={{ height: "100px" }}
-            className="w-full bg-gradient-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-medium rounded-lg transition-colors shadow-md flex items-center justify-center"
+            className="w-full bg-linear-to-r from-blue-500 to-green-400 hover:from-blue-600 hover:to-green-500 text-white font-medium rounded-lg transition-colors shadow-md flex items-center justify-center"
           >
             {"开始创作"}
           </button>
