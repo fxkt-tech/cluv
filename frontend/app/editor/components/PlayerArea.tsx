@@ -4,12 +4,14 @@
  */
 
 import { PLAYBACK_BUTTONS } from "../constants/data";
+import { useRef, useEffect } from "react";
 
 interface PlayerAreaProps {
   playbackTime: string;
   onPlayPause?: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
+  videoSrc?: string | null;
 }
 
 export function PlayerArea({
@@ -17,14 +19,33 @@ export function PlayerArea({
   onPlayPause,
   onPrevious,
   onNext,
+  videoSrc,
 }: PlayerAreaProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && videoSrc) {
+      videoRef.current.load();
+    }
+  }, [videoSrc]);
   return (
-    <main className="flex-1 flex flex-col relative min-w-0 bg-editor-dark">
-      <div className="flex-1 flex items-center justify-center p-8">
-        {/* Video Placeholder */}
-        <div className="aspect-video w-full max-h-full shadow-lg border border-editor-border flex items-center justify-center rounded bg-black text-text-muted">
-          Preview Window
-        </div>
+    <main className="flex-1 flex flex-col relative min-w-0 bg-editor-bg">
+      <div className="flex-1 flex items-center justify-center p-2">
+        {/* Video Player */}
+        {videoSrc ? (
+          <video
+            ref={videoRef}
+            className="aspect-video max-w-full max-h-full shadow-lg border border-editor-border rounded bg-black"
+            controls
+            src={videoSrc}
+          >
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          <div className="aspect-video max-w-full max-h-full shadow-lg border border-editor-border flex items-center justify-center rounded bg-black text-text-muted">
+            Preview Window
+          </div>
+        )}
       </div>
 
       {/* Player Controls */}

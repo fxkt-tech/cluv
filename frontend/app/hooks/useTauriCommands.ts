@@ -17,14 +17,14 @@ export interface ProjectHistory {
 export interface Resource {
   id: string;
   name: string;
-  path: string;
+  src: string;
   resource_type: string;
 }
 
 export function useTauriCommands() {
   const createProject = async (
     projectName: string,
-    projectPath: string
+    projectPath: string,
   ): Promise<ProjectHistory> => {
     try {
       return await invoke<ProjectHistory>("create_project", {
@@ -49,7 +49,7 @@ export function useTauriCommands() {
 
   const importResource = async (
     projectPath: string,
-    sourcePath: string
+    sourcePath: string,
   ): Promise<Resource> => {
     try {
       // Unified material system - import_material is the single source of truth
@@ -65,7 +65,7 @@ export function useTauriCommands() {
   const importResourceFile = async (
     projectPath: string,
     fileName: string,
-    base64Content: string
+    base64Content: string,
   ): Promise<Resource> => {
     try {
       // Unified material system - import_material_from_base64_content is the new name
@@ -81,7 +81,7 @@ export function useTauriCommands() {
 
   const importMaterial = async (
     projectPath: string,
-    sourcePath: string
+    sourcePath: string,
   ): Promise<Resource> => {
     try {
       return await invoke<Resource>("import_material", {
@@ -105,7 +105,7 @@ export function useTauriCommands() {
 
   const deleteMaterial = async (
     projectPath: string,
-    materialId: string
+    materialId: string,
   ): Promise<void> => {
     try {
       return await invoke<void>("delete_material", {
@@ -158,6 +158,6 @@ export function useTauriCommands() {
       deleteProject,
       getDefaultProjectsDir,
     }),
-    []
+    [],
   );
 }

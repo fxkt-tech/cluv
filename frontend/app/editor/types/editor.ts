@@ -56,4 +56,5 @@ export interface Resource {
   name: string;
   type: ResourceTab;
   thumbnailUrl?: string;
+  src?: string;
 }

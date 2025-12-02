@@ -13,7 +13,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 interface BackendResource {
   id: string;
   name: string;
-  path: string;
+  src: string;
   resource_type: string;
 }
 
@@ -58,7 +58,9 @@ export function ResourcePanel({
         id: backendResource.id,
         name: backendResource.name,
         type: resourceType,
+        src: backendResource.src,
       };
+      console.log(backendResource);
       onResourceSelect(editorResource);
     }
   };

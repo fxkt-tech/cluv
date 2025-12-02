@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   Header,
   ResourcePanel,
@@ -12,6 +13,7 @@ import {
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectResources } from "./hooks/useProjectResources";
 import { useProjectById } from "./hooks/useProjectById";
+import { Resource } from "./types/editor";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -39,6 +41,8 @@ export default function EditorPage() {
     selectClip,
   } = useEditorState();
 
+  const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
+
   const projectName = useMemo(() => {
     if (project) {
       return project.name;
@@ -58,6 +62,14 @@ export default function EditorPage() {
 
   const handleBackToHome = () => {
     router.push("/");
+  };
+
+  const handleResourceSelect = (resource: Resource) => {
+    if (resource.type === "media" && resource.src) {
+      // Convert file path to Tauri asset protocol URL
+      const assetUrl = convertFileSrc(resource.src);
+      setSelectedVideoSrc(assetUrl);
+    }
   };
 
   if (isLoadingProject) {
@@ -113,6 +125,7 @@ export default function EditorPage() {
             onTabChange={setActiveTab}
             resources={resources}
             isLoading={isLoadingResources}
+            onResourceSelect={handleResourceSelect}
             projectPath={project?.path || null}
             loadResources={loadResources}
           />
@@ -121,6 +134,7 @@ export default function EditorPage() {
           <PlayerArea
             playbackTime={state.playbackTime}
             onPlayPause={handlePlayPause}
+            videoSrc={selectedVideoSrc}
           />
 
           {/* Right Sidebar: Properties */}

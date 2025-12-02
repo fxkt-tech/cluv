@@ -9,7 +9,7 @@ import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 interface BackendResource {
   id: string;
   name: string;
-  path: string;
+  src: string;
   resource_type: string;
 }
 
