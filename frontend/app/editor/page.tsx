@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   Header,
   ResourcePanel,
@@ -13,8 +14,11 @@ import {
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectResources } from "./hooks/useProjectResources";
 import { useProjectById } from "./hooks/useProjectById";
+import { useTimelineStore } from "./stores/timelineStore";
 import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
+import type { PlayerAreaRef } from "./components/PlayerArea";
+import type { TimelineRef } from "./components/Timeline";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -32,20 +36,47 @@ export default function EditorPage() {
     error: resourceError,
     loadResources,
   } = useProjectResources(project?.path || null);
+  const { state, updateProperty, setActiveTab, setActivePropertyTab } =
+    useEditorState();
 
-  const {
-    state,
-    updateProperty,
-    setActiveTab,
-    setActivePropertyTab,
-    setZoomLevel,
-    selectClip,
-  } = useEditorState();
+  // Timeline store
+  const tracks = useTimelineStore((state) => state.tracks);
+  const addTrack = useTimelineStore((state) => state.addTrack);
+  const timelineCurrentTime = useTimelineStore((state) => state.currentTime);
+  const setTimelineCurrentTime = useTimelineStore(
+    (state) => state.setCurrentTime,
+  );
+  const timelineDuration = useTimelineStore((state) => state.duration);
+  const setTimelineDuration = useTimelineStore((state) => state.setDuration);
 
   const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // PlayerArea ref for external control
+  const playerRef = useRef<PlayerAreaRef>(null);
+  // Timeline ref for external control
+  const timelineRef = useRef<TimelineRef>(null);
+
+  // Initialize default tracks on mount
+  useEffect(() => {
+    if (tracks.length === 0) {
+      // Add one video track and one audio track by default
+      addTrack("video");
+      addTrack("audio");
+    }
+  }, []);
+
+  // Sync Timeline time to local state
+  useEffect(() => {
+    setCurrentTime(timelineCurrentTime);
+  }, [timelineCurrentTime]);
+
+  // Sync Timeline duration to local state
+  useEffect(() => {
+    setDuration(timelineDuration);
+  }, [timelineDuration]);
 
   const projectName = useMemo(() => {
     if (project) {
@@ -74,15 +105,66 @@ export default function EditorPage() {
 
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
+    // Update Timeline when player time changes (only when playing)
+    if (isPlaying) {
+      setTimelineCurrentTime(time);
+    }
   };
 
   const handleDurationChange = (newDuration: number) => {
     setDuration(newDuration);
+    // Update Timeline duration
+    setTimelineDuration(newDuration);
+  };
+
+  // Handle Timeline seek
+  const handleTimelineSeek = (time: number) => {
+    // Update Timeline store
+    setTimelineCurrentTime(time);
+    // Update PlayerArea
+    if (playerRef.current) {
+      playerRef.current.seekTo(time);
+    }
+  };
+
+  // Handle play/pause state change from Timeline
+  const handleTimelinePlayPauseChange = (playing: boolean) => {
+    setIsPlaying(playing);
+    if (playerRef.current) {
+      if (playing) {
+        playerRef.current.play();
+      } else {
+        playerRef.current.pause();
+      }
+    }
   };
 
   const handleBackToHome = () => {
     router.push("/");
   };
+
+  // 键盘快捷键
+  useKeyboardShortcuts({
+    enabled: true,
+    onPlayPause: () => {
+      if (timelineRef.current) {
+        timelineRef.current.togglePlayPause();
+      }
+    },
+    onStepForward: () => {
+      if (playerRef.current) {
+        const currentTime = playerRef.current.getCurrentTime();
+        const duration = playerRef.current.getDuration();
+        playerRef.current.seekTo(Math.min(duration, currentTime + 1 / 30));
+      }
+    },
+    onStepBackward: () => {
+      if (playerRef.current) {
+        const currentTime = playerRef.current.getCurrentTime();
+        playerRef.current.seekTo(Math.max(0, currentTime - 1 / 30));
+      }
+    },
+  });
 
   const handleResourceSelect = (resource: Resource | null) => {
     if (resource && resource.type === "media" && resource.src) {
@@ -162,17 +244,15 @@ export default function EditorPage() {
 
           {/* Center: Player */}
           <PlayerArea
-            playbackTime={
-              duration > 0
-                ? formatTimeWithDuration(currentTime, duration)
-                : formatTimeWithDuration(currentTime, currentTime)
-            }
+            ref={playerRef}
+            videoSrc={selectedVideoSrc}
+            playbackTime={formatTimeWithDuration(currentTime, duration)}
             onPlayPause={handlePlayPause}
             onPrevious={handlePrevious}
             onNext={handleNext}
             onTimeUpdate={handleTimeUpdate}
             onDurationChange={handleDurationChange}
-            videoSrc={selectedVideoSrc}
+            externalTime={timelineCurrentTime}
           />
 
           {/* Right Sidebar: Properties */}
@@ -186,11 +266,9 @@ export default function EditorPage() {
 
         {/* Bottom Section: Timeline */}
         <Timeline
-          tracks={state.tracks}
-          selectedClipId={state.selectedClipId}
-          zoomLevel={state.zoomLevel}
-          onClipSelect={selectClip}
-          onZoomChange={setZoomLevel}
+          ref={timelineRef}
+          className="h-80"
+          onPlayPauseChange={handleTimelinePlayPauseChange}
         />
       </div>
     </div>
