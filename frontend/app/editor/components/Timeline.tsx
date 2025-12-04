@@ -10,13 +10,10 @@ import React, {
   useImperativeHandle,
 } from "react";
 import {
-  DndContext,
   DragOverlay,
-  useSensor,
-  useSensors,
-  PointerSensor,
   DragStartEvent,
   DragEndEvent,
+  useDndContext,
 } from "@dnd-kit/core";
 import { useTimelineStore } from "../stores/timelineStore";
 import { TimelineRuler } from "./TimelineRuler";
@@ -46,10 +43,12 @@ export interface TimelineRef {
 interface TimelineProps {
   className?: string;
   onPlayPauseChange?: (isPlaying: boolean) => void;
+  onDragStart?: (event: DragStartEvent) => void;
+  onDragEnd?: (event: DragEndEvent) => void;
 }
 
 export const Timeline = forwardRef<TimelineRef, TimelineProps>(
-  ({ className = "", onPlayPauseChange }, ref) => {
+  ({ className = "", onPlayPauseChange, onDragStart, onDragEnd }, ref) => {
     const tracks = useTimelineStore((state) => state.tracks);
     const scrollLeft = useTimelineStore((state) => state.scrollLeft);
     const setScrollLeft = useTimelineStore((state) => state.setScrollLeft);
@@ -96,15 +95,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
         },
       }),
       [isPlaying, onPlayPauseChange],
-    );
-
-    // 配置拖拽传感器
-    const sensors = useSensors(
-      useSensor(PointerSensor, {
-        activationConstraint: {
-          distance: 8, // 拖拽8像素后才激活
-        },
-      }),
     );
 
     // 计算时间轴内容区域的总宽度
@@ -182,134 +172,21 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       onPlayPauseChange?.(newState);
     };
 
-    // 处理拖拽开始
-    const handleDragStart = (event: DragStartEvent) => {
-      const { active } = event;
-      const data = active.data.current;
-
-      // 判断是资源还是片段
-      if (data && "resourceId" in data) {
-        setActiveDragData(data as DragData);
+    // 内部拖拽处理
+    useEffect(() => {
+      if (onDragStart) {
+        // 父组件会处理拖拽开始
       }
-    };
+    }, [onDragStart]);
 
-    // 处理拖拽结束
-    const handleDragEnd = (event: DragEndEvent) => {
-      const { active, over } = event;
-      setActiveDragData(null);
-
-      if (!over) return;
-
-      const activeData = active.data.current;
-      const dropData = over.data.current;
-
-      if (!activeData || !dropData) return;
-
-      // 情况1: 从资源面板拖拽到轨道
-      if ("resourceId" in activeData && dropData.type === "track") {
-        const dragData = activeData as DragData;
-        const trackId = dropData.trackId;
-        const track = tracks.find((t) => t.id === trackId);
-
-        if (!track || track.locked) return;
-
-        // 计算拖放的时间位置
-        const rect = timelineContentRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const x = event.activatorEvent
-          ? (event.activatorEvent as PointerEvent).clientX - rect.left
-          : 0;
-        let startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
-
-        // 应用吸附
-        if (snappingEnabled) {
-          const allClips = getAllClipsFromTracks(tracks);
-          const snapPoints = collectSnapPoints(allClips, currentTime);
-          const snapped = calculateSnappedTime(
-            startTime,
-            snapPoints,
-            snapThreshold,
-            pixelsPerSecond,
-          );
-          if (snapped.snapped) {
-            startTime = snapped.time;
-          }
-        }
-
-        // 根据资源类型确定默认时长
-        const defaultDuration = dragData.resourceType === "audio" ? 5 : 3;
-
-        // 添加片段到轨道
-        addClip(trackId, {
-          name: dragData.resourceName,
-          type: dragData.resourceType,
-          startTime: Math.max(0, startTime),
-          duration: defaultDuration,
-          resourceId: dragData.resourceId,
-          resourceSrc: dragData.resourceSrc,
-          trimStart: 0,
-          trimEnd: defaultDuration,
-          position: { x: 0, y: 0 },
-          scale: 1,
-          rotation: 0,
-          opacity: 1,
-          volume: 1,
-        });
+    useEffect(() => {
+      if (onDragEnd) {
+        // 父组件会处理拖拽结束
       }
-      // 情况2: 在时间轴内拖拽片段
-      else if (activeData.type === "clip" && dropData.type === "track") {
-        const clipId = activeData.clipId;
-        const sourceTrackId = activeData.trackId;
-        const targetTrackId = dropData.trackId;
-
-        const targetTrack = tracks.find((t) => t.id === targetTrackId);
-        if (!targetTrack || targetTrack.locked) return;
-
-        // 计算新的时间位置
-        const rect = timelineContentRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const deltaX = event.delta.x;
-
-        const clip = useTimelineStore.getState().getClipById(clipId);
-        if (!clip) return;
-
-        // 计算新的开始时间
-        const deltaTime = pixelsToTime(deltaX, pixelsPerSecond);
-        let newStartTime = Math.max(0, clip.startTime + deltaTime);
-
-        // 应用吸附
-        if (snappingEnabled) {
-          const allClips = getAllClipsFromTracks(tracks);
-          const snapPoints = collectSnapPoints(allClips, currentTime, clipId);
-          const snapped = calculateSnappedTime(
-            newStartTime,
-            snapPoints,
-            snapThreshold,
-            pixelsPerSecond,
-          );
-          if (snapped.snapped) {
-            newStartTime = snapped.time;
-          }
-        }
-
-        // 如果是跨轨道拖拽
-        if (sourceTrackId !== targetTrackId) {
-          moveClip(clipId, targetTrackId, newStartTime);
-        } else {
-          // 同轨道内拖拽，只更新时间
-          updateClip(clipId, { startTime: newStartTime });
-        }
-      }
-    };
+    }, [onDragEnd]);
 
     return (
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
+      <>
         <div className={`flex flex-col bg-gray-900 ${className}`}>
           {/* 工具栏 */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
@@ -517,6 +394,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               {/* 可滚动的轨道内容区域 */}
               <div
                 ref={timelineContentRef}
+                data-timeline-content
                 className="overflow-auto relative"
                 style={{
                   height: "calc(100% - 30px)", // 减去标尺高度
@@ -571,14 +449,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
             </div>
           </div>
         </div>
-
-        {/* 拖拽覆盖层 - 显示正在拖拽的内容 */}
-        <DragOverlay dropAnimation={null}>
-          {activeDragData ? (
-            <ClipDragPreview data={activeDragData} type="resource" />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      </>
     );
   },
 );
