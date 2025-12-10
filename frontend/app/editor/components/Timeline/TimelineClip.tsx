@@ -143,7 +143,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
       ref={setNodeRef}
       {...attributes}
       {...(!resizingEdge ? listeners : {})}
-      className={`absolute top-1 transition-all ${
+      className={`absolute top-1 ${
         resizingEdge ? "cursor-ew-resize" : "cursor-grab active:cursor-grabbing"
       }`}
       style={{

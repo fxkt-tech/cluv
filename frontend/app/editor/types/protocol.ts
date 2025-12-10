@@ -21,6 +21,7 @@ export interface Materials {
 
 export interface VideoMaterialProto {
   id: string;
+  name: string;
   src: string;
   dimension: DimensionProto;
   duration?: number;
@@ -31,6 +32,7 @@ export interface VideoMaterialProto {
 
 export interface ImageMaterialProto {
   id: string;
+  name: string;
   src: string;
   dimension: DimensionProto;
   format?: string;
@@ -38,6 +40,7 @@ export interface ImageMaterialProto {
 
 export interface AudioMaterialProto {
   id: string;
+  name: string;
   src: string;
   duration?: number;
   sample_rate?: number;

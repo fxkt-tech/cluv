@@ -50,6 +50,8 @@ pub struct Materials {
 pub struct VideoMaterialProto {
     /// Unique identifier
     pub id: String,
+    /// Material name
+    pub name: String,
     /// Source file path
     pub src: String,
     /// Video dimensions
@@ -69,6 +71,8 @@ pub struct VideoMaterialProto {
 pub struct ImageMaterialProto {
     /// Unique identifier
     pub id: String,
+    /// Material name
+    pub name: String,
     /// Source file path
     pub src: String,
     /// Image dimensions
@@ -82,6 +86,8 @@ pub struct ImageMaterialProto {
 pub struct AudioMaterialProto {
     /// Unique identifier
     pub id: String,
+    /// Material name
+    pub name: String,
     /// Source file path
     pub src: String,
     /// Duration in milliseconds (optional)
@@ -211,8 +217,16 @@ impl CutProtocol {
         for material in &session.materials {
             match material {
                 Material::Video(video) => {
+                    // Extract name from the last segment of the src path
+                    let name = std::path::Path::new(&video.src)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(&video.src)
+                        .to_string();
+
                     protocol.materials.videos.push(VideoMaterialProto {
                         id: video.id.clone(),
+                        name,
                         src: video.src.clone(),
                         dimension: DimensionProto {
                             width: video.dimension.width,
@@ -225,8 +239,16 @@ impl CutProtocol {
                     });
                 }
                 Material::Audio(audio) => {
+                    // Extract name from the last segment of the src path
+                    let name = std::path::Path::new(&audio.src)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(&audio.src)
+                        .to_string();
+
                     protocol.materials.audios.push(AudioMaterialProto {
                         id: audio.id.clone(),
+                        name,
                         src: audio.src.clone(),
                         duration: audio.duration,
                         sample_rate: audio.sample_rate,
@@ -236,8 +258,16 @@ impl CutProtocol {
                     });
                 }
                 Material::Image(image) => {
+                    // Extract name from the last segment of the src path
+                    let name = std::path::Path::new(&image.src)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(&image.src)
+                        .to_string();
+
                     protocol.materials.images.push(ImageMaterialProto {
                         id: image.id.clone(),
+                        name,
                         src: image.src.clone(),
                         dimension: DimensionProto {
                             width: image.dimension.width,
@@ -506,14 +536,10 @@ impl CutProtocol {
 
                 // Validate time ranges
                 if segment.target_timerange.duration == 0 {
-                    return Err(CutError::invalid_params(
-                        "Target duration must be positive",
-                    ));
+                    return Err(CutError::invalid_params("Target duration must be positive"));
                 }
                 if segment.source_timerange.duration == 0 {
-                    return Err(CutError::invalid_params(
-                        "Source duration must be positive",
-                    ));
+                    return Err(CutError::invalid_params("Source duration must be positive"));
                 }
 
                 // Validate scale if present
@@ -617,6 +643,7 @@ mod tests {
         // Add a video material
         protocol.add_video_material(VideoMaterialProto {
             id: "video1".to_string(),
+            name: "test.mp4".to_string(),
             src: "test.mp4".to_string(),
             dimension: DimensionProto {
                 width: 1920,
@@ -693,6 +720,7 @@ mod tests {
         // Add duplicate material IDs
         protocol.add_video_material(VideoMaterialProto {
             id: "video1".to_string(),
+            name: "test1.mp4".to_string(),
             src: "test1.mp4".to_string(),
             dimension: DimensionProto {
                 width: 1920,
@@ -706,6 +734,7 @@ mod tests {
 
         protocol.add_video_material(VideoMaterialProto {
             id: "video1".to_string(), // Duplicate ID
+            name: "test2.mp4".to_string(),
             src: "test2.mp4".to_string(),
             dimension: DimensionProto {
                 width: 1920,

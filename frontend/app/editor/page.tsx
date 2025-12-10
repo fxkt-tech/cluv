@@ -125,7 +125,7 @@ export default function EditorPage() {
     protocol.materials.videos.forEach((video) => {
       result.push({
         id: video.id,
-        name: video.src.split("/").pop() || video.id,
+        name: video.name,
         src: video.src,
         resource_type: "video",
       });
@@ -135,7 +135,7 @@ export default function EditorPage() {
     protocol.materials.audios.forEach((audio) => {
       result.push({
         id: audio.id,
-        name: audio.src.split("/").pop() || audio.id,
+        name: audio.name,
         src: audio.src,
         resource_type: "audio",
       });
@@ -145,7 +145,7 @@ export default function EditorPage() {
     protocol.materials.images.forEach((image) => {
       result.push({
         id: image.id,
-        name: image.src.split("/").pop() || image.id,
+        name: image.name,
         src: image.src,
         resource_type: "image",
       });

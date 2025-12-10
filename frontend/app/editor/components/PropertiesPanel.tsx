@@ -62,7 +62,7 @@ export function PropertiesPanel({
               <div className="flex justify-between">
                 <span className="text-text-muted">Name:</span>
                 <span className="text-text-fg">
-                  {selectedResource.data.src.split("/").pop()}
+                  {selectedResource.data.name}
                 </span>
               </div>
 

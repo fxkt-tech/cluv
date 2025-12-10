@@ -12,41 +12,14 @@ pub async fn import_material(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(Resource {
-        id: material.id,
-        name: std::path::Path::new(&material.src)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("unknown")
-            .to_string(),
-        src: material.src,
-        resource_type: material.resource_type,
-        material_type: material.material_type,
-    })
+    Ok(material)
 }
 
 /// List all materials in the project
 /// Reads from protocol.json instead of scanning the filesystem
 #[tauri::command]
 pub fn list_materials(project_path: String) -> Result<Vec<Resource>, String> {
-    let materials = list_all_materials(&project_path).map_err(|e| e.to_string())?;
-
-    let resources = materials
-        .into_iter()
-        .map(|material| Resource {
-            id: material.id,
-            name: std::path::Path::new(&material.src)
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("unknown")
-                .to_string(),
-            src: material.src,
-            resource_type: material.resource_type,
-            material_type: material.material_type,
-        })
-        .collect();
-
-    Ok(resources)
+    list_all_materials(&project_path).map_err(|e| e.to_string())
 }
 
 /// Delete a material from the project by its ID

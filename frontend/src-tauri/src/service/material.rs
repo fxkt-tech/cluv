@@ -1,7 +1,6 @@
 use anyhow::{Result, anyhow, bail};
 use kiva_cut::Editor;
 use std::fs;
-use std::path::Path;
 use std::path::PathBuf;
 
 use crate::models::Resource;
@@ -69,20 +68,52 @@ pub async fn import_material_from_source(
 
     let material_id = editor.add_material(&dest_str).await?;
 
-    editor.fix_materials().await?;
-
     editor.save_to_file(&protocol_file)?;
+
+    // Get the material info from protocol to access the name field
+    let protocol = editor.save_to_protocol();
+
+    // Find the material in protocol by ID
+    let mut resource_name = String::from("unknown");
+    let mut material_type = String::from("video");
+
+    // Search in videos
+    if let Some(video) = protocol
+        .materials
+        .videos
+        .iter()
+        .find(|v| v.id == material_id)
+    {
+        resource_name = video.name.clone();
+        material_type = "video".to_string();
+    }
+    // Search in audios
+    else if let Some(audio) = protocol
+        .materials
+        .audios
+        .iter()
+        .find(|a| a.id == material_id)
+    {
+        resource_name = audio.name.clone();
+        material_type = "audio".to_string();
+    }
+    // Search in images
+    else if let Some(image) = protocol
+        .materials
+        .images
+        .iter()
+        .find(|i| i.id == material_id)
+    {
+        resource_name = image.name.clone();
+        material_type = "image".to_string();
+    }
 
     Ok(Resource {
         id: material_id,
-        name: Path::new(&dest_str)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("unknown")
-            .to_string(),
+        name: resource_name,
         src: dest_str,
         resource_type: "media".to_string(),
-        material_type: "video".to_string(),
+        material_type,
     })
 }
 
@@ -92,21 +123,41 @@ pub fn list_all_materials(project_path: &str) -> Result<Vec<Resource>> {
     let mut editor = Editor::new();
     editor.load_from_file(&protocol_file)?;
 
-    let materials = editor
-        .list_materials()
-        .into_iter()
-        .map(|material| Resource {
-            id: material.id().to_string(),
-            name: Path::new(&material.src())
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("unknown")
-                .to_string(),
-            src: material.src().to_string(),
+    let protocol = editor.save_to_protocol();
+    let mut materials = Vec::new();
+
+    // Get video materials from protocol
+    for video in &protocol.materials.videos {
+        materials.push(Resource {
+            id: video.id.clone(),
+            name: video.name.clone(),
+            src: video.src.clone(),
             resource_type: "media".to_string(),
-            material_type: material.material_type().to_string(),
-        })
-        .collect();
+            material_type: "video".to_string(),
+        });
+    }
+
+    // Get audio materials from protocol
+    for audio in &protocol.materials.audios {
+        materials.push(Resource {
+            id: audio.id.clone(),
+            name: audio.name.clone(),
+            src: audio.src.clone(),
+            resource_type: "media".to_string(),
+            material_type: "audio".to_string(),
+        });
+    }
+
+    // Get image materials from protocol
+    for image in &protocol.materials.images {
+        materials.push(Resource {
+            id: image.id.clone(),
+            name: image.name.clone(),
+            src: image.src.clone(),
+            resource_type: "media".to_string(),
+            material_type: "image".to_string(),
+        });
+    }
 
     Ok(materials)
 }

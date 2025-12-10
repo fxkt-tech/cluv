@@ -138,7 +138,8 @@ impl Editor {
             .input(src)
             .run()
             .await?;
-        let material = if media_info.is_video() {
+
+        let mut material = if media_info.is_video() {
             Material::video(src)
         } else if media_info.is_audio() {
             Material::audio(src)
@@ -147,6 +148,109 @@ impl Editor {
         } else {
             return Err(CutError::invalid_params("不支持的格式"));
         };
+
+        // Fill material properties based on media_info (logic from fix_materials)
+        match &mut material {
+            Material::Video(video) => {
+                // Find video stream
+                if let Some(video_stream) = media_info
+                    .streams
+                    .iter()
+                    .find(|s| s.codec_type.as_deref() == Some("video"))
+                {
+                    // Fill dimensions
+                    if let (Some(width), Some(height)) = (video_stream.width, video_stream.height) {
+                        video.dimension.width = width;
+                        video.dimension.height = height;
+                    }
+
+                    // Fill frame rate
+                    if let Some(r_frame_rate) = &video_stream.r_frame_rate {
+                        if let Ok(fps) = Self::parse_fraction_to_float(r_frame_rate) {
+                            video.fps = Some(fps);
+                        }
+                    }
+
+                    // Fill codec
+                    video.codec = video_stream.codec_name.clone();
+
+                    // Fill bitrate
+                    if let Some(bit_rate) = &video_stream.bit_rate {
+                        if let Ok(bitrate) = bit_rate.parse::<u32>() {
+                            video.bitrate = Some(bitrate / 1000); // Convert to kbps
+                        }
+                    }
+                }
+
+                // Fill duration
+                if let Some(format) = &media_info.format {
+                    if let Some(duration_str) = &format.duration {
+                        if let Ok(duration_seconds) = duration_str.parse::<f32>() {
+                            video.duration = Some((duration_seconds * 1000.0) as u32);
+                        }
+                    }
+                }
+            }
+
+            Material::Audio(audio) => {
+                // Find audio stream
+                if let Some(audio_stream) = media_info
+                    .streams
+                    .iter()
+                    .find(|s| s.codec_type.as_deref() == Some("audio"))
+                {
+                    // Fill sample rate
+                    if let Some(sample_rate_str) = &audio_stream.sample_rate {
+                        if let Ok(sample_rate) = sample_rate_str.parse::<u32>() {
+                            audio.sample_rate = Some(sample_rate);
+                        }
+                    }
+
+                    // Fill channels
+                    if let Some(channels) = audio_stream.channels {
+                        audio.channels = Some(channels as u32);
+                    }
+
+                    // Fill codec
+                    audio.codec = audio_stream.codec_name.clone();
+
+                    // Fill bitrate
+                    if let Some(bit_rate) = &audio_stream.bit_rate {
+                        if let Ok(bitrate) = bit_rate.parse::<u32>() {
+                            audio.bitrate = Some(bitrate / 1000); // Convert to kbps
+                        }
+                    }
+                }
+
+                // Fill duration
+                if let Some(format) = &media_info.format {
+                    if let Some(duration_str) = &format.duration {
+                        if let Ok(duration_seconds) = duration_str.parse::<f32>() {
+                            audio.duration = Some((duration_seconds * 1000.0) as u32);
+                        }
+                    }
+                }
+            }
+
+            Material::Image(image) => {
+                // Find video stream (images are treated as video streams by ffprobe)
+                if let Some(image_stream) = media_info
+                    .streams
+                    .iter()
+                    .find(|s| s.codec_type.as_deref() == Some("video"))
+                {
+                    // Fill dimensions
+                    if let (Some(width), Some(height)) = (image_stream.width, image_stream.height) {
+                        image.dimension.width = width;
+                        image.dimension.height = height;
+                    }
+
+                    // Fill format
+                    image.format = image_stream.codec_name.clone();
+                }
+            }
+        }
+
         let id = material.id().to_string();
         self.session.add_material(material);
         Ok(id)
