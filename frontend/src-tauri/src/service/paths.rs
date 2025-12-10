@@ -37,3 +37,15 @@ pub fn get_histories_file(app: &AppHandle) -> Result<PathBuf, String> {
     let kiva_cut_dir = get_kiva_cut_dir(app)?;
     Ok(kiva_cut_dir.join("histories.json"))
 }
+
+pub fn get_project_dir(app: &AppHandle, project_id: &str) -> Result<PathBuf, String> {
+    let projects_dir = get_projects_dir(app)?;
+    let project_dir = projects_dir.join(project_id);
+
+    if !project_dir.exists() {
+        fs::create_dir_all(&project_dir)
+            .map_err(|e| format!("Failed to create project directory: {}", e))?;
+    }
+
+    Ok(project_dir)
+}

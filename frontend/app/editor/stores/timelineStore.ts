@@ -15,6 +15,7 @@ interface TimelineStore extends TimelineState {
   removeTrack: (trackId: string) => void;
   updateTrack: (trackId: string, updates: Partial<Track>) => void;
   reorderTracks: (trackIds: string[]) => void;
+  setTracks: (tracks: Track[]) => void;
 
   // Clip 操作
   addClip: (trackId: string, clip: Omit<Clip, "id" | "trackId">) => void;
@@ -121,6 +122,23 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
           order: draft.tracks.length,
         };
         draft.tracks.push(newTrack);
+      }),
+    );
+  },
+
+  setTracks: (tracks) => {
+    saveToHistory();
+    set((state) =>
+      produce(state, (draft) => {
+        draft.tracks = tracks;
+        // 更新总时长
+        const maxEnd = Math.max(
+          ...tracks.flatMap((t) =>
+            t.clips.map((c) => c.startTime + c.duration),
+          ),
+          0,
+        );
+        draft.duration = Math.max(draft.duration, maxEnd);
       }),
     );
   },

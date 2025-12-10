@@ -27,6 +27,8 @@ pub fn run() {
             commands::material::import_material,
             commands::material::list_materials,
             commands::material::delete_material,
+            commands::editor::get_protocol,
+            commands::editor::save_protocol,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

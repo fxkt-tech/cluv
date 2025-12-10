@@ -15,6 +15,26 @@ pub fn get_protocol_file(project_path: &str) -> Result<PathBuf> {
     Ok(protocol_path)
 }
 
+/// get protocol.json content in project
+pub fn get_protocol_content(project_path: &str) -> Result<String> {
+    let protocol_file = get_protocol_file(project_path)?;
+    let mut editor = Editor::new();
+    editor.load_from_file(&protocol_file)?;
+    let json_content = editor.save_to_json()?;
+    Ok(json_content)
+}
+
+/// get protocol.json content in project
+pub fn save_protocol_content(project_path: &str, proto_content: &str) -> Result<()> {
+    let protocol_file = get_protocol_file(project_path)?;
+    let mut editor = Editor::new();
+    editor.load_from_file(&protocol_file)?;
+    editor.load_from_json(proto_content)?;
+    let json_content = editor.save_to_json()?;
+    fs::write(&protocol_file, json_content)?;
+    Ok(())
+}
+
 /// get materials directory path in project
 pub fn get_material_dir(project_path: &str) -> Result<PathBuf> {
     let materials_dir = PathBuf::from(project_path).join("materials");
@@ -48,6 +68,8 @@ pub async fn import_material_from_source(
     let dest_str = dest_file.to_string_lossy().to_string();
 
     let material_id = editor.add_material(&dest_str).await?;
+
+    editor.fix_materials().await?;
 
     editor.save_to_file(&protocol_file)?;
 

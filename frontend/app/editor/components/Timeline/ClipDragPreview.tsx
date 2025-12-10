@@ -3,8 +3,8 @@
 "use client";
 
 import React from "react";
-import { DragData, Clip } from "../types/timeline";
-import { TIMELINE_CONFIG } from "../types/timeline";
+import { DragData, Clip, MediaType } from "../../types/timeline";
+import { ClipContent } from "./ClipContent";
 
 interface ClipDragPreviewProps {
   data: DragData | Clip;
@@ -15,25 +15,24 @@ export const ClipDragPreview: React.FC<ClipDragPreviewProps> = ({
   data,
   type,
 }) => {
+  // 如果是拖动 Clip，直接使用 ClipContent 组件保持一致性
+  if (type === "clip" && "name" in data) {
+    return <ClipContent clip={data as Clip} isDragging={false} />;
+  }
+
+  // 以下是拖动 Resource 时的卡片样式
   const getName = () => {
     if ("resourceName" in data) {
       return data.resourceName;
     }
-    return data.name;
+    return "name" in data ? data.name : "";
   };
 
-  const getMediaType = () => {
+  const getMediaType = (): MediaType => {
     if ("resourceType" in data) {
       return data.resourceType;
     }
-    return data.type;
-  };
-
-  const getDuration = () => {
-    if ("duration" in data) {
-      return data.duration.toFixed(1);
-    }
-    return "0.0";
+    return "type" in data ? data.type : "video";
   };
 
   const getTypeColor = () => {
@@ -100,23 +99,20 @@ export const ClipDragPreview: React.FC<ClipDragPreviewProps> = ({
     <div
       className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 shadow-xl ${getTypeColor()} text-white`}
       style={{
-        minWidth: type === "clip" ? "120px" : "150px",
+        minWidth: "150px",
         maxWidth: "250px",
       }}
     >
       {/* 图标 */}
-      <div className="flex-shrink-0">{getTypeIcon()}</div>
+      <div className="shrink-0">{getTypeIcon()}</div>
 
       {/* 内容 */}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold truncate">{getName()}</div>
-        {type === "clip" && (
-          <div className="text-xs opacity-90">{getDuration()}s</div>
-        )}
       </div>
 
       {/* 拖拽图标 */}
-      <div className="flex-shrink-0 opacity-75">
+      <div className="shrink-0 opacity-75">
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
         </svg>

@@ -1,38 +1,198 @@
-/**
- * TimelineClip Component
- * Individual clip element in timeline
- */
+// TimelineClip 组件 - 时间轴上的片段
 
-import { Clip } from "../../types/editor";
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { Clip } from "../../types/timeline";
+import { useTimelineStore } from "../../stores/timelineStore";
+import { timeToPixels, pixelsToTime } from "../../utils/timeline";
+import { ClipContent } from "./ClipContent";
+
+type ResizeEdge = "left" | "right" | null;
 
 interface TimelineClipProps {
   clip: Clip;
-  isSelected?: boolean;
-  onSelect?: (clipId: string) => void;
+  isSelected: boolean;
 }
 
-export function TimelineClip({
+export const TimelineClip: React.FC<TimelineClipProps> = ({
   clip,
   isSelected,
-  onSelect,
-}: TimelineClipProps) {
-  const isVideo = clip.type === "video";
+}) => {
+  const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
+  const selectClip = useTimelineStore((state) => state.selectClip);
+  const updateClip = useTimelineStore((state) => state.updateClip);
+
+  // 边缘调整状态
+  const [resizingEdge, setResizingEdge] = useState<ResizeEdge>(null);
+  const resizeStartRef = useRef<{
+    x: number;
+    startTime: number;
+    duration: number;
+    trimStart: number;
+    trimEnd: number;
+  } | null>(null);
+
+  // 计算 clip 的位置
+  const left = timeToPixels(clip.startTime, pixelsPerSecond);
+
+  // 配置拖拽（边缘调整时禁用）
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `clip-${clip.id}`,
+    data: {
+      type: "clip",
+      clipId: clip.id,
+      trackId: clip.trackId,
+    },
+    disabled: resizingEdge !== null,
+  });
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+      selectClip(clip.id, true);
+    } else {
+      selectClip(clip.id, false);
+    }
+  };
+
+  // 处理边缘拖拽开始
+  const handleEdgeMouseDown = (e: React.MouseEvent, edge: "left" | "right") => {
+    e.stopPropagation();
+    setResizingEdge(edge);
+    resizeStartRef.current = {
+      x: e.clientX,
+      startTime: clip.startTime,
+      duration: clip.duration,
+      trimStart: clip.trimStart,
+      trimEnd: clip.trimEnd,
+    };
+  };
+
+  // 处理边缘拖拽
+  useEffect(() => {
+    if (!resizingEdge || !resizeStartRef.current) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeStartRef.current) return;
+
+      const deltaX = e.clientX - resizeStartRef.current.x;
+      const deltaTime = pixelsToTime(deltaX, pixelsPerSecond);
+
+      if (resizingEdge === "left") {
+        // 左边缘调整：修改 startTime 和 trimStart
+        const newStartTime = Math.max(
+          0,
+          resizeStartRef.current.startTime + deltaTime,
+        );
+        const actualDelta = newStartTime - resizeStartRef.current.startTime;
+        const newDuration = Math.max(
+          0.1,
+          resizeStartRef.current.duration - actualDelta,
+        );
+        const newTrimStart = Math.max(
+          0,
+          resizeStartRef.current.trimStart + actualDelta,
+        );
+
+        // 确保不超过原始媒体长度
+        if (newTrimStart < resizeStartRef.current.trimEnd) {
+          updateClip(clip.id, {
+            startTime: newStartTime,
+            duration: newDuration,
+            trimStart: newTrimStart,
+          });
+        }
+      } else if (resizingEdge === "right") {
+        // 右边缘调整：修改 duration 和 trimEnd
+        const newDuration = Math.max(
+          0.1,
+          resizeStartRef.current.duration + deltaTime,
+        );
+        const newTrimEnd = resizeStartRef.current.trimStart + newDuration;
+
+        // 确保不超过原始媒体长度
+        const originalDuration =
+          resizeStartRef.current.trimEnd - resizeStartRef.current.trimStart;
+        if (newDuration <= originalDuration + 0.01) {
+          updateClip(clip.id, {
+            duration: newDuration,
+            trimEnd: newTrimEnd,
+          });
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setResizingEdge(null);
+      resizeStartRef.current = null;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingEdge, clip.id, pixelsPerSecond, updateClip]);
 
   return (
     <div
-      onClick={() => onSelect?.(clip.id)}
-      className={`h-8 border rounded-sm absolute flex items-center px-2 overflow-hidden cursor-pointer transition-opacity hover:opacity-80 ${
-        isVideo
-          ? "bg-accent-blue/25 border-accent-blue text-accent-blue"
-          : "bg-accent-green/25 border-accent-green text-accent-green"
-      } ${isSelected ? "outline outline-2 outline-accent-orange outline-offset-1" : ""}`}
+      ref={setNodeRef}
+      {...attributes}
+      {...(!resizingEdge ? listeners : {})}
+      className={`absolute top-1 transition-all ${
+        resizingEdge ? "cursor-ew-resize" : "cursor-grab active:cursor-grabbing"
+      }`}
       style={{
-        left: `${clip.position.x}px`,
-        top: `${clip.position.y}px`,
-        width: "300px",
+        left: `${left}px`,
+        opacity: isDragging ? 0 : 1,
       }}
+      onClick={handleClick}
     >
-      <span className="text-xs truncate">{clip.name}</span>
+      <ClipContent
+        clip={clip}
+        isSelected={isSelected}
+        isDragging={isDragging}
+      />
+
+      {/* 左侧调整手柄 */}
+      {!isDragging && (
+        <>
+          <div
+            className={`absolute left-0 top-0 bottom-0 w-2 bg-white cursor-ew-resize z-10 transition-opacity ${
+              resizingEdge === "left"
+                ? "opacity-100"
+                : "opacity-0 hover:opacity-100"
+            }`}
+            onMouseDown={(e) => handleEdgeMouseDown(e, "left")}
+            style={{
+              background:
+                resizingEdge === "left"
+                  ? "rgba(255, 255, 255, 0.8)"
+                  : "rgba(255, 255, 255, 0.5)",
+            }}
+          />
+
+          {/* 右侧调整手柄 */}
+          <div
+            className={`absolute right-0 top-0 bottom-0 w-2 bg-white cursor-ew-resize z-10 transition-opacity ${
+              resizingEdge === "right"
+                ? "opacity-100"
+                : "opacity-0 hover:opacity-100"
+            }`}
+            onMouseDown={(e) => handleEdgeMouseDown(e, "right")}
+            style={{
+              background:
+                resizingEdge === "right"
+                  ? "rgba(255, 255, 255, 0.8)"
+                  : "rgba(255, 255, 255, 0.5)",
+            }}
+          />
+        </>
+      )}
     </div>
   );
-}
+};

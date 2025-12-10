@@ -4,10 +4,10 @@
 
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { Track } from "../types/timeline";
-import { useTimelineStore } from "../stores/timelineStore";
+import { Track } from "../../types/timeline";
+import { useTimelineStore } from "../../stores/timelineStore";
 import { TimelineClip } from "./TimelineClip";
-import { TIMELINE_CONFIG } from "../types/timeline";
+import { TIMELINE_CONFIG } from "../../types/timeline";
 
 interface TimelineTrackProps {
   track: Track;

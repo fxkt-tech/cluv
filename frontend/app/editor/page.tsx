@@ -18,24 +18,30 @@ import {
   ResourcePanel,
   PlayerArea,
   PropertiesPanel,
-  Timeline,
 } from "./components";
+import { Timeline } from "./components/Timeline/Timeline";
 import { useEditorState } from "./hooks/useEditorState";
-import { useProjectResources } from "./hooks/useProjectResources";
 import { useProjectById } from "./hooks/useProjectById";
+import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
 import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/PlayerArea";
-import type { TimelineRef } from "./components/Timeline";
-import { DragData } from "./types/timeline";
+import type { TimelineRef } from "./components/Timeline/Timeline";
+import { DragData, MediaType, Clip } from "./types/timeline";
 import {
   pixelsToTime,
   collectSnapPoints,
   calculateSnappedTime,
   getAllClipsFromTracks,
 } from "./utils/timeline";
-import { ClipDragPreview } from "./components/ClipDragPreview";
+import { ClipDragPreview } from "./components/Timeline/ClipDragPreview";
+import {
+  CutProtocol,
+  VideoMaterialProto,
+  AudioMaterialProto,
+  ImageMaterialProto,
+} from "./types/protocol";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -47,18 +53,22 @@ export default function EditorPage() {
     isLoading: isLoadingProject,
     error: projectError,
   } = useProjectById(projectId);
+
   const {
-    resources,
-    isLoading: isLoadingResources,
-    error: resourceError,
-    loadResources,
-  } = useProjectResources(project?.path || null);
+    protocol,
+    isLoading: isLoadingProtocol,
+    error: protocolError,
+    saveProtocol,
+    reloadProtocol,
+  } = useEditor(projectId);
+
   const { state, updateProperty, setActiveTab, setActivePropertyTab } =
     useEditorState();
 
   // Timeline store
   const tracks = useTimelineStore((state) => state.tracks);
   const addTrack = useTimelineStore((state) => state.addTrack);
+  const setTracks = useTimelineStore((state) => state.setTracks);
   const timelineCurrentTime = useTimelineStore((state) => state.currentTime);
   const setTimelineCurrentTime = useTimelineStore(
     (state) => state.setCurrentTime,
@@ -74,10 +84,17 @@ export default function EditorPage() {
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
 
   const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
+  const [selectedResource, setSelectedResource] = useState<{
+    id: string;
+    type: string;
+    data: VideoMaterialProto | AudioMaterialProto | ImageMaterialProto;
+  } | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
+  const [activeDragData, setActiveDragData] = useState<DragData | Clip | null>(
+    null,
+  );
 
   // PlayerArea ref for external control
   const playerRef = useRef<PlayerAreaRef>(null);
@@ -93,14 +110,151 @@ export default function EditorPage() {
     }),
   );
 
-  // Initialize default tracks on mount
+  // Convert protocol materials to resources format
+  const resources = useMemo(() => {
+    if (!protocol) return [];
+
+    const result: Array<{
+      id: string;
+      name: string;
+      src: string;
+      resource_type: string;
+    }> = [];
+
+    // Add videos
+    protocol.materials.videos.forEach((video) => {
+      result.push({
+        id: video.id,
+        name: video.src.split("/").pop() || video.id,
+        src: video.src,
+        resource_type: "video",
+      });
+    });
+
+    // Add audios
+    protocol.materials.audios.forEach((audio) => {
+      result.push({
+        id: audio.id,
+        name: audio.src.split("/").pop() || audio.id,
+        src: audio.src,
+        resource_type: "audio",
+      });
+    });
+
+    // Add images
+    protocol.materials.images.forEach((image) => {
+      result.push({
+        id: image.id,
+        name: image.src.split("/").pop() || image.id,
+        src: image.src,
+        resource_type: "image",
+      });
+    });
+
+    return result;
+  }, [protocol]);
+
+  // Initialize tracks from protocol
   useEffect(() => {
-    if (tracks.length === 0) {
-      // Add one video track and one audio track by default
+    if (!protocol) return;
+
+    if (protocol.tracks.length > 0) {
+      // Convert protocol tracks to timeline tracks
+      const timelineTracks = protocol.tracks.map((track, index) => ({
+        id: track.id,
+        name: `Track ${index + 1}`,
+        type: track.type as "video" | "audio",
+        clips: track.segments.map((segment) => ({
+          id: segment.id,
+          name: segment.material_id,
+          type: segment.type as MediaType,
+          trackId: track.id,
+          startTime: segment.target_timerange.start / 1000, // Convert ms to seconds
+          duration: segment.target_timerange.duration / 1000,
+          resourceId: segment.material_id,
+          resourceSrc: "",
+          trimStart: segment.source_timerange.start / 1000,
+          trimEnd:
+            (segment.source_timerange.start +
+              segment.source_timerange.duration) /
+            1000,
+          position: segment.position || { x: 0, y: 0 },
+          scale: segment.scale ? segment.scale.width / protocol.stage.width : 1,
+          rotation: 0,
+          opacity: 1,
+          volume: 1,
+        })),
+        visible: true,
+        locked: false,
+        muted: false,
+        order: index,
+      }));
+
+      setTracks(timelineTracks);
+    } else if (tracks.length === 0) {
+      // Add default track if no tracks exist
       addTrack("video");
-      // addTrack("audio");
     }
-  }, []);
+  }, [protocol]);
+
+  // Get material duration helper
+  const getMaterialDuration = (resourceId: string): number => {
+    if (!protocol) return 3;
+
+    const video = protocol.materials.videos.find((v) => v.id === resourceId);
+    if (video && video.duration) {
+      return video.duration / 1000; // Convert ms to seconds
+    }
+
+    const audio = protocol.materials.audios.find((a) => a.id === resourceId);
+    if (audio && audio.duration) {
+      return audio.duration / 1000;
+    }
+
+    // Default duration for images
+    return 3;
+  };
+
+  // Save protocol to backend
+  const handleSaveProtocol = async () => {
+    if (!protocol) return;
+
+    try {
+      // Update protocol with current timeline state
+      const updatedProtocol: CutProtocol = {
+        ...protocol,
+        tracks: tracks.map((track) => ({
+          id: track.id,
+          type: track.type,
+          segments: track.clips.map((clip) => ({
+            id: clip.id,
+            type: clip.type,
+            material_id: clip.resourceId || clip.id,
+            target_timerange: {
+              start: Math.round(clip.startTime * 1000), // Convert to ms
+              duration: Math.round(clip.duration * 1000),
+            },
+            source_timerange: {
+              start: Math.round(clip.trimStart * 1000),
+              duration: Math.round((clip.trimEnd - clip.trimStart) * 1000),
+            },
+            scale: clip.scale
+              ? {
+                  width: Math.round(clip.scale * protocol.stage.width),
+                  height: Math.round(clip.scale * protocol.stage.height),
+                }
+              : undefined,
+            position: clip.position,
+          })),
+        })),
+      };
+
+      await saveProtocol(updatedProtocol);
+      console.log("Protocol saved successfully");
+    } catch (err) {
+      console.error("Failed to save protocol:", err);
+    }
+  };
 
   // Sync Timeline time to local state
   useEffect(() => {
@@ -119,8 +273,10 @@ export default function EditorPage() {
     return "Untitled Project";
   }, [project]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     console.log("Export clicked");
+    // Save protocol before exporting
+    await handleSaveProtocol();
     // TODO: Implement export functionality
   };
 
@@ -183,8 +339,14 @@ export default function EditorPage() {
     const data = active.data.current;
 
     // 判断是资源还是片段
-    if (data && "resourceId" in data) {
+    if (data && "resourceId" in data && !("clipId" in data)) {
       setActiveDragData(data as DragData);
+    } else if (data && data.type === "clip") {
+      // 处理 clip 拖拽 - 直接传递 clip 对象
+      const clip = useTimelineStore.getState().getClipById(data.clipId);
+      if (clip) {
+        setActiveDragData(clip);
+      }
     }
   };
 
@@ -234,28 +396,26 @@ export default function EditorPage() {
         }
       }
 
-      // 根据资源类型确定默认时长
-      const defaultDuration = dragData.resourceType === "audio" ? 5 : 3;
+      // Get actual duration from material
+      const materialDuration = getMaterialDuration(dragData.resourceId);
 
       // 添加片段到轨道
       addClip(trackId, {
         name: dragData.resourceName,
         type: dragData.resourceType,
         startTime: Math.max(0, startTime),
-        duration: defaultDuration,
+        duration: materialDuration,
         resourceId: dragData.resourceId,
         resourceSrc: dragData.resourceSrc,
         trimStart: 0,
-        trimEnd: defaultDuration,
+        trimEnd: materialDuration,
         position: { x: 0, y: 0 },
         scale: 1,
         rotation: 0,
         opacity: 1,
         volume: 1,
       });
-    }
-    // 情况2: 在时间轴内拖拽片段
-    else if (activeData.type === "clip" && dropData.type === "track") {
+    } else if (activeData.type === "clip" && dropData.type === "track") {
       const clipId = activeData.clipId;
       const sourceTrackId = activeData.trackId;
       const targetTrackId = dropData.trackId;
@@ -331,16 +491,65 @@ export default function EditorPage() {
   });
 
   const handleResourceSelect = (resource: Resource | null) => {
-    if (resource && resource.type === "media" && resource.src) {
-      // Convert file path to Tauri asset protocol URL
-      const assetUrl = convertFileSrc(resource.src);
-      setSelectedVideoSrc(assetUrl);
-      // Reset playback state when new video is selected
-      setCurrentTime(0);
-      setDuration(0);
-      setIsPlaying(false);
+    if (resource && resource.src) {
+      // Find the material in protocol
+      if (protocol) {
+        const video = protocol.materials.videos.find(
+          (v) => v.id === resource.id,
+        );
+        if (video) {
+          setSelectedResource({
+            id: video.id,
+            type: "video",
+            data: video,
+          });
+          // Convert file path to Tauri asset protocol URL
+          const assetUrl = convertFileSrc(video.src);
+          setSelectedVideoSrc(assetUrl);
+          setCurrentTime(0);
+          setDuration(0);
+          setIsPlaying(false);
+          return;
+        }
+
+        const audio = protocol.materials.audios.find(
+          (a) => a.id === resource.id,
+        );
+        if (audio) {
+          setSelectedResource({
+            id: audio.id,
+            type: "audio",
+            data: audio,
+          });
+          // Clear video for audio
+          setSelectedVideoSrc(null);
+          setCurrentTime(0);
+          setDuration(0);
+          setIsPlaying(false);
+          return;
+        }
+
+        const image = protocol.materials.images.find(
+          (i) => i.id === resource.id,
+        );
+        if (image) {
+          setSelectedResource({
+            id: image.id,
+            type: "image",
+            data: image,
+          });
+          // Convert file path to Tauri asset protocol URL
+          const assetUrl = convertFileSrc(image.src);
+          setSelectedVideoSrc(assetUrl);
+          setCurrentTime(0);
+          setDuration(0);
+          setIsPlaying(false);
+          return;
+        }
+      }
     } else {
-      // Clear video when resource is deselected
+      // Clear selection
+      setSelectedResource(null);
       setSelectedVideoSrc(null);
       setCurrentTime(0);
       setDuration(0);
@@ -348,7 +557,7 @@ export default function EditorPage() {
     }
   };
 
-  if (isLoadingProject) {
+  if (isLoadingProject || isLoadingProtocol) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-editor-bg">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent-blue border-t-transparent" />
@@ -390,9 +599,9 @@ export default function EditorPage() {
         />
 
         {/* Error Banner */}
-        {resourceError && (
+        {protocolError && (
           <div className="border-b border-accent-red bg-accent-red/10 px-4 py-2">
-            <p className="text-sm text-accent-red">⚠️ {resourceError}</p>
+            <p className="text-sm text-accent-red">⚠️ {protocolError}</p>
           </div>
         )}
 
@@ -405,10 +614,10 @@ export default function EditorPage() {
               activeTab={state.activeTab}
               onTabChange={setActiveTab}
               resources={resources}
-              isLoading={isLoadingResources}
+              isLoading={isLoadingProtocol}
               onResourceSelect={handleResourceSelect}
               projectPath={project?.path || null}
-              loadResources={loadResources}
+              loadResources={reloadProtocol}
             />
 
             {/* Center: Player */}
@@ -430,6 +639,7 @@ export default function EditorPage() {
               onTabChange={setActivePropertyTab}
               properties={state.properties}
               onPropertyChange={updateProperty}
+              selectedResource={selectedResource}
             />
           </div>
 
@@ -445,7 +655,10 @@ export default function EditorPage() {
       {/* 拖拽覆盖层 - 显示正在拖拽的内容 */}
       <DragOverlay dropAnimation={null}>
         {activeDragData ? (
-          <ClipDragPreview data={activeDragData} type="resource" />
+          <ClipDragPreview
+            data={activeDragData}
+            type={"name" in activeDragData ? "clip" : "resource"}
+          />
         ) : null}
       </DragOverlay>
     </DndContext>
