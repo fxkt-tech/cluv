@@ -14,10 +14,7 @@ interface TimelineTrackProps {
   index: number;
 }
 
-export const TimelineTrack: React.FC<TimelineTrackProps> = ({
-  track,
-  index,
-}) => {
+export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
   const selectedClipIds = useTimelineStore((state) => state.selectedClipIds);
   const selectedTrackId = useTimelineStore((state) => state.selectedTrackId);
   const selectTrack = useTimelineStore((state) => state.selectTrack);
@@ -46,11 +43,11 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`relative border-b border-[var(--color-editor-border)] ${
+      className={`relative border-b border-editor-border ${
         isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
       } ${track.locked ? "opacity-50 cursor-not-allowed" : ""} ${
         isOver && !track.locked
-          ? "bg-[var(--color-accent-blue)]/20 ring-2 ring-[var(--color-accent-blue)]"
+          ? "bg-accent-blue/20 ring-2 ring-accent-blue"
           : ""
       }`}
       style={{
@@ -62,7 +59,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
       {/* 拖拽悬停提示 */}
       {isOver && !track.locked && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="px-4 py-2 bg-[var(--color-accent-blue)] text-white rounded-lg text-sm">
+          <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm">
             Drop here to add clip
           </div>
         </div>
@@ -93,14 +90,14 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
 
       {/* 锁定提示 */}
       {track.locked && (
-        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] text-sm pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
           Locked
         </div>
       )}
 
       {/* 隐藏提示 */}
       {!track.visible && (
-        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] text-sm pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
           Hidden
         </div>
       )}

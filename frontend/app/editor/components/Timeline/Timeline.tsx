@@ -9,12 +9,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import {
-  DragOverlay,
-  DragStartEvent,
-  DragEndEvent,
-  useDndContext,
-} from "@dnd-kit/core";
+import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { TimelineRuler } from "./TimelineRuler";
 import { Playhead } from "./Playhead";
@@ -22,14 +17,19 @@ import { TimelineTrack } from "./TimelineTrack";
 import { TrackHeader } from "./TrackHeader";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { DragData } from "../../types/timeline";
-import {
-  pixelsToTime,
-  collectSnapPoints,
-  calculateSnappedTime,
-  getAllClipsFromTracks,
-} from "../../utils/timeline";
-import { ClipDragPreview } from "./ClipDragPreview";
 import { KeyboardShortcutsHelp } from "../KeyboardShortcutsHelp";
+import {
+  PlayCircleIcon,
+  PauseCircleIcon,
+  VideoTrackIcon,
+  AudioTrackIcon,
+  UndoIcon,
+  RedoIcon,
+  SnappingIcon,
+  ZoomOutIcon,
+  ZoomInIcon,
+  EmptyTimelineIcon,
+} from "../icons";
 
 /**
  * Timeline 暴露的方法接口
@@ -191,7 +191,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       <>
         <div className={`flex flex-col bg-editor-bg ${className}`}>
           {/* 工具栏 */}
-          <div className="flex items-center justify-between px-4 py-1 bg-editor-panel border-y border-editor-border">
+          <div className="flex items-center justify-between px-4 py-1 bg-editor-bg border-y border-editor-border">
             <div className="flex items-center gap-2">
               {/* 播放控制 */}
               <button
@@ -200,29 +200,9 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <PauseCircleIcon className="w-5 h-5" />
                 ) : (
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <PlayCircleIcon className="w-5 h-5" />
                 )}
               </button>
 
@@ -232,26 +212,14 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
                 title="Add Video Track"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
+                <VideoTrackIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={() => addTrack("audio")}
                 className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
                 title="Add Audio Track"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
-                </svg>
+                <AudioTrackIcon className="w-5 h-5" />
               </button>
             </div>
 
@@ -263,17 +231,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Undo (Ctrl+Z)"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <UndoIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={redo}
@@ -281,17 +239,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Redo (Ctrl+Shift+Z)"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12.293 3.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 9H9a5 5 0 00-5 5v2a1 1 0 11-2 0v-2a7 7 0 017-7h5.586l-2.293-2.293a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <RedoIcon className="w-5 h-5" />
               </button>
 
               <div className="w-px h-6 bg-editor-border" />
@@ -306,17 +254,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 }`}
                 title={snappingEnabled ? "Snapping: ON" : "Snapping: OFF"}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <SnappingIcon className="w-5 h-5" />
               </button>
 
               <div className="w-px h-6 bg-editor-border" />
@@ -331,17 +269,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
                   title="Zoom Out"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <ZoomOutIcon className="w-5 h-5" />
                 </button>
                 <input
                   type="range"
@@ -363,17 +291,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
                   title="Zoom In"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <ZoomInIcon className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -385,7 +303,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
             <div className="shrink-0 overflow-y-auto">
               {/* 标尺占位 */}
               <div
-                className="bg-(--color-editor-panel) border-b border-r border-editor-border"
+                className="bg-editor-bg border-b border-r border-editor-border"
                 style={{
                   width: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
                   height: TIMELINE_CONFIG.RULER_HEIGHT,
@@ -445,17 +363,11 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   {/* 空状态 */}
                   {tracks.length === 0 && (
                     <div
-                      className="flex items-center justify-center text-[var(--color-text-muted)]"
+                      className="flex items-center justify-center text-text-muted"
                       style={{ height: "300px" }}
                     >
                       <div className="text-center">
-                        <svg
-                          className="w-16 h-16 mx-auto mb-4 opacity-50"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                        </svg>
+                        <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
                         <p className="text-lg mb-2">Timeline is empty</p>
                         <p className="text-sm">
                           Add tracks and drag media from the resource panel

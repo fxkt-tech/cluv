@@ -29,7 +29,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
 
   return (
     <div
-      className="relative bg-(--color-editor-panel) border-b border-editor-border select-none"
+      className="relative bg-editor-bg border-b border-editor-border select-none"
       style={{
         height: TIMELINE_CONFIG.RULER_HEIGHT,
         width: "100%",

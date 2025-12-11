@@ -23,7 +23,7 @@ interface TrackHeaderProps {
   index: number;
 }
 
-export const TrackHeader: React.FC<TrackHeaderProps> = ({ track, index }) => {
+export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
   const updateTrack = useTimelineStore((state) => state.updateTrack);
   const removeTrack = useTimelineStore((state) => state.removeTrack);
   const selectedTrackId = useTimelineStore((state) => state.selectedTrackId);

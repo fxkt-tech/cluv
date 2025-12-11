@@ -7,6 +7,7 @@ import { Clip, MediaType } from "../../types/timeline";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { timeToPixels } from "../../utils/timeline";
+import { formatTime } from "../../utils/time";
 
 interface ClipContentProps {
   clip: Clip;
@@ -32,15 +33,15 @@ export const ClipContent: React.FC<ClipContentProps> = ({
   const getClipColor = (type: MediaType) => {
     switch (type) {
       case "video":
-        return "bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)]/80";
+        return "bg-accent-blue border-accent-blue/80";
       case "audio":
-        return "bg-[var(--color-accent-green)] border-[var(--color-accent-green)]/80";
+        return "bg-accent-green border-accent-green/80";
       case "image":
-        return "bg-[var(--color-accent-magenta)] border-[var(--color-accent-magenta)]/80";
+        return "bg-accent-magenta border-accent-magenta/80";
       case "text":
-        return "bg-[var(--color-accent-yellow)] border-[var(--color-accent-yellow)]/80";
+        return "bg-accent-yellow border-accent-yellow/80";
       default:
-        return "bg-[var(--color-text-muted)] border-[var(--color-text-muted)]/80";
+        return "bg-text-muted border-text-muted/80";
     }
   };
 
@@ -54,7 +55,7 @@ export const ClipContent: React.FC<ClipContentProps> = ({
     <div
       className={`rounded border-2 overflow-hidden ${getClipColor(clip.type)} ${
         isSelected
-          ? "ring-2 ring-white ring-offset-2 ring-offset-[var(--color-editor-bg)]"
+          ? "ring-2 ring-white ring-offset-2 ring-offset-editor-bg"
           : ""
       } ${isDragging ? "opacity-50" : ""} ${className}`}
       style={mergedStyle}
@@ -63,7 +64,8 @@ export const ClipContent: React.FC<ClipContentProps> = ({
       <div className="px-2 py-1 h-full flex flex-col justify-between text-white text-xs">
         <div className="font-medium truncate">{clip.name}</div>
         <div className="text-[10px] opacity-75">
-          {clip.duration.toFixed(2)}s
+          {formatTime(clip.duration)}
+          {/*{clip.duration.toFixed(2)}s*/}
         </div>
       </div>
     </div>
