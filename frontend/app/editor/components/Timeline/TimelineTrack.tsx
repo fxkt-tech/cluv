@@ -4,10 +4,9 @@
 
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { Track } from "../../types/timeline";
+import { Track, getTrackHeight } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { TimelineClip } from "./TimelineClip";
-import { TIMELINE_CONFIG } from "../../types/timeline";
 
 interface TimelineTrackProps {
   track: Track;
@@ -21,6 +20,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
   const clearSelection = useTimelineStore((state) => state.clearSelection);
 
   const isSelected = selectedTrackId === track.id;
+  const trackHeight = getTrackHeight(track.type);
 
   // 配置拖拽放置区域
   const { setNodeRef, isOver } = useDroppable({
@@ -51,8 +51,8 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
           : ""
       }`}
       style={{
-        height: TIMELINE_CONFIG.TRACK_HEIGHT,
-        minHeight: TIMELINE_CONFIG.TRACK_HEIGHT,
+        height: trackHeight,
+        minHeight: trackHeight,
       }}
       onClick={handleTrackClick}
     >

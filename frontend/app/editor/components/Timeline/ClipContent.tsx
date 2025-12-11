@@ -3,7 +3,7 @@
 "use client";
 
 import React from "react";
-import { Clip, MediaType } from "../../types/timeline";
+import { Clip, MediaType, getTrackHeight } from "../../types/timeline";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { timeToPixels } from "../../utils/timeline";
@@ -23,8 +23,15 @@ export const ClipContent: React.FC<ClipContentProps> = ({
   isDragging = false,
   className = "",
   style = {},
-}) => {
+}: ClipContentProps) => {
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
+  const tracks = useTimelineStore((state) => state.tracks);
+
+  // 获取轨道高度
+  const track = tracks.find((t) => t.id === clip.trackId);
+  const trackHeight = track
+    ? getTrackHeight(track.type)
+    : TIMELINE_CONFIG.TRACK_HEIGHT;
 
   // 计算宽度
   const width = timeToPixels(clip.duration, pixelsPerSecond);
@@ -47,7 +54,7 @@ export const ClipContent: React.FC<ClipContentProps> = ({
 
   const mergedStyle = {
     width: `${Math.max(width, TIMELINE_CONFIG.MIN_CLIP_WIDTH)}px`,
-    height: `${TIMELINE_CONFIG.TRACK_HEIGHT - 8}px`,
+    height: `${trackHeight - 8}px`,
     ...style,
   };
 

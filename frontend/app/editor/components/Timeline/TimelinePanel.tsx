@@ -9,7 +9,12 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
+import {
+  DragStartEvent,
+  DragEndEvent,
+  useDroppable,
+  useDndMonitor,
+} from "@dnd-kit/core";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { TimelineRuler } from "./TimelineRuler";
 import { Playhead } from "./Playhead";
@@ -76,6 +81,33 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const animationFrameRef = useRef<number | undefined>(undefined);
+
+    // 配置空白区域的 droppable
+    const { setNodeRef: setEmptyAreaRef, isOver: isOverEmptyArea } =
+      useDroppable({
+        id: "timeline-empty-area",
+        data: {
+          type: "empty-area",
+        },
+      });
+
+    // 监听拖拽事件以更新 activeDragData
+    useDndMonitor({
+      onDragStart: (event) => {
+        const data = event.active.data.current;
+        if (data && "resourceId" in data) {
+          setActiveDragData(data as DragData);
+        }
+        onDragStart?.(event);
+      },
+      onDragEnd: (event) => {
+        setActiveDragData(null);
+        onDragEnd?.(event);
+      },
+      onDragCancel: () => {
+        setActiveDragData(null);
+      },
+    });
 
     // 暴露方法给父组件
     useImperativeHandle(
@@ -311,15 +343,11 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 </div>
               </div>
 
-              {/* 轨道头部列表容器 - 垂直居中 */}
+              {/* 轨道头部列表 */}
               <div className="flex-1 relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full">
-                    {tracks.map((track, index) => (
-                      <TrackHeader key={track.id} track={track} index={index} />
-                    ))}
-                  </div>
-                </div>
+                {tracks.map((track, index) => (
+                  <TrackHeader key={track.id} track={track} index={index} />
+                ))}
               </div>
             </div>
 
@@ -334,7 +362,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               <div
                 ref={timelineContentRef}
                 data-timeline-content
-                className="overflow-auto relative flex items-center"
+                className="overflow-auto relative"
                 style={{
                   height: "calc(100% - 30px)", // 减去标尺高度
                 }}
@@ -343,7 +371,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               >
                 {/* 时间轴内容容器 */}
                 <div
-                  className="relative"
+                  className="relative flex flex-col"
                   style={{
                     width: `${totalWidth}px`,
                     minHeight: "100%",
@@ -352,34 +380,50 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   {/* Playhead - 贯穿整个容器 */}
                   <Playhead containerWidth={containerWidth} />
 
-                  {/* 轨道列表容器 - 垂直居中 */}
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full">
-                      {/* 轨道列表 */}
-                      {tracks.map((track, index) => (
-                        <TimelineTrack
-                          key={track.id}
-                          track={track}
-                          index={index}
-                        />
-                      ))}
+                  {/* 轨道列表 */}
+                  {tracks.map((track, index) => (
+                    <TimelineTrack key={track.id} track={track} index={index} />
+                  ))}
 
-                      {/* 空状态 */}
-                      {tracks.length === 0 && (
-                        <div
-                          className="flex items-center justify-center text-text-muted"
-                          style={{ height: "300px" }}
-                        >
-                          <div className="text-center">
-                            <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p className="text-lg mb-2">Timeline is empty</p>
-                            <p className="text-sm">
-                              Add tracks and drag media from the resource panel
-                            </p>
-                          </div>
+                  {/* 空白区域 - 用于拖拽创建新轨道 */}
+                  <div
+                    ref={setEmptyAreaRef}
+                    className={`flex-1 relative transition-colors ${
+                      isOverEmptyArea
+                        ? "bg-accent-blue/10 ring-2 ring-inset ring-accent-blue"
+                        : "bg-editor-bg"
+                    }`}
+                    style={{
+                      minHeight: tracks.length === 0 ? "300px" : "100px",
+                      borderTop:
+                        tracks.length > 0
+                          ? "1px solid var(--color-editor-border)"
+                          : "none",
+                    }}
+                  >
+                    {isOverEmptyArea && activeDragData && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm shadow-lg">
+                          Create new{" "}
+                          {activeDragData.resourceType === "audio"
+                            ? "audio"
+                            : "video"}{" "}
+                          track
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {tracks.length === 0 && !isOverEmptyArea && (
+                      <div className="absolute inset-0 flex items-center justify-center text-text-muted">
+                        <div className="text-center">
+                          <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                          <p className="text-lg mb-2">Timeline is empty</p>
+                          <p className="text-sm">
+                            Drag media here to create tracks
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

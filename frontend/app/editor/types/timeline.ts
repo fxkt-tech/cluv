@@ -90,7 +90,9 @@ export interface TimelineState {
  */
 export const TIMELINE_CONFIG = {
   // 布局常量
-  TRACK_HEIGHT: 80, // 轨道高度（像素）
+  TRACK_HEIGHT: 80, // 轨道高度（像素）- 保留作为默认值
+  VIDEO_TRACK_HEIGHT: 80, // 视频轨道高度（像素）
+  AUDIO_TRACK_HEIGHT: 60, // 音频轨道高度（像素）
   TRACK_HEADER_WIDTH: 180, // 轨道头部宽度（像素）
   MIN_CLIP_WIDTH: 10, // Clip 最小宽度（像素）
 
@@ -107,6 +109,15 @@ export const TIMELINE_CONFIG = {
   MAJOR_TICK_INTERVAL: 1, // 主刻度间隔（秒）
   MINOR_TICK_COUNT: 5, // 每个主刻度之间的次刻度数量
 } as const;
+
+/**
+ * 根据轨道类型获取轨道高度
+ */
+export function getTrackHeight(trackType: TrackType): number {
+  return trackType === "video"
+    ? TIMELINE_CONFIG.VIDEO_TRACK_HEIGHT
+    : TIMELINE_CONFIG.AUDIO_TRACK_HEIGHT;
+}
 
 /**
  * 工具函数类型

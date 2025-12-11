@@ -28,7 +28,7 @@ import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/Player/PlayerArea";
 import type { TimelineRef } from "./components/Timeline/TimelinePanel";
-import { DragData, MediaType, Clip } from "./types/timeline";
+import { DragData, Clip } from "./types/timeline";
 import {
   pixelsToTime,
   collectSnapPoints,
@@ -37,11 +37,16 @@ import {
 } from "./utils/timeline";
 import { ClipDragPreview } from "./components/Timeline/ClipDragPreview";
 import {
-  CutProtocol,
   VideoMaterialProto,
   AudioMaterialProto,
   ImageMaterialProto,
 } from "./types/protocol";
+import {
+  protocolToTimeline,
+  timelineToProtocol,
+  msToSeconds,
+} from "./utils/protocolConverter";
+import { debounce } from "./utils/debounce";
 
 export default function EditorPage() {
   const searchParams = useSearchParams();
@@ -159,43 +164,20 @@ export default function EditorPage() {
     if (!protocol) return;
 
     if (protocol.tracks.length > 0) {
-      // Convert protocol tracks to timeline tracks
-      const timelineTracks = protocol.tracks.map((track, index) => ({
-        id: track.id,
-        name: `Track ${index + 1}`,
-        type: track.type as "video" | "audio",
-        clips: track.segments.map((segment) => ({
-          id: segment.id,
-          name: segment.material_id,
-          type: segment.type as MediaType,
-          trackId: track.id,
-          startTime: segment.target_timerange.start / 1000, // Convert ms to seconds
-          duration: segment.target_timerange.duration / 1000,
-          resourceId: segment.material_id,
-          resourceSrc: "",
-          trimStart: segment.source_timerange.start / 1000,
-          trimEnd:
-            (segment.source_timerange.start +
-              segment.source_timerange.duration) /
-            1000,
-          position: segment.position || { x: 0, y: 0 },
-          scale: segment.scale ? segment.scale.width / protocol.stage.width : 1,
-          rotation: 0,
-          opacity: 1,
-          volume: 1,
-        })),
-        visible: true,
-        locked: false,
-        muted: false,
-        order: index,
-      }));
-
+      // Convert protocol tracks to timeline tracks using converter
+      const timelineTracks = protocolToTimeline(protocol);
       setTracks(timelineTracks);
-    } else if (tracks.length === 0) {
-      // Add default track if no tracks exist
-      addTrack("video");
+
+      // Calculate total duration
+      const maxEndTime = Math.max(
+        ...timelineTracks.flatMap((t) =>
+          t.clips.map((c) => c.startTime + c.duration),
+        ),
+        0,
+      );
+      setTimelineDuration(maxEndTime);
     }
-  }, [protocol]);
+  }, [protocol, setTracks, setTimelineDuration]);
 
   // Get material duration helper
   const getMaterialDuration = (resourceId: string): number => {
@@ -203,51 +185,53 @@ export default function EditorPage() {
 
     const video = protocol.materials.videos.find((v) => v.id === resourceId);
     if (video && video.duration) {
-      return video.duration / 1000; // Convert ms to seconds
+      return msToSeconds(video.duration); // Convert ms to seconds
     }
 
     const audio = protocol.materials.audios.find((a) => a.id === resourceId);
     if (audio && audio.duration) {
-      return audio.duration / 1000;
+      return msToSeconds(audio.duration);
     }
 
-    // Default duration for images
+    // Default duration for images (3 seconds)
     return 3;
   };
 
-  // Save protocol to backend
+  // Debounced auto-save function
+  const debouncedSaveProtocol = useMemo(
+    () =>
+      debounce(async () => {
+        if (!protocol || tracks.length === 0) return;
+
+        try {
+          const updatedProtocol = timelineToProtocol(tracks, protocol);
+          await saveProtocol(updatedProtocol);
+          console.log("Protocol auto-saved");
+        } catch (error) {
+          console.error("Failed to auto-save protocol:", error);
+        }
+      }, 1000),
+    [protocol, tracks, saveProtocol],
+  );
+
+  // Auto-save when tracks change
+  useEffect(() => {
+    if (tracks.length > 0 && protocol) {
+      debouncedSaveProtocol();
+    }
+
+    return () => {
+      debouncedSaveProtocol.cancel();
+    };
+  }, [tracks, protocol, debouncedSaveProtocol]);
+
+  // Manual save protocol to backend
   const handleSaveProtocol = async () => {
     if (!protocol) return;
 
     try {
-      // Update protocol with current timeline state
-      const updatedProtocol: CutProtocol = {
-        ...protocol,
-        tracks: tracks.map((track) => ({
-          id: track.id,
-          type: track.type,
-          segments: track.clips.map((clip) => ({
-            id: clip.id,
-            type: clip.type,
-            material_id: clip.resourceId || clip.id,
-            target_timerange: {
-              start: Math.round(clip.startTime * 1000), // Convert to ms
-              duration: Math.round(clip.duration * 1000),
-            },
-            source_timerange: {
-              start: Math.round(clip.trimStart * 1000),
-              duration: Math.round((clip.trimEnd - clip.trimStart) * 1000),
-            },
-            scale: clip.scale
-              ? {
-                  width: Math.round(clip.scale * protocol.stage.width),
-                  height: Math.round(clip.scale * protocol.stage.height),
-                }
-              : undefined,
-            position: clip.position,
-          })),
-        })),
-      };
+      // Update protocol with current timeline state using converter
+      const updatedProtocol = timelineToProtocol(tracks, protocol);
 
       await saveProtocol(updatedProtocol);
       console.log("Protocol saved successfully");
@@ -362,8 +346,75 @@ export default function EditorPage() {
 
     if (!activeData || !dropData) return;
 
-    // 情况1: 从资源面板拖拽到轨道
-    if ("resourceId" in activeData && dropData.type === "track") {
+    // 情况1: 从资源面板拖拽到空白区域 - 创建新轨道
+    if ("resourceId" in activeData && dropData.type === "empty-area") {
+      const dragData = activeData as DragData;
+
+      // 根据资源类型确定轨道类型
+      const trackType: "video" | "audio" =
+        dragData.resourceType === "video" || dragData.resourceType === "image"
+          ? "video"
+          : "audio";
+
+      // 计算拖放的时间位置
+      const rect = document
+        .querySelector("[data-timeline-content]")
+        ?.getBoundingClientRect();
+      let startTime = 0;
+
+      if (rect && event.activatorEvent) {
+        const x = (event.activatorEvent as PointerEvent).clientX - rect.left;
+        startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
+
+        // 应用吸附
+        if (snappingEnabled) {
+          const allClips = getAllClipsFromTracks(tracks);
+          const snapPoints = collectSnapPoints(allClips, timelineCurrentTime);
+          const snapped = calculateSnappedTime(
+            startTime,
+            snapPoints,
+            snapThreshold,
+            pixelsPerSecond,
+          );
+          if (snapped.snapped) {
+            startTime = snapped.time;
+          }
+        }
+      }
+
+      // 获取材料时长
+      const materialDuration = getMaterialDuration(dragData.resourceId);
+
+      // 创建新轨道（使用 addTrack 会自动添加到 store）
+      addTrack(trackType);
+
+      // 获取新创建的轨道（它会是最后一个）
+      setTimeout(() => {
+        const currentTracks = useTimelineStore.getState().tracks;
+        const newTrack = currentTracks[currentTracks.length - 1];
+
+        if (newTrack) {
+          // 添加 Clip 到新轨道
+          addClip(newTrack.id, {
+            name: dragData.resourceName,
+            type: dragData.resourceType,
+            startTime: Math.max(0, startTime),
+            duration: materialDuration,
+            resourceId: dragData.resourceId,
+            resourceSrc: dragData.resourceSrc,
+            trimStart: 0,
+            trimEnd: materialDuration,
+            position: { x: 0, y: 0 },
+            scale: 1,
+            rotation: 0,
+            opacity: 1,
+            volume: 1,
+          });
+        }
+      }, 0);
+    }
+    // 情况2: 从资源面板拖拽到轨道
+    else if ("resourceId" in activeData && dropData.type === "track") {
       const dragData = activeData as DragData;
       const trackId = dropData.trackId;
       const track = tracks.find((t) => t.id === trackId);
@@ -415,7 +466,9 @@ export default function EditorPage() {
         opacity: 1,
         volume: 1,
       });
-    } else if (activeData.type === "clip" && dropData.type === "track") {
+    }
+    // 情况3: 移动现有Clip到轨道
+    else if (activeData.type === "clip" && dropData.type === "track") {
       const clipId = activeData.clipId;
       const sourceTrackId = activeData.trackId;
       const targetTrackId = dropData.trackId;
@@ -596,6 +649,7 @@ export default function EditorPage() {
           projectName={projectName}
           onExport={handleExport}
           onBack={handleBackToProjects}
+          onSave={handleSaveProtocol}
         />
 
         {/* Error Banner */}

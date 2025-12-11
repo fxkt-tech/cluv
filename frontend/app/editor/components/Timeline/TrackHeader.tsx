@@ -3,9 +3,8 @@
 "use client";
 
 import React from "react";
-import { Track } from "../../types/timeline";
+import { Track, getTrackHeight, TIMELINE_CONFIG } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
-import { TIMELINE_CONFIG } from "../../types/timeline";
 import {
   VideoTrackIcon,
   AudioTrackIcon,
@@ -29,6 +28,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
   const selectedTrackId = useTimelineStore((state) => state.selectedTrackId);
 
   const isSelected = selectedTrackId === track.id;
+  const trackHeight = getTrackHeight(track.type);
 
   const handleToggleVisible = () => {
     updateTrack(track.id, { visible: !track.visible });
@@ -55,7 +55,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
       }`}
       style={{
         width: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
-        height: TIMELINE_CONFIG.TRACK_HEIGHT,
+        height: trackHeight,
         minWidth: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
       }}
     >
