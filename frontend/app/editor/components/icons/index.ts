@@ -3,4 +3,5 @@
  * Central export point for all icon components
  */
 
-export * from './PlayerIcons';
+export * from "./PlayerIcons";
+export * from "./TrackIcons";

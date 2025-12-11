@@ -54,6 +54,8 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const setScrollLeft = useTimelineStore((state) => state.setScrollLeft);
     const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
     const duration = useTimelineStore((state) => state.duration);
+    const zoomLevel = useTimelineStore((state) => state.zoomLevel);
+    const setZoomLevel = useTimelineStore((state) => state.setZoomLevel);
     const zoomIn = useTimelineStore((state) => state.zoomIn);
     const zoomOut = useTimelineStore((state) => state.zoomOut);
     const addTrack = useTimelineStore((state) => state.addTrack);
@@ -187,23 +189,19 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
     return (
       <>
-        <div className={`flex flex-col bg-gray-900 ${className}`}>
+        <div className={`flex flex-col bg-editor-bg ${className}`}>
           {/* 工具栏 */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+          <div className="flex items-center justify-between px-4 py-1 bg-editor-panel border-y border-editor-border">
             <div className="flex items-center gap-2">
               {/* 播放控制 */}
               <button
                 onClick={handlePlayPause}
-                className={`p-2 rounded transition-colors ${
-                  isPlaying
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
-                } text-white`}
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
                 title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (
                   <svg
-                    className="w-4 h-4"
+                    className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -215,7 +213,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   </svg>
                 ) : (
                   <svg
-                    className="w-4 h-4"
+                    className="w-5 h-5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -228,18 +226,32 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 )}
               </button>
 
-              <div className="w-px h-6 bg-gray-700" />
+              <div className="w-px h-6 bg-editor-border" />
               <button
                 onClick={() => addTrack("video")}
-                className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+                title="Add Video Track"
               >
-                + Video Track
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                </svg>
               </button>
               <button
                 onClick={() => addTrack("audio")}
-                className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+                title="Add Audio Track"
               >
-                + Audio Track
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
+                </svg>
               </button>
             </div>
 
@@ -248,7 +260,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               <button
                 onClick={undo}
                 disabled={!canUndo()}
-                className="p-1 hover:bg-gray-700 text-gray-400 hover:text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Undo (Ctrl+Z)"
               >
                 <svg
@@ -266,7 +278,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               <button
                 onClick={redo}
                 disabled={!canRedo()}
-                className="p-1 hover:bg-gray-700 text-gray-400 hover:text-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Redo (Ctrl+Shift+Z)"
               >
                 <svg
@@ -282,43 +294,17 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 </svg>
               </button>
 
-              <div className="w-px h-6 bg-gray-700" />
+              <div className="w-px h-6 bg-editor-border" />
 
               {/* 吸附开关 */}
               <button
                 onClick={toggleSnapping}
-                className={`px-3 py-1 text-xs rounded transition-colors ${
+                className={`p-1 rounded transition-colors ${
                   snappingEnabled
-                    ? "bg-purple-600 text-white hover:bg-purple-700"
-                    : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                    ? "bg-accent-magenta text-white hover:bg-accent-magenta/90"
+                    : "hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark)"
                 }`}
                 title={snappingEnabled ? "Snapping: ON" : "Snapping: OFF"}
-              >
-                <div className="flex items-center gap-1">
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>Snap</span>
-                </div>
-              </button>
-
-              <div className="w-px h-6 bg-gray-700" />
-
-              {/* 快捷键帮助 */}
-              <KeyboardShortcutsHelp />
-
-              <button
-                onClick={zoomOut}
-                className="p-1 hover:bg-gray-700 text-gray-400 hover:text-white rounded transition-colors"
-                title="Zoom Out"
               >
                 <svg
                   className="w-5 h-5"
@@ -327,24 +313,69 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 >
                   <path
                     fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"
                     clipRule="evenodd"
                   />
                 </svg>
               </button>
-              <button
-                onClick={zoomIn}
-                className="p-1 hover:bg-gray-700 text-gray-400 hover:text-white rounded transition-colors"
-                title="Zoom In"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+
+              <div className="w-px h-6 bg-editor-border" />
+
+              {/* 快捷键帮助 */}
+              <KeyboardShortcutsHelp />
+
+              {/* 缩放控制 */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={zoomOut}
+                  className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+                  title="Zoom Out"
                 >
-                  <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  value={zoomLevel}
+                  onChange={(e) => {
+                    setZoomLevel(Number(e.target.value));
+                  }}
+                  className="w-24 h-1 bg-editor-hover rounded-lg appearance-none cursor-pointer accent-accent-blue"
+                  title={`Zoom Level: ${zoomLevel.toFixed(1)}x`}
+                  style={{
+                    background: `linear-gradient(to right, var(--color-accent-blue) 0%, var(--color-accent-blue) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) 100%)`,
+                  }}
+                />
+                <button
+                  onClick={zoomIn}
+                  className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+                  title="Zoom In"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -354,14 +385,14 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
             <div className="shrink-0 overflow-y-auto">
               {/* 标尺占位 */}
               <div
-                className="bg-gray-800 border-b border-r border-gray-700"
+                className="bg-(--color-editor-panel) border-b border-r border-editor-border"
                 style={{
                   width: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
                   height: TIMELINE_CONFIG.RULER_HEIGHT,
                   minHeight: TIMELINE_CONFIG.RULER_HEIGHT,
                 }}
               >
-                <div className="flex items-center justify-center h-full text-xs text-gray-500">
+                <div className="flex items-center justify-center h-full text-xs text-text-muted">
                   Tracks
                 </div>
               </div>
@@ -370,18 +401,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               {tracks.map((track, index) => (
                 <TrackHeader key={track.id} track={track} index={index} />
               ))}
-
-              {/* 空状态提示 */}
-              {tracks.length === 0 && (
-                <div className="flex items-center justify-center p-8 text-gray-500 text-sm">
-                  <div className="text-center">
-                    <p>No tracks yet</p>
-                    <p className="text-xs mt-1">
-                      Click &quot;+&quot; to add a track
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* 右侧时间轴内容区域 */}
@@ -426,7 +445,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   {/* 空状态 */}
                   {tracks.length === 0 && (
                     <div
-                      className="flex items-center justify-center text-gray-600"
+                      className="flex items-center justify-center text-[var(--color-text-muted)]"
                       style={{ height: "300px" }}
                     >
                       <div className="text-center">

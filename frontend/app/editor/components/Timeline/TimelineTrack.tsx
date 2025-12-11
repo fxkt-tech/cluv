@@ -46,10 +46,12 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`relative border-b border-gray-700 ${
-        isSelected ? "bg-gray-800" : "bg-gray-900"
+      className={`relative border-b border-[var(--color-editor-border)] ${
+        isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
       } ${track.locked ? "opacity-50 cursor-not-allowed" : ""} ${
-        isOver && !track.locked ? "bg-blue-900/30 ring-2 ring-blue-500" : ""
+        isOver && !track.locked
+          ? "bg-[var(--color-accent-blue)]/20 ring-2 ring-[var(--color-accent-blue)]"
+          : ""
       }`}
       style={{
         height: TIMELINE_CONFIG.TRACK_HEIGHT,
@@ -60,7 +62,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
       {/* 拖拽悬停提示 */}
       {isOver && !track.locked && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
+          <div className="px-4 py-2 bg-[var(--color-accent-blue)] text-white rounded-lg text-sm">
             Drop here to add clip
           </div>
         </div>
@@ -91,14 +93,14 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
 
       {/* 锁定提示 */}
       {track.locked && (
-        <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] text-sm pointer-events-none">
           Locked
         </div>
       )}
 
       {/* 隐藏提示 */}
       {!track.visible && (
-        <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)] text-sm pointer-events-none">
           Hidden
         </div>
       )}

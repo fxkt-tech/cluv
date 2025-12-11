@@ -3,7 +3,7 @@
 /**
  * 媒体资源类型
  */
-export type MediaType = 'video' | 'audio' | 'image' | 'text';
+export type MediaType = "video" | "audio" | "image" | "text";
 
 /**
  * Clip 位置信息
@@ -45,7 +45,7 @@ export interface Clip {
 /**
  * 轨道类型
  */
-export type TrackType = 'video' | 'audio';
+export type TrackType = "video" | "audio";
 
 /**
  * 轨道数据结构
@@ -123,7 +123,7 @@ export interface TimelineUtils {
  */
 export interface SnapPoint {
   time: number;
-  type: 'clip-start' | 'clip-end' | 'playhead' | 'marker';
+  type: "clip-start" | "clip-end" | "playhead" | "marker";
   clipId?: string;
 }
 

@@ -117,14 +117,14 @@ export const Playhead: React.FC<PlayheadProps> = ({
             style={{
               borderLeft: "7px solid transparent",
               borderRight: "7px solid transparent",
-              borderTop: "10px solid #3b82f6",
+              borderTop: "10px solid var(--color-accent-blue)",
             }}
           />
         </div>
 
         {/* Playhead 垂直线 */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 bg-blue-500"
+          className="absolute top-0 left-1/2 -translate-x-1/2 bg-[var(--color-accent-blue)]"
           style={{
             width: "2px",
             height: "100%",

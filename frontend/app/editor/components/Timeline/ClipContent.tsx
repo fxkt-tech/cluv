@@ -32,15 +32,15 @@ export const ClipContent: React.FC<ClipContentProps> = ({
   const getClipColor = (type: MediaType) => {
     switch (type) {
       case "video":
-        return "bg-blue-600 border-blue-500";
+        return "bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)]/80";
       case "audio":
-        return "bg-green-600 border-green-500";
+        return "bg-[var(--color-accent-green)] border-[var(--color-accent-green)]/80";
       case "image":
-        return "bg-purple-600 border-purple-500";
+        return "bg-[var(--color-accent-magenta)] border-[var(--color-accent-magenta)]/80";
       case "text":
-        return "bg-yellow-600 border-yellow-500";
+        return "bg-[var(--color-accent-yellow)] border-[var(--color-accent-yellow)]/80";
       default:
-        return "bg-gray-600 border-gray-500";
+        return "bg-[var(--color-text-muted)] border-[var(--color-text-muted)]/80";
     }
   };
 
@@ -53,7 +53,9 @@ export const ClipContent: React.FC<ClipContentProps> = ({
   return (
     <div
       className={`rounded border-2 overflow-hidden ${getClipColor(clip.type)} ${
-        isSelected ? "ring-2 ring-white ring-offset-2 ring-offset-gray-900" : ""
+        isSelected
+          ? "ring-2 ring-white ring-offset-2 ring-offset-[var(--color-editor-bg)]"
+          : ""
       } ${isDragging ? "opacity-50" : ""} ${className}`}
       style={mergedStyle}
     >

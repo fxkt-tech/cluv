@@ -29,7 +29,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
 
   return (
     <div
-      className="relative bg-gray-800 border-b border-gray-700 select-none"
+      className="relative bg-(--color-editor-panel) border-b border-editor-border select-none"
       style={{
         height: TIMELINE_CONFIG.RULER_HEIGHT,
         width: "100%",
@@ -48,7 +48,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
             >
               {/* 刻度线 */}
               <div
-                className={`${mark.isMajor ? "bg-gray-400" : "bg-gray-600"}`}
+                className={`${mark.isMajor ? "bg-text-tertiary" : "bg-text-muted"}`}
                 style={{
                   width: "1px",
                   height: mark.isMajor ? "12px" : "6px",
@@ -58,7 +58,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
               {/* 时间标签 */}
               {mark.label && (
                 <div
-                  className="absolute top-3 text-xs text-gray-400"
+                  className="absolute top-3 text-xs text-text-muted"
                   style={{
                     transform: "translateX(-50%)",
                     whiteSpace: "nowrap",
@@ -73,7 +73,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
       </div>
 
       {/* 总时长显示 */}
-      <div className="absolute right-2 top-1 text-xs text-gray-500">
+      <div className="absolute right-2 top-1 text-xs text-text-muted">
         Total: {formatTimeSimple(duration)}
       </div>
     </div>
