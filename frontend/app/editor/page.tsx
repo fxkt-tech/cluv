@@ -19,7 +19,7 @@ import {
   PlayerArea,
   PropertiesPanel,
 } from "./components";
-import { Timeline } from "./components/Timeline/Timeline";
+import { Timeline } from "./components/Timeline/TimelinePanel";
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
@@ -27,7 +27,7 @@ import { useTimelineStore } from "./stores/timelineStore";
 import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/Player/PlayerArea";
-import type { TimelineRef } from "./components/Timeline/Timeline";
+import type { TimelineRef } from "./components/Timeline/TimelinePanel";
 import { DragData, MediaType, Clip } from "./types/timeline";
 import {
   pixelsToTime,
@@ -329,8 +329,8 @@ export default function EditorPage() {
     }
   };
 
-  const handleBackToHome = () => {
-    router.push("/");
+  const handleBackToProjects = () => {
+    router.push("/projects");
   };
 
   // 处理拖拽开始
@@ -573,10 +573,10 @@ export default function EditorPage() {
             {projectError || "Project not found"}
           </p>
           <button
-            onClick={handleBackToHome}
+            onClick={handleBackToProjects}
             className="px-4 py-2 text-white rounded-lg bg-accent-blue hover:bg-accent-cyan transition-colors"
           >
-            Back to Home
+            Back to Projects
           </button>
         </div>
       </div>
@@ -595,7 +595,7 @@ export default function EditorPage() {
           projectId={project.id}
           projectName={projectName}
           onExport={handleExport}
-          onBack={handleBackToHome}
+          onBack={handleBackToProjects}
         />
 
         {/* Error Banner */}

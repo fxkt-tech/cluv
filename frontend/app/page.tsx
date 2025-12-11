@@ -13,12 +13,12 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 to-slate-800">
       <div className="w-full max-w-md">
         <div className="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 p-8 text-center">
           {/* Logo */}
           <div className="mb-8">
-            <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-600 mb-2">
+            <div className="text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-cyan-600 mb-2">
               KivaCut
             </div>
             <p className="text-slate-400">Professional Video Editor</p>

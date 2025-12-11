@@ -16,7 +16,7 @@ import {
   PauseIcon,
   PreviousFrameIcon,
   NextFrameIcon,
-} from "../icons/PlayerIcons";
+} from "../../icons";
 
 /**
  * PlayerArea 暴露的方法接口

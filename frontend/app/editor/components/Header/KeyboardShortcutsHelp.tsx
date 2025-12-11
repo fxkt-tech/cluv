@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { KeyboardIcon } from "../../icons";
 
 interface ShortcutItem {
   key: string;
@@ -61,30 +62,22 @@ export const KeyboardShortcutsHelp: React.FC = () => {
       {/* 触发按钮 */}
       <button
         onClick={() => setIsOpen(true)}
-        className="p-1 hover:bg-[var(--color-editor-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-editor-dark)] rounded transition-colors"
-        title="键盘快捷键 (?)"
+        className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+        title="键盘快捷键"
       >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
-            clipRule="evenodd"
-          />
-        </svg>
+        <KeyboardIcon size={20} />
       </button>
 
       {/* 帮助面板 */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-editor-panel)] rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-editor-panel rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             {/* 标题栏 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-editor-border)]">
-              <h2 className="text-xl font-bold text-[var(--color-editor-dark)]">
-                键盘快捷键
-              </h2>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-editor-border">
+              <h2 className="text-xl font-bold text-editor-dark">键盘快捷键</h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-[var(--color-editor-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-editor-dark)] rounded transition-colors"
+                className="p-1 hover:bg-editor-hover text-text-muted hover:text-editor-dark rounded transition-colors"
               >
                 <svg
                   className="w-6 h-6"
@@ -104,19 +97,19 @@ export const KeyboardShortcutsHelp: React.FC = () => {
             <div className="overflow-y-auto p-6 space-y-6">
               {Object.entries(groupedShortcuts).map(([category, items]) => (
                 <div key={category}>
-                  <h3 className="text-lg font-semibold text-[var(--color-accent-blue)] mb-3">
+                  <h3 className="text-lg font-semibold text-accent-blue mb-3">
                     {category}
                   </h3>
                   <div className="space-y-2">
                     {items.map((item, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between py-2 px-3 bg-[var(--color-editor-bg)] rounded hover:bg-[var(--color-editor-hover)] transition-colors"
+                        className="flex items-center justify-between py-2 px-3 bg-editor-bg rounded hover:bg-editor-hover transition-colors"
                       >
-                        <span className="text-[var(--color-text-fg)] text-sm">
+                        <span className="text-text-fg text-sm">
                           {item.description}
                         </span>
-                        <kbd className="px-3 py-1 bg-[var(--color-editor-panel)] text-[var(--color-text-fg)] text-xs font-mono rounded border border-[var(--color-editor-border)]">
+                        <kbd className="px-3 py-1 bg-editor-panel text-text-fg text-xs font-mono rounded border border-editor-border">
                           {item.key}
                         </kbd>
                       </div>
@@ -127,8 +120,8 @@ export const KeyboardShortcutsHelp: React.FC = () => {
             </div>
 
             {/* 底部提示 */}
-            <div className="px-6 py-4 bg-[var(--color-editor-bg)] border-t border-[var(--color-editor-border)]">
-              <p className="text-sm text-[var(--color-text-muted)] text-center">
+            <div className="px-6 py-4 bg-editor-bg border-t border-editor-border">
+              <p className="text-sm text-text-muted text-center">
                 💡 提示: 在 macOS 上使用 Cmd，在 Windows/Linux 上使用 Ctrl
               </p>
             </div>

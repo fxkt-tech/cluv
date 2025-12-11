@@ -17,7 +17,6 @@ import { TimelineTrack } from "./TimelineTrack";
 import { TrackHeader } from "./TrackHeader";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { DragData } from "../../types/timeline";
-import { KeyboardShortcutsHelp } from "../Header/KeyboardShortcutsHelp";
 import {
   PlayCircleIcon,
   PauseCircleIcon,
@@ -29,7 +28,7 @@ import {
   ZoomOutIcon,
   ZoomInIcon,
   EmptyTimelineIcon,
-} from "../icons";
+} from "../../icons";
 
 /**
  * Timeline 暴露的方法接口
@@ -259,9 +258,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
               <div className="w-px h-6 bg-editor-border" />
 
-              {/* 快捷键帮助 */}
-              <KeyboardShortcutsHelp />
-
               {/* 缩放控制 */}
               <div className="flex items-center gap-2">
                 <button
@@ -300,10 +296,10 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
           {/* 时间轴主体 */}
           <div className="flex flex-1 overflow-hidden">
             {/* 左侧轨道头部列 */}
-            <div className="shrink-0 overflow-y-auto">
+            <div className="shrink-0 overflow-y-auto flex flex-col">
               {/* 标尺占位 */}
               <div
-                className="bg-editor-bg border-b border-r border-editor-border"
+                className="bg-editor-bg border-b border-r border-editor-border shrink-0"
                 style={{
                   width: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
                   height: TIMELINE_CONFIG.RULER_HEIGHT,
@@ -315,10 +311,16 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 </div>
               </div>
 
-              {/* 轨道头部列表 */}
-              {tracks.map((track, index) => (
-                <TrackHeader key={track.id} track={track} index={index} />
-              ))}
+              {/* 轨道头部列表容器 - 垂直居中 */}
+              <div className="flex-1 relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full">
+                    {tracks.map((track, index) => (
+                      <TrackHeader key={track.id} track={track} index={index} />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* 右侧时间轴内容区域 */}
@@ -332,7 +334,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               <div
                 ref={timelineContentRef}
                 data-timeline-content
-                className="overflow-auto relative"
+                className="overflow-auto relative flex items-center"
                 style={{
                   height: "calc(100% - 30px)", // 减去标尺高度
                 }}
@@ -347,34 +349,38 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                     minHeight: "100%",
                   }}
                 >
-                  {/* Playhead */}
-                  <Playhead
-                    containerWidth={containerWidth}
-                    containerHeight={
-                      tracks.length * TIMELINE_CONFIG.TRACK_HEIGHT || 300
-                    }
-                  />
+                  {/* Playhead - 贯穿整个容器 */}
+                  <Playhead containerWidth={containerWidth} />
 
-                  {/* 轨道列表 */}
-                  {tracks.map((track, index) => (
-                    <TimelineTrack key={track.id} track={track} index={index} />
-                  ))}
+                  {/* 轨道列表容器 - 垂直居中 */}
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full">
+                      {/* 轨道列表 */}
+                      {tracks.map((track, index) => (
+                        <TimelineTrack
+                          key={track.id}
+                          track={track}
+                          index={index}
+                        />
+                      ))}
 
-                  {/* 空状态 */}
-                  {tracks.length === 0 && (
-                    <div
-                      className="flex items-center justify-center text-text-muted"
-                      style={{ height: "300px" }}
-                    >
-                      <div className="text-center">
-                        <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg mb-2">Timeline is empty</p>
-                        <p className="text-sm">
-                          Add tracks and drag media from the resource panel
-                        </p>
-                      </div>
+                      {/* 空状态 */}
+                      {tracks.length === 0 && (
+                        <div
+                          className="flex items-center justify-center text-text-muted"
+                          style={{ height: "300px" }}
+                        >
+                          <div className="text-center">
+                            <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <p className="text-lg mb-2">Timeline is empty</p>
+                            <p className="text-sm">
+                              Add tracks and drag media from the resource panel
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>

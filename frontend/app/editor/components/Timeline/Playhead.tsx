@@ -9,13 +9,9 @@ import { TIMELINE_CONFIG } from "@/app/editor/types/timeline";
 
 interface PlayheadProps {
   containerWidth: number;
-  containerHeight: number;
 }
 
-export const Playhead: React.FC<PlayheadProps> = ({
-  containerWidth,
-  containerHeight,
-}) => {
+export const Playhead: React.FC<PlayheadProps> = ({ containerWidth }) => {
   const currentTime = useTimelineStore((state) => state.currentTime);
   const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
@@ -92,10 +88,9 @@ export const Playhead: React.FC<PlayheadProps> = ({
 
       {/* Playhead 线和头部 */}
       <div
-        className="absolute top-0 pointer-events-none"
+        className="absolute top-0 bottom-0 pointer-events-none"
         style={{
           left: `${playheadLeft}px`,
-          height: `${containerHeight}px`,
           zIndex: 10,
         }}
       >

@@ -16,7 +16,7 @@ import {
   VolumeOffIcon,
   VolumeUpIcon,
   TrashIcon,
-} from "../icons";
+} from "../../icons";
 
 interface TrackHeaderProps {
   track: Track;
@@ -50,7 +50,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
 
   return (
     <div
-      className={`flex items-center justify-center border-b border-r border-editor-border px-2 py-2 ${
+      className={`flex items-center justify-center border-t border-b border-r border-editor-border px-2 py-2 ${
         isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
       }`}
       style={{

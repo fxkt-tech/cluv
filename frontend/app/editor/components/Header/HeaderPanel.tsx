@@ -3,6 +3,8 @@
  * Top navigation bar with menu and export button
  */
 
+import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
+
 interface HeaderProps {
   projectId: string;
   projectName: string;
@@ -30,6 +32,8 @@ export function Header({
       <div className="text-sm text-text-muted">
         {`${projectName}（${projectId}）`}
       </div>
+      {/* 快捷键帮助 */}
+      <KeyboardShortcutsHelp />
       <button
         onClick={onExport}
         className="font-medium px-3 py-0.5 rounded text-xs bg-accent-blue text-white hover:bg-accent-cyan transition-colors"

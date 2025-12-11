@@ -43,7 +43,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
   return (
     <div
       ref={setNodeRef}
-      className={`relative border-b border-editor-border ${
+      className={`relative border-t border-b border-editor-border ${
         isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
       } ${track.locked ? "opacity-50 cursor-not-allowed" : ""} ${
         isOver && !track.locked

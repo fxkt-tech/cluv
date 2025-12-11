@@ -6,3 +6,4 @@
 export * from "./PlayerIcons";
 export * from "./TrackIcons";
 export * from "./TimelineIcons";
+export * from "./UIIcons";
