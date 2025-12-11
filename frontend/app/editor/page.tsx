@@ -26,7 +26,7 @@ import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
 import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
-import type { PlayerAreaRef } from "./components/PlayerArea";
+import type { PlayerAreaRef } from "./components/Player/PlayerArea";
 import type { TimelineRef } from "./components/Timeline/Timeline";
 import { DragData, MediaType, Clip } from "./types/timeline";
 import {

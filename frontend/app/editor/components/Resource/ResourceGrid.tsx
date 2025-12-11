@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
-import { DragData, MediaType } from "../types/timeline";
+import { DragData, MediaType } from "../../types/timeline";
 
 interface BackendResource {
   id: string;

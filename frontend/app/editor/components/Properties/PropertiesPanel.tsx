@@ -3,14 +3,14 @@
  * Right sidebar for editing selected clip properties
  */
 
-import { PROPERTY_TABS } from "../constants/data";
+import { PROPERTY_TABS } from "../../constants/data";
 import { PropertySlider } from "./PropertySlider";
-import { Properties } from "../types/editor";
+import { Properties } from "../../types/editor";
 import {
   VideoMaterialProto,
   AudioMaterialProto,
   ImageMaterialProto,
-} from "../types/protocol";
+} from "../../types/protocol";
 
 interface PropertiesPanelProps {
   activeTab: "video" | "audio" | "speed";

@@ -3,7 +3,7 @@
  * Central preview window with playback controls
  */
 
-import { PLAYBACK_BUTTONS } from "../constants/data";
+import { PLAYBACK_BUTTONS } from "../../constants/data";
 import {
   useRef,
   useEffect,
@@ -16,7 +16,7 @@ import {
   PauseIcon,
   PreviousFrameIcon,
   NextFrameIcon,
-} from "./icons/PlayerIcons";
+} from "../icons/PlayerIcons";
 
 /**
  * PlayerArea 暴露的方法接口
@@ -197,7 +197,7 @@ export const PlayerArea = forwardRef<PlayerAreaRef, PlayerAreaProps>(
         </div>
 
         {/* Player Controls */}
-        <div className="h-12 flex items-center justify-center gap-4 shrink-0 border-t border-editor-border bg-editor-bg">
+        <div className="h-8 flex items-center justify-center gap-4 shrink-0 border-t border-editor-border bg-editor-bg">
           {PLAYBACK_BUTTONS.map((btn) => (
             <button
               key={btn.action}

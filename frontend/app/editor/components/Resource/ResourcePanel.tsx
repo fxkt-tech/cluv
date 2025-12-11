@@ -3,9 +3,9 @@
  * Left sidebar for managing resources and media
  */
 
-import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../constants/data";
+import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../../constants/data";
 import { ResourceGrid } from "./ResourceGrid";
-import { Resource as EditorResource, ResourceTab } from "../types/editor";
+import { Resource as EditorResource, ResourceTab } from "../../types/editor";
 import { useState } from "react";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 import { open } from "@tauri-apps/plugin-dialog";

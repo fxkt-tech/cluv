@@ -17,7 +17,7 @@ import { TimelineTrack } from "./TimelineTrack";
 import { TrackHeader } from "./TrackHeader";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { DragData } from "../../types/timeline";
-import { KeyboardShortcutsHelp } from "../KeyboardShortcutsHelp";
+import { KeyboardShortcutsHelp } from "../Header/KeyboardShortcutsHelp";
 import {
   PlayCircleIcon,
   PauseCircleIcon,
