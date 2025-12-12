@@ -39,6 +39,7 @@ interface TimelineStore extends TimelineState {
   setDuration: (duration: number) => void;
   setZoomLevel: (level: number) => void;
   setScrollLeft: (scrollLeft: number) => void;
+  setScrollTop: (scrollTop: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
 
@@ -85,6 +86,7 @@ const initialState: TimelineState = {
   pixelsPerSecond: TIMELINE_CONFIG.BASE_PIXELS_PER_SECOND,
   zoomLevel: 1,
   scrollLeft: 0,
+  scrollTop: 0,
   selectedClipIds: [],
   selectedTrackId: null,
   isDragging: false,
@@ -401,6 +403,14 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     set((state) =>
       produce(state, (draft) => {
         draft.scrollLeft = Math.max(0, scrollLeft);
+      }),
+    );
+  },
+
+  setScrollTop: (scrollTop) => {
+    set((state) =>
+      produce(state, (draft) => {
+        draft.scrollTop = Math.max(0, scrollTop);
       }),
     );
   },

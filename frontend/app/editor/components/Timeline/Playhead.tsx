@@ -1,17 +1,20 @@
-// Playhead 组件 - 播放指针
+// Playhead 组件 - 播放指针（新架构：固定垂直位置和高度）
 
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useTimelineStore } from "@/app/editor/stores/timelineStore";
 import { pixelsToTime, timeToPixels } from "@/app/editor/utils/timeline";
-import { TIMELINE_CONFIG } from "@/app/editor/types/timeline";
 
 interface PlayheadProps {
   containerWidth: number;
+  containerHeight: number;
 }
 
-export const Playhead: React.FC<PlayheadProps> = ({ containerWidth }) => {
+export const Playhead: React.FC<PlayheadProps> = ({
+  containerWidth,
+  containerHeight,
+}) => {
   const currentTime = useTimelineStore((state) => state.currentTime);
   const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
@@ -21,11 +24,17 @@ export const Playhead: React.FC<PlayheadProps> = ({ containerWidth }) => {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; time: number } | null>(null);
 
-  // 计算 playhead 的位置
-  const playheadLeft = timeToPixels(currentTime, pixelsPerSecond) - scrollLeft;
+  // 计算 playhead 在可视区域中的水平位置
+  // playhead 的实际位置 = 时间对应的像素位置 - 滚动偏移量
+  const playheadPosition = timeToPixels(currentTime, pixelsPerSecond);
+  const playheadLeft = playheadPosition - scrollLeft;
+
+  // 判断 playhead 是否在可视区域内
+  const isVisible = playheadLeft >= -10 && playheadLeft <= containerWidth + 10;
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     dragStartRef.current = {
       x: e.clientX,
@@ -33,7 +42,7 @@ export const Playhead: React.FC<PlayheadProps> = ({ containerWidth }) => {
     };
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -63,70 +72,88 @@ export const Playhead: React.FC<PlayheadProps> = ({ containerWidth }) => {
     };
   }, [isDragging, currentTime, pixelsPerSecond, duration, setCurrentTime]);
 
-  // 点击标尺跳转
-  const handleRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) return; // 拖拽时不响应点击
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const time = pixelsToTime(x + scrollLeft, pixelsPerSecond);
-    const clampedTime = Math.max(0, Math.min(duration, time));
-    setCurrentTime(clampedTime);
-  };
+  if (!isVisible) {
+    return null; // 不在可视区域内时不渲染
+  }
 
   return (
-    <>
-      {/* 点击区域覆盖层 */}
+    <div
+      className="absolute top-0 pointer-events-none"
+      style={{
+        left: `${playheadLeft}px`,
+        height: `${containerHeight}px`,
+        zIndex: 100,
+      }}
+    >
+      {/* Playhead 头部（可拖拽） */}
       <div
-        className="absolute top-0 left-0 right-0 cursor-pointer"
+        className={`absolute top-0 left-1/2 -translate-x-1/2 pointer-events-auto z-20 ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
         style={{
-          height: TIMELINE_CONFIG.RULER_HEIGHT,
-          zIndex: 5,
+          width: "16px",
+          height: "16px",
+          marginTop: "-6px", // 向上偏移，让三角形在标尺区域
         }}
-        onClick={handleRulerClick}
-      />
-
-      {/* Playhead 线和头部 */}
-      <div
-        className="absolute top-0 bottom-0 pointer-events-none"
-        style={{
-          left: `${playheadLeft}px`,
-          zIndex: 10,
-        }}
+        onMouseDown={handleMouseDown}
+        title={`Current Time: ${currentTime.toFixed(2)}s`}
       >
-        {/* Playhead 头部（可拖拽） */}
-        <div
-          className={`absolute top-0 left-1/2 -translate-x-1/2 pointer-events-auto cursor-ew-resize ${
-            isDragging ? "cursor-grabbing" : "cursor-grab"
-          }`}
-          style={{
-            width: "14px",
-            height: "14px",
-            marginTop: "2px",
-          }}
-          onMouseDown={handleMouseDown}
-        >
-          {/* 三角形头部 */}
-          <div
-            className="w-0 h-0"
-            style={{
-              borderLeft: "7px solid transparent",
-              borderRight: "7px solid transparent",
-              borderTop: "10px solid #000",
-            }}
+        {/* 三角形头部 */}
+        {/*<svg width="16" height="16" viewBox="0 0 16 16">
+          <path
+            d="M 8 2 L 14 8 L 8 14 Z"
+            fill={isDragging ? "#FF0000" : "#000000"}
+            stroke="white"
+            strokeWidth="1"
           />
-        </div>
-
-        {/* Playhead 垂直线 */}
+        </svg>*/}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 bg-black"
+          className="w-0 h-0"
           style={{
-            width: "2px",
-            height: "100%",
-            opacity: isDragging ? 0.8 : 0.6,
+            borderLeft: "8px solid transparent",
+            borderRight: "8px solid transparent",
+            borderTop: "8px solid #000",
           }}
         />
       </div>
-    </>
+
+      {/* Playhead 垂直线 */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
+        style={{
+          width: "2px",
+          height: "100%",
+          backgroundColor: isDragging ? "#FF0000" : "#000000",
+          opacity: isDragging ? 1 : 0.7,
+          boxShadow: isDragging
+            ? "0 0 4px rgba(255, 0, 0, 0.5)"
+            : "0 0 2px rgba(0, 0, 0, 0.3)",
+        }}
+      />
+
+      {/* 时间标签（可选，显示在底部） */}
+      {isDragging && (
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap"
+          style={{
+            marginBottom: "4px",
+          }}
+        >
+          <div className="px-2 py-1 bg-black text-white text-xs rounded shadow-lg">
+            {formatTime(currentTime)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
+
+/**
+ * 格式化时间显示
+ */
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const frames = Math.floor((seconds % 1) * 30); // 假设30fps
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${frames.toString().padStart(2, "0")}`;
+}

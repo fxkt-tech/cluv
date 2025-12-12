@@ -71,6 +71,7 @@ export interface TimelineState {
   pixelsPerSecond: number; // 缩放级别，每秒对应的像素数
   zoomLevel: number; // 缩放倍数
   scrollLeft: number; // 水平滚动位置
+  scrollTop: number; // 垂直滚动位置
 
   // 选中状态
   selectedClipIds: string[];
