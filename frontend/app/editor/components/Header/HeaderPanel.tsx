@@ -18,13 +18,12 @@ export function Header({
   projectName,
   onExport,
   onBack,
-  onSave,
 }: HeaderProps) {
   return (
     <header className="h-8 flex items-center justify-between px-4 bg-editor-bg border-b border-editor-border shrink-0">
       <div
         className="flex items-center font-bold text-lg cursor-pointer"
-        onClick={onBack}
+        // onClick={onBack}
       >
         <span className="text-accent-cyan">K</span>
         <span className="text-text-fgDark">iva</span>
@@ -38,12 +37,19 @@ export function Header({
         {/* 快捷键帮助 */}
         <KeyboardShortcutsHelp />
         <button
+          onClick={onBack}
+          className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"
+          aria-label="Back to Project List"
+        >
+          项目列表
+        </button>
+        {/*<button
           onClick={onSave}
           className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"
           aria-label="Save project"
         >
           保存
-        </button>
+        </button>*/}
         <button
           onClick={onExport}
           className="font-medium px-3 py-0.5 rounded text-xs bg-accent-blue text-white hover:bg-accent-cyan transition-colors"

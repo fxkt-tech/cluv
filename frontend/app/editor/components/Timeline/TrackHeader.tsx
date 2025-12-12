@@ -43,15 +43,13 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
   };
 
   const handleDelete = () => {
-    if (confirm(`Delete track "${track.name}"?`)) {
-      removeTrack(track.id);
-    }
+    removeTrack(track.id);
   };
 
   return (
     <div
       className={`flex items-center justify-center border-t border-b border-r border-editor-border px-2 py-2 ${
-        isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
+        isSelected ? "bg-editor-panel" : "bg-editor-bg"
       }`}
       style={{
         width: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
@@ -76,7 +74,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
         <button
           onClick={handleToggleLocked}
           className={`p-1 rounded hover:bg-editor-hover transition-colors ${
-            track.locked ? "text-accent-red" : "text-text-muted"
+            track.locked ? "text-accent-blue" : "text-text-muted"
           }`}
           title={track.locked ? "Unlock track" : "Lock track"}
         >
@@ -91,7 +89,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
         <button
           onClick={handleToggleVisible}
           className={`p-1 rounded hover:bg-editor-hover transition-colors ${
-            track.visible ? "text-accent-blue" : "text-text-muted"
+            track.visible ? "text-text-muted" : "text-accent-blue"
           }`}
           title={track.visible ? "Hide track" : "Show track"}
         >
@@ -106,7 +104,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
         <button
           onClick={handleToggleMuted}
           className={`p-1 rounded hover:bg-editor-hover transition-colors ${
-            track.muted ? "text-accent-yellow" : "text-text-muted"
+            track.muted ? "text-accent-blue" : "text-text-muted"
           }`}
           title={track.muted ? "Unmute track" : "Mute track"}
           disabled={track.locked}

@@ -5,7 +5,7 @@
 import React from "react";
 import { useTimelineStore } from "../../stores/timelineStore";
 import {
-  calculateTimeMarks,
+  calculateFrameBasedTimeMarks,
   timeToPixels,
   pixelsToTime,
 } from "../../utils/timeline";
@@ -20,13 +20,19 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
   const scrollLeft = useTimelineStore((state) => state.scrollLeft);
   const duration = useTimelineStore((state) => state.duration);
   const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
+  const fps = useTimelineStore((state) => state.fps);
 
   // 计算整个时间范围（不考虑滚动，因为外层容器通过 transform 处理滚动）
   const startTime = 0;
   const endTime = width / pixelsPerSecond;
 
-  // 计算时间标记
-  const timeMarks = calculateTimeMarks(startTime, endTime, pixelsPerSecond);
+  // 计算基于帧的时间标记
+  const timeMarks = calculateFrameBasedTimeMarks(
+    startTime,
+    endTime,
+    pixelsPerSecond,
+    fps,
+  );
 
   // 点击标尺跳转到对应时间
   const handleRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -64,17 +70,25 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
                 className={`${mark.isMajor ? "bg-text-tertiary" : "bg-text-muted"}`}
                 style={{
                   width: "1px",
-                  height: mark.isMajor ? "12px" : "6px",
+                  height: mark.isMajor ? "14px" : "8px",
+                  opacity: mark.isMajor ? 1 : 0.6,
                 }}
               />
 
-              {/* 时间标签 */}
+              {/* 时间/帧号标签 */}
               {mark.label && (
                 <div
-                  className="absolute top-3 text-xs text-text-muted"
+                  className={`absolute top-3 text-xs ${
+                    mark.isMajor
+                      ? "text-text-secondary font-medium"
+                      : "text-text-muted font-normal"
+                  }`}
                   style={{
-                    transform: "translate(10%,-80%)",
+                    transform: mark.isMajor
+                      ? "translateX(-50%)"
+                      : "translateX(-50%)",
                     whiteSpace: "nowrap",
+                    fontSize: mark.isMajor ? "11px" : "10px",
                   }}
                 >
                   {mark.label}

@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Clip } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
-import { timeToPixels, pixelsToTime } from "../../utils/timeline";
+import { timeToPixels, pixelsToTime, snapToFrame } from "../../utils/timeline";
 import { ClipContent } from "./ClipContent";
 
 type ResizeEdge = "left" | "right" | null;
@@ -23,6 +23,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
   const selectClip = useTimelineStore((state) => state.selectClip);
   const updateClip = useTimelineStore((state) => state.updateClip);
+  const fps = useTimelineStore((state) => state.fps);
 
   // 边缘调整状态
   const [resizingEdge, setResizingEdge] = useState<ResizeEdge>(null);
@@ -82,10 +83,13 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
 
       if (resizingEdge === "left") {
         // 左边缘调整：修改 startTime 和 trimStart
-        const newStartTime = Math.max(
+        let newStartTime = Math.max(
           0,
           resizeStartRef.current.startTime + deltaTime,
         );
+        // 应用帧对齐
+        newStartTime = snapToFrame(newStartTime, fps);
+
         const actualDelta = newStartTime - resizeStartRef.current.startTime;
         const newDuration = Math.max(
           0.1,
@@ -106,16 +110,21 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
         }
       } else if (resizingEdge === "right") {
         // 右边缘调整：修改 duration 和 trimEnd
-        const newDuration = Math.max(
+        let newDuration = Math.max(
           0.1,
           resizeStartRef.current.duration + deltaTime,
         );
+        // 应用帧对齐 - 通过对结束时间进行帧对齐来计算新的 duration
+        const endTime = resizeStartRef.current.startTime + newDuration;
+        const snappedEndTime = snapToFrame(endTime, fps);
+        newDuration = snappedEndTime - resizeStartRef.current.startTime;
+
         const newTrimEnd = resizeStartRef.current.trimStart + newDuration;
 
         // 确保不超过原始媒体长度
         const originalDuration =
           resizeStartRef.current.trimEnd - resizeStartRef.current.trimStart;
-        if (newDuration <= originalDuration + 0.01) {
+        if (newDuration <= originalDuration + 0.01 && newDuration > 0) {
           updateClip(clip.id, {
             duration: newDuration,
             trimEnd: newTrimEnd,
@@ -136,7 +145,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [resizingEdge, clip.id, pixelsPerSecond, updateClip]);
+  }, [resizingEdge, clip.id, pixelsPerSecond, updateClip, fps]);
 
   return (
     <div

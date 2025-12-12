@@ -52,6 +52,9 @@ interface TimelineStore extends TimelineState {
   toggleSnapping: () => void;
   setSnapThreshold: (threshold: number) => void;
 
+  // 帧率设置
+  setFps: (fps: number) => void;
+
   // 查询方法
   getClipById: (clipId: string) => Clip | undefined;
   getTrackById: (trackId: string) => Track | undefined;
@@ -94,6 +97,7 @@ const initialState: TimelineState = {
   draggedClipId: null,
   snappingEnabled: true,
   snapThreshold: TIMELINE_CONFIG.SNAP_THRESHOLD,
+  fps: TIMELINE_CONFIG.DEFAULT_FPS,
 };
 
 /**
@@ -482,6 +486,15 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     set((state) =>
       produce(state, (draft) => {
         draft.snapThreshold = Math.max(0, threshold);
+      }),
+    );
+  },
+
+  // 帧率设置
+  setFps: (fps) => {
+    set((state) =>
+      produce(state, (draft) => {
+        draft.fps = Math.max(1, Math.min(120, fps)); // 限制在 1-120 fps 之间
       }),
     );
   },

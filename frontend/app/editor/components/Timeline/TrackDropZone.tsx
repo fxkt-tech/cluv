@@ -16,7 +16,6 @@ export const TrackDropZone: React.FC<TrackDropZoneProps> = ({
   position,
   trackIndex,
   isActive,
-  activeDragType,
 }) => {
   // 计算插入索引：above 使用当前索引，below 使用当前索引+1
   const insertIndex = position === "above" ? trackIndex : trackIndex + 1;
@@ -35,9 +34,6 @@ export const TrackDropZone: React.FC<TrackDropZoneProps> = ({
   if (!isActive) {
     return null;
   }
-
-  const trackType =
-    activeDragType === "video" || activeDragType === "image" ? "video" : "audio";
 
   return (
     <div
@@ -62,11 +58,7 @@ export const TrackDropZone: React.FC<TrackDropZoneProps> = ({
         }}
       >
         {isOver && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="px-3 py-1 bg-accent-blue text-white rounded text-xs font-medium shadow-lg whitespace-nowrap">
-              Insert new {trackType} track here
-            </div>
-          </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
         )}
       </div>
     </div>

@@ -1,0 +1,144 @@
+// Timeline Toolbar 组件 - 时间轴工具栏
+
+"use client";
+
+import React from "react";
+import { useTimelineStore } from "../../stores/timelineStore";
+import {
+  PlayCircleIcon,
+  PauseCircleIcon,
+  VideoTrackIcon,
+  AudioTrackIcon,
+  UndoIcon,
+  RedoIcon,
+  SnappingIcon,
+  ZoomOutIcon,
+  ZoomInIcon,
+} from "../../icons";
+
+interface TimelineToolbarProps {
+  isPlaying: boolean;
+  onPlayPause: () => void;
+}
+
+export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
+  isPlaying,
+  onPlayPause,
+}) => {
+  const zoomLevel = useTimelineStore((state) => state.zoomLevel);
+  const setZoomLevel = useTimelineStore((state) => state.setZoomLevel);
+  const zoomIn = useTimelineStore((state) => state.zoomIn);
+  const zoomOut = useTimelineStore((state) => state.zoomOut);
+  const addTrack = useTimelineStore((state) => state.addTrack);
+  const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
+  const toggleSnapping = useTimelineStore((state) => state.toggleSnapping);
+  const undo = useTimelineStore((state) => state.undo);
+  const redo = useTimelineStore((state) => state.redo);
+  const canUndo = useTimelineStore((state) => state.canUndo);
+  const canRedo = useTimelineStore((state) => state.canRedo);
+
+  return (
+    <div className="h-8 flex items-center justify-between px-4 py-1 bg-editor-bg border-t-2 border-b border-editor-border">
+      <div className="flex items-center gap-2">
+        {/* 播放控制 */}
+        <button
+          onClick={onPlayPause}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+          title={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? (
+            <PauseCircleIcon className="w-5 h-5" />
+          ) : (
+            <PlayCircleIcon className="w-5 h-5" />
+          )}
+        </button>
+
+        <div className="w-px h-6 bg-editor-border" />
+        <button
+          onClick={() => addTrack("video")}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+          title="Add Video Track"
+        >
+          <VideoTrackIcon className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => addTrack("audio")}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+          title="Add Audio Track"
+        >
+          <AudioTrackIcon className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {/* 撤销/重做按钮 */}
+        <button
+          onClick={undo}
+          disabled={!canUndo()}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Undo (Ctrl+Z)"
+        >
+          <UndoIcon className="w-5 h-5" />
+        </button>
+        <button
+          onClick={redo}
+          disabled={!canRedo()}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <RedoIcon className="w-5 h-5" />
+        </button>
+
+        <div className="w-px h-6 bg-editor-border" />
+
+        {/* 吸附开关 */}
+        <button
+          onClick={toggleSnapping}
+          className={`p-1 rounded transition-colors ${
+            snappingEnabled
+              ? "border-b-accent-magenta bg-accent-magenta text-white hover:bg-accent-magenta/90"
+              : "hover:bg-editor-hover text-text-muted hover:text-editor-dark"
+          }`}
+          title={snappingEnabled ? "Snapping: ON" : "Snapping: OFF"}
+        >
+          <SnappingIcon className="w-5 h-5" />
+        </button>
+
+        <div className="w-px h-6 bg-editor-border" />
+
+        {/* 缩放控制 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={zoomOut}
+            className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOutIcon className="w-5 h-5" />
+          </button>
+          <input
+            type="range"
+            min="0.1"
+            max="10"
+            step="0.1"
+            value={zoomLevel}
+            onChange={(e) => {
+              setZoomLevel(Number(e.target.value));
+            }}
+            className="w-24 h-1 bg-editor-hover rounded-lg appearance-none cursor-pointer accent-accent-blue"
+            title={`Zoom Level: ${zoomLevel.toFixed(1)}x`}
+            style={{
+              background: `linear-gradient(to right, var(--color-accent-blue) 0%, var(--color-accent-blue) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) 100%)`,
+            }}
+          />
+          <button
+            onClick={zoomIn}
+            className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+            title="Zoom In"
+          >
+            <ZoomInIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

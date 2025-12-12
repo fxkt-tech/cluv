@@ -9,31 +9,15 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import {
-  DragStartEvent,
-  DragEndEvent,
-  useDroppable,
-  useDndMonitor,
-} from "@dnd-kit/core";
+import { DragStartEvent, DragEndEvent, useDndMonitor } from "@dnd-kit/core";
 import { useTimelineStore } from "../../stores/timelineStore";
-import { TimelineRuler } from "./TimelineRuler";
+import { TimelineRuler } from "./Ruler";
 import { Playhead } from "./Playhead";
-import { TimelineTrack } from "./TimelineTrack";
+import { TimelineTrack } from "./Track";
 import { TrackHeader } from "./TrackHeader";
 import { TIMELINE_CONFIG, getTrackHeight } from "../../types/timeline";
 import { DragData } from "../../types/timeline";
-import {
-  PlayCircleIcon,
-  PauseCircleIcon,
-  VideoTrackIcon,
-  AudioTrackIcon,
-  UndoIcon,
-  RedoIcon,
-  SnappingIcon,
-  ZoomOutIcon,
-  ZoomInIcon,
-  EmptyTimelineIcon,
-} from "../../icons";
+import { TimelineToolbar } from "./Toolbar";
 
 /**
  * Timeline 暴露的方法接口
@@ -58,19 +42,10 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const setScrollTop = useTimelineStore((state) => state.setScrollTop);
     const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
     const duration = useTimelineStore((state) => state.duration);
-    const zoomLevel = useTimelineStore((state) => state.zoomLevel);
-    const setZoomLevel = useTimelineStore((state) => state.setZoomLevel);
     const zoomIn = useTimelineStore((state) => state.zoomIn);
     const zoomOut = useTimelineStore((state) => state.zoomOut);
-    const addTrack = useTimelineStore((state) => state.addTrack);
     const currentTime = useTimelineStore((state) => state.currentTime);
     const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
-    const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
-    const toggleSnapping = useTimelineStore((state) => state.toggleSnapping);
-    const undo = useTimelineStore((state) => state.undo);
-    const redo = useTimelineStore((state) => state.redo);
-    const canUndo = useTimelineStore((state) => state.canUndo);
-    const canRedo = useTimelineStore((state) => state.canRedo);
 
     const mainScrollRef = useRef<HTMLDivElement>(null);
     const rulerContentRef = useRef<HTMLDivElement>(null);
@@ -82,15 +57,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const animationFrameRef = useRef<number | undefined>(undefined);
-
-    // 配置空白区域的 droppable
-    const { setNodeRef: setEmptyAreaRef, isOver: isOverEmptyArea } =
-      useDroppable({
-        id: "timeline-empty-area",
-        data: {
-          type: "empty-area",
-        },
-      });
 
     // 监听拖拽事件以更新 activeDragData
     useDndMonitor({
@@ -230,108 +196,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     return (
       <div className={`flex flex-col bg-editor-bg ${className}`}>
         {/* 工具栏 */}
-        <div className="flex items-center justify-between px-4 py-1 bg-editor-bg border-y border-editor-border">
-          <div className="flex items-center gap-2">
-            {/* 播放控制 */}
-            <button
-              onClick={handlePlayPause}
-              className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-              title={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? (
-                <PauseCircleIcon className="w-5 h-5" />
-              ) : (
-                <PlayCircleIcon className="w-5 h-5" />
-              )}
-            </button>
-
-            <div className="w-px h-6 bg-editor-border" />
-            <button
-              onClick={() => addTrack("video")}
-              className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-              title="Add Video Track"
-            >
-              <VideoTrackIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => addTrack("audio")}
-              className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-              title="Add Audio Track"
-            >
-              <AudioTrackIcon className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* 撤销/重做按钮 */}
-            <button
-              onClick={undo}
-              disabled={!canUndo()}
-              className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Undo (Ctrl+Z)"
-            >
-              <UndoIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo()}
-              className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Redo (Ctrl+Shift+Z)"
-            >
-              <RedoIcon className="w-5 h-5" />
-            </button>
-
-            <div className="w-px h-6 bg-editor-border" />
-
-            {/* 吸附开关 */}
-            <button
-              onClick={toggleSnapping}
-              className={`p-1 rounded transition-colors ${
-                snappingEnabled
-                  ? "bg-accent-magenta text-white hover:bg-accent-magenta/90"
-                  : "hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark)"
-              }`}
-              title={snappingEnabled ? "Snapping: ON" : "Snapping: OFF"}
-            >
-              <SnappingIcon className="w-5 h-5" />
-            </button>
-
-            <div className="w-px h-6 bg-editor-border" />
-
-            {/* 缩放控制 */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={zoomOut}
-                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-                title="Zoom Out"
-              >
-                <ZoomOutIcon className="w-5 h-5" />
-              </button>
-              <input
-                type="range"
-                min="0.1"
-                max="10"
-                step="0.1"
-                value={zoomLevel}
-                onChange={(e) => {
-                  setZoomLevel(Number(e.target.value));
-                }}
-                className="w-24 h-1 bg-editor-hover rounded-lg appearance-none cursor-pointer accent-accent-blue"
-                title={`Zoom Level: ${zoomLevel.toFixed(1)}x`}
-                style={{
-                  background: `linear-gradient(to right, var(--color-accent-blue) 0%, var(--color-accent-blue) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) ${((zoomLevel - 0.1) / 9.9) * 100}%, var(--color-editor-hover) 100%)`,
-                }}
-              />
-              <button
-                onClick={zoomIn}
-                className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-                title="Zoom In"
-              >
-                <ZoomInIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <TimelineToolbar isPlaying={isPlaying} onPlayPause={handlePlayPause} />
 
         {/* 时间轴主体 - 四层Grid布局 */}
         <div
@@ -412,47 +277,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                   }
                 />
               ))}
-
-              {/* 空白区域 - 用于拖拽创建新轨道 */}
-              {/*<div
-                ref={setEmptyAreaRef}
-                className={`relative transition-colors ${
-                  isOverEmptyArea
-                    ? "bg-accent-blue/10 ring-2 ring-inset ring-accent-blue"
-                    : "bg-editor-bg"
-                }`}
-                style={{
-                  minHeight: tracks.length === 0 ? "300px" : "100px",
-                  borderTop:
-                    tracks.length > 0
-                      ? "1px solid var(--color-editor-border)"
-                      : "none",
-                }}
-              >
-                {isOverEmptyArea && activeDragData && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                    <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm shadow-lg">
-                      Create new{" "}
-                      {activeDragData.resourceType === "audio"
-                        ? "audio"
-                        : "video"}{" "}
-                      track
-                    </div>
-                  </div>
-                )}
-
-                {tracks.length === 0 && !isOverEmptyArea && (
-                  <div className="absolute inset-0 flex items-center justify-center text-text-muted">
-                    <div className="text-center">
-                      <EmptyTimelineIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg mb-2">Timeline is empty</p>
-                      <p className="text-sm">
-                        Drag media here to create tracks
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>*/}
             </div>
           </div>
 

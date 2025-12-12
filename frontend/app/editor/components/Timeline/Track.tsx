@@ -6,7 +6,7 @@ import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Track, getTrackHeight } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
-import { TimelineClip } from "./TimelineClip";
+import { TimelineClip } from "./Clip";
 import { TrackDropZone } from "./TrackDropZone";
 
 interface TimelineTrackProps {

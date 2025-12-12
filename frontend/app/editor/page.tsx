@@ -19,7 +19,7 @@ import {
   PlayerArea,
   PropertiesPanel,
 } from "./components";
-import { Timeline } from "./components/Timeline/TimelinePanel";
+import { Timeline } from "./components/Timeline/Panel";
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
@@ -27,13 +27,14 @@ import { useTimelineStore } from "./stores/timelineStore";
 import { Resource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/Player/PlayerArea";
-import type { TimelineRef } from "./components/Timeline/TimelinePanel";
+import type { TimelineRef } from "./components/Timeline/Panel";
 import { DragData, Clip } from "./types/timeline";
 import {
   pixelsToTime,
   collectSnapPoints,
   calculateSnappedTime,
   getAllClipsFromTracks,
+  snapToFrame,
 } from "./utils/timeline";
 import { ClipDragPreview } from "./components/Timeline/ClipDragPreview";
 import {
@@ -88,6 +89,7 @@ export default function EditorPage() {
   const scrollLeft = useTimelineStore((state) => state.scrollLeft);
   const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
+  const fps = useTimelineStore((state) => state.fps);
 
   const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
   const [selectedResource, setSelectedResource] = useState<{
@@ -381,6 +383,9 @@ export default function EditorPage() {
             startTime = snapped.time;
           }
         }
+
+        // 应用帧对齐
+        startTime = snapToFrame(startTime, fps);
       }
 
       // 获取材料时长
@@ -452,6 +457,9 @@ export default function EditorPage() {
             startTime = snapped.time;
           }
         }
+
+        // 应用帧对齐
+        startTime = snapToFrame(startTime, fps);
       }
 
       // 获取材料时长
@@ -519,6 +527,9 @@ export default function EditorPage() {
         }
       }
 
+      // 应用帧对齐
+      startTime = snapToFrame(startTime, fps);
+
       // Get actual duration from material
       const materialDuration = getMaterialDuration(dragData.resourceId);
 
@@ -581,6 +592,9 @@ export default function EditorPage() {
           newStartTime = snapped.time;
         }
       }
+
+      // 应用帧对齐
+      newStartTime = snapToFrame(newStartTime, fps);
 
       // 如果是跨轨道拖拽
       if (sourceTrackId !== targetTrackId) {
@@ -721,7 +735,6 @@ export default function EditorPage() {
           projectName={projectName}
           onExport={handleExport}
           onBack={handleBackToProjects}
-          onSave={handleSaveProtocol}
         />
 
         {/* Error Banner */}
