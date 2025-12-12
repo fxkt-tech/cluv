@@ -12,6 +12,7 @@ import { useHistoryStore } from "./historyStore";
 interface TimelineStore extends TimelineState {
   // Track 操作
   addTrack: (type: "video" | "audio") => void;
+  insertTrackAt: (index: number, type: "video" | "audio") => void;
   removeTrack: (trackId: string) => void;
   updateTrack: (trackId: string, updates: Partial<Track>) => void;
   reorderTracks: (trackIds: string[]) => void;
@@ -124,6 +125,30 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
           order: draft.tracks.length,
         };
         draft.tracks.push(newTrack);
+      }),
+    );
+  },
+
+  insertTrackAt: (index, type) => {
+    saveToHistory();
+    set((state) =>
+      produce(state, (draft) => {
+        const newTrack: Track = {
+          id: generateId("track"),
+          name: `${type === "video" ? "Video" : "Audio"} Track ${draft.tracks.length + 1}`,
+          type,
+          clips: [],
+          visible: true,
+          locked: false,
+          muted: false,
+          order: index,
+        };
+        // Insert track at the specified index
+        draft.tracks.splice(index, 0, newTrack);
+        // Update order for all tracks after insertion
+        draft.tracks.forEach((track, idx) => {
+          track.order = idx;
+        });
       }),
     );
   },

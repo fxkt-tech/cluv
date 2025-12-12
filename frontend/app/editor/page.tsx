@@ -73,6 +73,7 @@ export default function EditorPage() {
   // Timeline store
   const tracks = useTimelineStore((state) => state.tracks);
   const addTrack = useTimelineStore((state) => state.addTrack);
+  const insertTrackAt = useTimelineStore((state) => state.insertTrackAt);
   const setTracks = useTimelineStore((state) => state.setTracks);
   const timelineCurrentTime = useTimelineStore((state) => state.currentTime);
   const setTimelineCurrentTime = useTimelineStore(
@@ -413,7 +414,78 @@ export default function EditorPage() {
         }
       }, 0);
     }
-    // 情况2: 从资源面板拖拽到轨道
+    // 情况2: 从资源面板拖拽到轨道插入区域 - 在指定位置插入新轨道
+    else if (
+      "resourceId" in activeData &&
+      dropData.type === "track-drop-zone"
+    ) {
+      const dragData = activeData as DragData;
+      const insertIndex = dropData.insertIndex;
+
+      // 根据资源类型确定轨道类型
+      const trackType: "video" | "audio" =
+        dragData.resourceType === "video" || dragData.resourceType === "image"
+          ? "video"
+          : "audio";
+
+      // 计算拖放的时间位置
+      const rect = document
+        .querySelector("[data-timeline-content]")
+        ?.getBoundingClientRect();
+      let startTime = 0;
+
+      if (rect && event.activatorEvent) {
+        const x = (event.activatorEvent as PointerEvent).clientX - rect.left;
+        startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
+
+        // 应用吸附
+        if (snappingEnabled) {
+          const allClips = getAllClipsFromTracks(tracks);
+          const snapPoints = collectSnapPoints(allClips, timelineCurrentTime);
+          const snapped = calculateSnappedTime(
+            startTime,
+            snapPoints,
+            snapThreshold,
+            pixelsPerSecond,
+          );
+          if (snapped.snapped) {
+            startTime = snapped.time;
+          }
+        }
+      }
+
+      // 获取材料时长
+      const materialDuration = getMaterialDuration(dragData.resourceId);
+
+      // 在指定位置插入新轨道
+      insertTrackAt(insertIndex, trackType);
+
+      // 获取新创建的轨道
+      setTimeout(() => {
+        const currentTracks = useTimelineStore.getState().tracks;
+        const newTrack = currentTracks[insertIndex];
+
+        if (newTrack) {
+          // 添加 Clip 到新轨道
+          addClip(newTrack.id, {
+            name: dragData.resourceName,
+            type: dragData.resourceType,
+            startTime: Math.max(0, startTime),
+            duration: materialDuration,
+            resourceId: dragData.resourceId,
+            resourceSrc: dragData.resourceSrc,
+            trimStart: 0,
+            trimEnd: materialDuration,
+            position: { x: 0, y: 0 },
+            scale: 1,
+            rotation: 0,
+            opacity: 1,
+            volume: 1,
+          });
+        }
+      }, 0);
+    }
+    // 情况3: 从资源面板拖拽到轨道
     else if ("resourceId" in activeData && dropData.type === "track") {
       const dragData = activeData as DragData;
       const trackId = dropData.trackId;
@@ -467,7 +539,7 @@ export default function EditorPage() {
         volume: 1,
       });
     }
-    // 情况3: 移动现有Clip到轨道
+    // 情况4: 移动现有Clip到轨道
     else if (activeData.type === "clip" && dropData.type === "track") {
       const clipId = activeData.clipId;
       const sourceTrackId = activeData.trackId;

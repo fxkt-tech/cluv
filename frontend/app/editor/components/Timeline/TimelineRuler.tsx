@@ -6,7 +6,6 @@ import React from "react";
 import { useTimelineStore } from "../../stores/timelineStore";
 import {
   calculateTimeMarks,
-  formatTimeSimple,
   timeToPixels,
   pixelsToTime,
 } from "../../utils/timeline";
@@ -41,7 +40,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
 
   return (
     <div
-      className="relative bg-editor-bg border-b border-editor-border select-none cursor-pointer"
+      className="relative bg-editor-bg border-editor-border select-none cursor-pointer"
       style={{
         height: TIMELINE_CONFIG.RULER_HEIGHT,
         width: "100%",
@@ -74,7 +73,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
                 <div
                   className="absolute top-3 text-xs text-text-muted"
                   style={{
-                    transform: "translateX(-50%)",
+                    transform: "translate(10%,-80%)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -84,11 +83,6 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
             </div>
           );
         })}
-      </div>
-
-      {/* 总时长显示 */}
-      <div className="absolute right-2 top-1 text-xs text-text-muted">
-        Total: {formatTimeSimple(duration)}
       </div>
     </div>
   );

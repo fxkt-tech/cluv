@@ -7,13 +7,21 @@ import { useDroppable } from "@dnd-kit/core";
 import { Track, getTrackHeight } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { TimelineClip } from "./TimelineClip";
+import { TrackDropZone } from "./TrackDropZone";
 
 interface TimelineTrackProps {
   track: Track;
   index: number;
+  isResourceDragging?: boolean;
+  activeDragResourceType?: "video" | "audio" | "image";
 }
 
-export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
+export const TimelineTrack: React.FC<TimelineTrackProps> = ({
+  track,
+  index,
+  isResourceDragging = false,
+  activeDragResourceType,
+}) => {
   const selectedClipIds = useTimelineStore((state) => state.selectedClipIds);
   const selectedTrackId = useTimelineStore((state) => state.selectedTrackId);
   const selectTrack = useTimelineStore((state) => state.selectTrack);
@@ -41,66 +49,85 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({ track }) => {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`relative border-t border-b border-editor-border ${
-        isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
-      } ${track.locked ? "opacity-50 cursor-not-allowed" : ""} ${
-        isOver && !track.locked
-          ? "bg-accent-blue/20 ring-2 ring-accent-blue"
-          : ""
-      }`}
-      style={{
-        height: trackHeight,
-        minHeight: trackHeight,
-      }}
-      onClick={handleTrackClick}
-    >
-      {/* 拖拽悬停提示 */}
-      {isOver && !track.locked && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm">
-            Drop here to add clip
+    <div className="relative">
+      {/* Drop zone above track */}
+      <TrackDropZone
+        position="above"
+        trackIndex={index}
+        isActive={isResourceDragging}
+        activeDragType={activeDragResourceType}
+      />
+
+      {/* Track content */}
+      <div
+        ref={setNodeRef}
+        className={`relative border-t border-b border-editor-border ${
+          isSelected ? "bg-(--color-editor-panel)" : "bg-editor-bg"
+        } ${track.locked ? "opacity-50 cursor-not-allowed" : ""} ${
+          isOver && !track.locked
+            ? "bg-accent-blue/20 ring-2 ring-accent-blue"
+            : ""
+        }`}
+        style={{
+          height: trackHeight,
+          minHeight: trackHeight,
+        }}
+        onClick={handleTrackClick}
+      >
+        {/* 拖拽悬停提示 */}
+        {isOver && !track.locked && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm">
+              Drop here to add clip
+            </div>
           </div>
+        )}
+        {/* 轨道背景网格 */}
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="h-full"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(90deg, #fff 0, #fff 1px, transparent 1px, transparent 50px)",
+            }}
+          />
         </div>
-      )}
-      {/* 轨道背景网格 */}
-      <div className="absolute inset-0 opacity-10">
-        <div
-          className="h-full"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(90deg, #fff 0, #fff 1px, transparent 1px, transparent 50px)",
-          }}
-        />
+
+        {/* Clips */}
+        {track.visible && !track.locked && (
+          <div className="relative h-full">
+            {track.clips.map((clip) => (
+              <TimelineClip
+                key={clip.id}
+                clip={clip}
+                isSelected={selectedClipIds.includes(clip.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* 锁定提示 */}
+        {track.locked && (
+          <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
+            Locked
+          </div>
+        )}
+
+        {/* 隐藏提示 */}
+        {!track.visible && (
+          <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
+            Hidden
+          </div>
+        )}
       </div>
 
-      {/* Clips */}
-      {track.visible && !track.locked && (
-        <div className="relative h-full">
-          {track.clips.map((clip) => (
-            <TimelineClip
-              key={clip.id}
-              clip={clip}
-              isSelected={selectedClipIds.includes(clip.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* 锁定提示 */}
-      {track.locked && (
-        <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
-          Locked
-        </div>
-      )}
-
-      {/* 隐藏提示 */}
-      {!track.visible && (
-        <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm pointer-events-none">
-          Hidden
-        </div>
-      )}
+      {/* Drop zone below track */}
+      <TrackDropZone
+        position="below"
+        trackIndex={index}
+        isActive={isResourceDragging}
+        activeDragType={activeDragResourceType}
+      />
     </div>
   );
 };

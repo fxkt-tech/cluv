@@ -16,13 +16,6 @@ export const RESOURCE_TABS: ResourceTab[] = [
 ];
 
 export const RESOURCE_TAB_LABELS: Record<ResourceTab, string> = {
-  // media: "Media",
-  // audio: "Audio",
-  // text: "Text",
-  // sticker: "Sticker",
-  // effects: "Effects",
-  // trans: "Trans",
-  // filters: "Filters",
   media: "媒体",
   audio: "音频",
   text: "文本",
@@ -75,23 +68,6 @@ export const MOCK_TRACKS = [
         startTime: 0,
         duration: 5,
         position: { x: 50, y: 0 },
-      },
-    ],
-  },
-  {
-    id: "track-2",
-    name: "Audio 1",
-    type: "audio" as const,
-    visible: true,
-    locked: false,
-    clips: [
-      {
-        id: "clip-2",
-        name: "Audio_Track_01.mp3",
-        type: "audio" as const,
-        startTime: 0,
-        duration: 5,
-        position: { x: 50, y: 36 },
       },
     ],
   },

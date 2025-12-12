@@ -344,14 +344,14 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
           }}
         >
           {/* 第1层：左上角占位区域 */}
-          <div className="bg-editor-bg border-b border-r border-editor-border">
+          <div className="bg-editor-bg border-editor-border">
             <div className="flex items-center justify-center h-full text-xs text-text-muted">
-              Tracks
+              {/*Tracks*/}
             </div>
           </div>
 
           {/* 第2层：标尺区域（固定顶部，水平同步） */}
-          <div className="overflow-hidden border-b border-editor-border relative bg-editor-bg">
+          <div className="overflow-hidden border-editor-border relative bg-editor-bg">
             <div
               ref={rulerContentRef}
               style={{
@@ -394,11 +394,27 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
             >
               {/* 轨道列表 */}
               {tracks.map((track, index) => (
-                <TimelineTrack key={track.id} track={track} index={index} />
+                <TimelineTrack
+                  key={track.id}
+                  track={track}
+                  index={index}
+                  isResourceDragging={
+                    activeDragData !== null && "resourceId" in activeDragData
+                  }
+                  activeDragResourceType={
+                    activeDragData &&
+                    "resourceId" in activeDragData &&
+                    (activeDragData.resourceType === "video" ||
+                      activeDragData.resourceType === "audio" ||
+                      activeDragData.resourceType === "image")
+                      ? activeDragData.resourceType
+                      : undefined
+                  }
+                />
               ))}
 
               {/* 空白区域 - 用于拖拽创建新轨道 */}
-              <div
+              {/*<div
                 ref={setEmptyAreaRef}
                 className={`relative transition-colors ${
                   isOverEmptyArea
@@ -436,7 +452,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                     </div>
                   </div>
                 )}
-              </div>
+              </div>*/}
             </div>
           </div>
 

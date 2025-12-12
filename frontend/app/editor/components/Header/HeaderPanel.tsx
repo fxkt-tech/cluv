@@ -34,9 +34,9 @@ export function Header({
       <div className="text-sm text-text-muted">
         {`${projectName}（${projectId}）`}
       </div>
-      {/* 快捷键帮助 */}
-      <KeyboardShortcutsHelp />
       <div className="flex items-center gap-2">
+        {/* 快捷键帮助 */}
+        <KeyboardShortcutsHelp />
         <button
           onClick={onSave}
           className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"
