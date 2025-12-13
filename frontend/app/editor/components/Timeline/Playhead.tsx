@@ -5,7 +5,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useTimelineStore } from "@/app/editor/stores/timelineStore";
 import { pixelsToTime, timeToPixels } from "@/app/editor/utils/timeline";
-import { formatTime } from "@/app/editor/utils/time";
 
 interface PlayheadProps {
   containerWidth: number;
@@ -83,7 +82,6 @@ export const Playhead: React.FC<PlayheadProps> = ({
       style={{
         left: `${playheadLeft}px`,
         height: `${containerHeight}px`,
-        zIndex: 100,
       }}
     >
       {/* Playhead 头部（可拖拽） */}

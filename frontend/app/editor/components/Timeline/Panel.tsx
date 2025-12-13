@@ -352,13 +352,12 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
           {/* Playhead 覆盖层（独立于滚动，绝对定位） */}
           <div
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none z-10"
             style={{
               top: TIMELINE_CONFIG.RULER_HEIGHT,
               left: TIMELINE_CONFIG.TRACK_HEADER_WIDTH,
               right: 0,
               bottom: 0,
-              zIndex: 100,
             }}
           >
             <Playhead

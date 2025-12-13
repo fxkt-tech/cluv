@@ -4,10 +4,13 @@
  */
 
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
+import { ProtocolViewer } from "./Protocol";
+import { CutProtocol } from "../../types/protocol";
 
 interface HeaderProps {
   projectId: string;
   projectName: string;
+  protocol?: CutProtocol | null;
   onExport?: () => void;
   onBack?: () => void;
   onSave?: () => void;
@@ -16,6 +19,7 @@ interface HeaderProps {
 export function Header({
   projectId,
   projectName,
+  protocol,
   onExport,
   onBack,
 }: HeaderProps) {
@@ -36,6 +40,8 @@ export function Header({
       <div className="flex items-center gap-2">
         {/* 快捷键帮助 */}
         <KeyboardShortcutsHelp />
+        {/* Protocol 查看器 */}
+        <ProtocolViewer protocol={protocol || null} />
         <button
           onClick={onBack}
           className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"

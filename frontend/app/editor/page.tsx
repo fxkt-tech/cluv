@@ -725,6 +725,7 @@ export default function EditorPage() {
         <Header
           projectId={project.id}
           projectName={projectName}
+          protocol={protocol}
           onExport={handleExport}
           onBack={handleBackToProjects}
         />
