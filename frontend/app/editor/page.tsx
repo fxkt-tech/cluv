@@ -163,7 +163,7 @@ export default function EditorPage() {
       // Convert protocol tracks to timeline tracks using converter
       const timelineTracks = protocolToTimeline(protocol);
       setTracks(timelineTracks);
-
+      console.log("xx");
       // Calculate total duration
       const maxEndTime = Math.max(
         ...timelineTracks.flatMap((t) =>
@@ -191,6 +191,18 @@ export default function EditorPage() {
 
     // Default duration for images (3 seconds)
     return 3;
+  };
+
+  // Recalculate timeline duration based on all clips
+  const recalculateTimelineDuration = () => {
+    const currentTracks = useTimelineStore.getState().tracks;
+    const maxEndTime = Math.max(
+      ...currentTracks.flatMap((t) =>
+        t.clips.map((c) => c.startTime + c.duration),
+      ),
+      0,
+    );
+    setTimelineDuration(maxEndTime);
   };
 
   // Debounced auto-save function
@@ -280,11 +292,11 @@ export default function EditorPage() {
     }
   };
 
-  const handleDurationChange = (newDuration: number) => {
-    // setDuration(newDuration);
-    // Update Timeline duration
-    setTimelineDuration(newDuration);
-  };
+  // const handleDurationChange = (newDuration: number) => {
+  //   // setDuration(newDuration);
+  //   // Update Timeline duration
+  //   setTimelineDuration(newDuration);
+  // };
 
   // Handle Timeline seek
   // const handleTimelineSeek = (time: number) => {
@@ -408,6 +420,7 @@ export default function EditorPage() {
             opacity: 1,
             volume: 1,
           });
+          recalculateTimelineDuration();
         }
       }, 0);
     }
@@ -482,6 +495,7 @@ export default function EditorPage() {
             opacity: 1,
             volume: 1,
           });
+          recalculateTimelineDuration();
         }
       }, 0);
     }
@@ -541,6 +555,7 @@ export default function EditorPage() {
         opacity: 1,
         volume: 1,
       });
+      recalculateTimelineDuration();
     }
     // 情况4: 移动现有Clip到轨道
     else if (activeData.type === "clip" && dropData.type === "track") {
@@ -595,6 +610,7 @@ export default function EditorPage() {
         // 同轨道内拖拽,只更新时间
         updateClip(clipId, { startTime: newStartTime });
       }
+      recalculateTimelineDuration();
     }
   };
 
@@ -764,7 +780,7 @@ export default function EditorPage() {
               onPrevious={handlePrevious}
               onNext={handleNext}
               onTimeUpdate={handleTimeUpdate}
-              onDurationChange={handleDurationChange}
+              // onDurationChange={handleDurationChange}
               externalTime={timelineCurrentTime}
             />
 

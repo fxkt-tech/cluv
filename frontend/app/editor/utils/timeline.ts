@@ -253,7 +253,8 @@ export function clamp(value: number, min: number, max: number): number {
  * 生成唯一 ID
  */
 export function generateId(prefix: string = "id"): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const uuid = crypto.randomUUID();
+  return prefix ? `${prefix}_${uuid}` : uuid;
 }
 
 /**
