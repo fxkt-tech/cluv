@@ -109,10 +109,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       );
     }, 0);
 
-    const totalHeight =
-      tracks.reduce((sum, track) => {
-        return sum + getTrackHeight(track.type);
-      }, 0) + 100; // 额外增加100px的空白区域
+    const totalHeight = tracksActualHeight + 100; // 额外增加100px的空白区域
 
     // 播放动画循环
     useEffect(() => {
@@ -272,14 +269,10 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               ref={headersContentRef}
               style={{
                 willChange: "transform",
-                paddingTop:
-                  tracksActualHeight < containerHeight
-                    ? `${(containerHeight - tracksActualHeight) / 2}px`
-                    : "0",
-                paddingBottom:
-                  tracksActualHeight < containerHeight
-                    ? `${(containerHeight - tracksActualHeight) / 2}px`
-                    : "0",
+                minHeight: `${Math.max(totalHeight, containerHeight)}px`,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
               }}
             >
               {tracks.map((track, index) => (
@@ -311,14 +304,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
-                paddingTop:
-                  tracksActualHeight < containerHeight
-                    ? `${(containerHeight - tracksActualHeight) / 2}px`
-                    : "0",
-                paddingBottom:
-                  tracksActualHeight < containerHeight
-                    ? `${(containerHeight - tracksActualHeight) / 2}px`
-                    : "0",
               }}
             >
               {/* 轨道列表 */}
