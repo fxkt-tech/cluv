@@ -48,7 +48,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
 
   return (
     <div
-      className={`flex items-center justify-center border-t border-b border-r border-editor-border px-2 py-2 ${
+      className={`flex items-center justify-center bg-editor-bg-alt border-editor-border px-2 py-2 ${
         isSelected ? "bg-editor-panel" : "bg-editor-bg"
       }`}
       style={{

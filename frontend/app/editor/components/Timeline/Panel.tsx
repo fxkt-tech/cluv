@@ -103,6 +103,13 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       containerWidth,
     );
 
+    // 计算轨道实际占用的高度（不含间隔）
+    const tracksActualHeight = tracks.reduce((sum, track, index) => {
+      return (
+        sum + getTrackHeight(track.type) + (index < tracks.length - 1 ? 8 : 0)
+      );
+    }, 0);
+
     const totalHeight =
       tracks.reduce((sum, track) => {
         return sum + getTrackHeight(track.type);
@@ -195,6 +202,38 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
     return (
       <div className={`flex flex-col bg-editor-bg ${className}`}>
+        {/* Mac 风格滚动条样式 */}
+        <style jsx>{`
+          .timeline-scroll-container {
+            overflow-y: auto;
+            overflow-x: auto;
+          }
+
+          /* 水平滚动条样式 */
+          .timeline-scroll-container::-webkit-scrollbar {
+            height: 8px;
+          }
+
+          .timeline-scroll-container::-webkit-scrollbar-track:horizontal {
+            background: transparent;
+          }
+
+          .timeline-scroll-container::-webkit-scrollbar-thumb:horizontal {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+          }
+
+          .timeline-scroll-container::-webkit-scrollbar-thumb:horizontal:hover {
+            background-color: rgba(0, 0, 0, 0.3);
+          }
+
+          /* 隐藏垂直滚动条 */
+          .timeline-scroll-container::-webkit-scrollbar:vertical {
+            width: 0;
+            display: none;
+          }
+        `}</style>
+
         {/* 工具栏 */}
         <TimelineToolbar isPlaying={isPlaying} onPlayPause={handlePlayPause} />
 
@@ -234,10 +273,25 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               ref={headersContentRef}
               style={{
                 willChange: "transform",
+                paddingTop:
+                  tracksActualHeight < containerHeight
+                    ? `${(containerHeight - tracksActualHeight) / 2}px`
+                    : "0",
+                paddingBottom:
+                  tracksActualHeight < containerHeight
+                    ? `${(containerHeight - tracksActualHeight) / 2}px`
+                    : "0",
               }}
             >
               {tracks.map((track, index) => (
-                <TrackHeader key={track.id} track={track} index={index} />
+                <div
+                  key={track.id}
+                  style={{
+                    marginBottom: index < tracks.length - 1 ? "8px" : "0",
+                  }}
+                >
+                  <TrackHeader track={track} index={index} />
+                </div>
               ))}
             </div>
           </div>
@@ -245,7 +299,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
           {/* 第4层：主滚动区域（唯一的滚动容器） */}
           <div
             ref={mainScrollRef}
-            className="overflow-auto relative bg-editor-bg"
+            className="relative bg-editor-bg timeline-scroll-container"
             onScroll={handleMainScroll}
             onWheel={handleWheel}
             data-timeline-content
@@ -255,27 +309,44 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
               style={{
                 width: `${totalWidth}px`,
                 minHeight: `${Math.max(totalHeight, containerHeight)}px`,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                paddingTop:
+                  tracksActualHeight < containerHeight
+                    ? `${(containerHeight - tracksActualHeight) / 2}px`
+                    : "0",
+                paddingBottom:
+                  tracksActualHeight < containerHeight
+                    ? `${(containerHeight - tracksActualHeight) / 2}px`
+                    : "0",
               }}
             >
               {/* 轨道列表 */}
               {tracks.map((track, index) => (
-                <TimelineTrack
+                <div
                   key={track.id}
-                  track={track}
-                  index={index}
-                  isResourceDragging={
-                    activeDragData !== null && "resourceId" in activeDragData
-                  }
-                  activeDragResourceType={
-                    activeDragData &&
-                    "resourceId" in activeDragData &&
-                    (activeDragData.resourceType === "video" ||
-                      activeDragData.resourceType === "audio" ||
-                      activeDragData.resourceType === "image")
-                      ? activeDragData.resourceType
-                      : undefined
-                  }
-                />
+                  style={{
+                    marginBottom: index < tracks.length - 1 ? "8px" : "0",
+                  }}
+                >
+                  <TimelineTrack
+                    track={track}
+                    index={index}
+                    isResourceDragging={
+                      activeDragData !== null && "resourceId" in activeDragData
+                    }
+                    activeDragResourceType={
+                      activeDragData &&
+                      "resourceId" in activeDragData &&
+                      (activeDragData.resourceType === "video" ||
+                        activeDragData.resourceType === "audio" ||
+                        activeDragData.resourceType === "image")
+                        ? activeDragData.resourceType
+                        : undefined
+                    }
+                  />
+                </div>
               ))}
             </div>
           </div>

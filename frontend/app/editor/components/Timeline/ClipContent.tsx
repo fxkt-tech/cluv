@@ -68,11 +68,10 @@ export const ClipContent: React.FC<ClipContentProps> = ({
       style={mergedStyle}
     >
       {/* Clip 内容 */}
-      <div className="px-2 py-1 h-full flex flex-col justify-between text-white text-xs">
+      <div className="px-2 py-1 h-full flex space-x-2 text-white text-xs">
         <div className="font-medium truncate">{clip.name}</div>
         <div className="text-[10px] opacity-75">
           {formatTime(clip.duration)}
-          {/*{clip.duration.toFixed(2)}s*/}
         </div>
       </div>
     </div>
