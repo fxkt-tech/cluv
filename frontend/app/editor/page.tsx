@@ -24,7 +24,7 @@ import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
-import { Resource } from "./types/editor";
+import { BackendResource, EditorResource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/Player/PlayerArea";
 import type { TimelineRef } from "./components/Timeline/Panel";
@@ -97,8 +97,8 @@ export default function EditorPage() {
     type: string;
     data: VideoMaterialProto | AudioMaterialProto | ImageMaterialProto;
   } | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  // const [currentTime, setCurrentTime] = useState(0);
+  // const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeDragData, setActiveDragData] = useState<DragData | Clip | null>(
     null,
@@ -122,12 +122,7 @@ export default function EditorPage() {
   const resources = useMemo(() => {
     if (!protocol) return [];
 
-    const result: Array<{
-      id: string;
-      name: string;
-      src: string;
-      resource_type: string;
-    }> = [];
+    const result: BackendResource[] = [];
 
     // Add videos
     protocol.materials.videos.forEach((video) => {
@@ -138,7 +133,6 @@ export default function EditorPage() {
         resource_type: "video",
       });
     });
-
     // Add audios
     protocol.materials.audios.forEach((audio) => {
       result.push({
@@ -148,7 +142,6 @@ export default function EditorPage() {
         resource_type: "audio",
       });
     });
-
     // Add images
     protocol.materials.images.forEach((image) => {
       result.push({
@@ -244,14 +237,14 @@ export default function EditorPage() {
   };
 
   // Sync Timeline time to local state
-  useEffect(() => {
-    setCurrentTime(timelineCurrentTime);
-  }, [timelineCurrentTime]);
+  // useEffect(() => {
+  //   setCurrentTime(timelineCurrentTime);
+  // }, [timelineCurrentTime]);
 
   // Sync Timeline duration to local state
-  useEffect(() => {
-    setDuration(timelineDuration);
-  }, [timelineDuration]);
+  // useEffect(() => {
+  //   setDuration(timelineDuration);
+  // }, [timelineDuration]);
 
   const projectName = useMemo(() => {
     if (project) {
@@ -281,7 +274,6 @@ export default function EditorPage() {
   };
 
   const handleTimeUpdate = (time: number) => {
-    setCurrentTime(time);
     // Update Timeline when player time changes (only when playing)
     if (isPlaying) {
       setTimelineCurrentTime(time);
@@ -289,20 +281,20 @@ export default function EditorPage() {
   };
 
   const handleDurationChange = (newDuration: number) => {
-    setDuration(newDuration);
+    // setDuration(newDuration);
     // Update Timeline duration
     setTimelineDuration(newDuration);
   };
 
   // Handle Timeline seek
-  const handleTimelineSeek = (time: number) => {
-    // Update Timeline store
-    setTimelineCurrentTime(time);
-    // Update PlayerArea
-    if (playerRef.current) {
-      playerRef.current.seekTo(time);
-    }
-  };
+  // const handleTimelineSeek = (time: number) => {
+  //   // Update Timeline store
+  //   setTimelineCurrentTime(time);
+  //   // Update PlayerArea
+  //   if (playerRef.current) {
+  //     playerRef.current.seekTo(time);
+  //   }
+  // };
 
   // Handle play/pause state change from Timeline
   const handleTimelinePlayPauseChange = (playing: boolean) => {
@@ -629,7 +621,7 @@ export default function EditorPage() {
     },
   });
 
-  const handleResourceSelect = (resource: Resource | null) => {
+  const handleResourceSelect = (resource: EditorResource | null) => {
     if (resource && resource.src) {
       // Find the material in protocol
       if (protocol) {
@@ -645,8 +637,8 @@ export default function EditorPage() {
           // Convert file path to Tauri asset protocol URL
           const assetUrl = convertFileSrc(video.src);
           setSelectedVideoSrc(assetUrl);
-          setCurrentTime(0);
-          setDuration(0);
+          // setCurrentTime(0);
+          // setDuration(0);
           setIsPlaying(false);
           return;
         }
@@ -662,8 +654,8 @@ export default function EditorPage() {
           });
           // Clear video for audio
           setSelectedVideoSrc(null);
-          setCurrentTime(0);
-          setDuration(0);
+          // setCurrentTime(0);
+          // setDuration(0);
           setIsPlaying(false);
           return;
         }
@@ -680,8 +672,8 @@ export default function EditorPage() {
           // Convert file path to Tauri asset protocol URL
           const assetUrl = convertFileSrc(image.src);
           setSelectedVideoSrc(assetUrl);
-          setCurrentTime(0);
-          setDuration(0);
+          // setCurrentTime(0);
+          // setDuration(0);
           setIsPlaying(false);
           return;
         }
@@ -690,8 +682,8 @@ export default function EditorPage() {
       // Clear selection
       setSelectedResource(null);
       setSelectedVideoSrc(null);
-      setCurrentTime(0);
-      setDuration(0);
+      // setCurrentTime(0);
+      // setDuration(0);
       setIsPlaying(false);
     }
   };
@@ -754,7 +746,7 @@ export default function EditorPage() {
               onTabChange={setActiveTab}
               resources={resources}
               isLoading={isLoadingProtocol}
-              onResourceSelect={handleResourceSelect}
+              // onResourceSelect={handleResourceSelect}
               projectPath={project?.path || null}
               loadResources={reloadProtocol}
             />
@@ -763,7 +755,10 @@ export default function EditorPage() {
             <PlayerArea
               ref={playerRef}
               videoSrc={selectedVideoSrc}
-              playbackTime={formatTimeWithDuration(currentTime, duration)}
+              playbackTime={formatTimeWithDuration(
+                timelineCurrentTime,
+                timelineDuration,
+              )}
               onPlayPause={handlePlayPause}
               onPrevious={handlePrevious}
               onNext={handleNext}
@@ -785,7 +780,6 @@ export default function EditorPage() {
           {/* Bottom Section: Timeline */}
           <Timeline
             ref={timelineRef}
-            className="h-80"
             onPlayPauseChange={handleTimelinePlayPauseChange}
           />
         </div>

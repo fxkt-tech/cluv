@@ -5,17 +5,14 @@
 
 import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../../constants/data";
 import { ResourceGrid } from "./ResourceGrid";
-import { Resource as EditorResource, ResourceTab } from "../../types/editor";
+import {
+  EditorResource,
+  BackendResource,
+  ResourceTab,
+} from "../../types/editor";
 import { useState } from "react";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 import { open } from "@tauri-apps/plugin-dialog";
-
-interface BackendResource {
-  id: string;
-  name: string;
-  src: string;
-  resource_type: string;
-}
 
 interface ResourcePanelProps {
   activeTab: string;

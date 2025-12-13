@@ -51,10 +51,17 @@ export type ResourceTab =
   | "trans"
   | "filters";
 
-export interface Resource {
+export interface EditorResource {
   id: string;
   name: string;
   type: ResourceTab;
   thumbnailUrl?: string;
   src?: string;
+}
+
+export interface BackendResource {
+  id: string;
+  name: string;
+  src: string;
+  resource_type: string;
 }

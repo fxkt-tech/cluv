@@ -29,14 +29,13 @@ export interface TimelineRef {
 }
 
 interface TimelineProps {
-  className?: string;
   onPlayPauseChange?: (isPlaying: boolean) => void;
   onDragStart?: (event: DragStartEvent) => void;
   onDragEnd?: (event: DragEndEvent) => void;
 }
 
 export const Timeline = forwardRef<TimelineRef, TimelineProps>(
-  ({ className = "", onPlayPauseChange, onDragStart, onDragEnd }, ref) => {
+  ({ onPlayPauseChange, onDragStart, onDragEnd }, ref) => {
     const tracks = useTimelineStore((state) => state.tracks);
     const setScrollLeft = useTimelineStore((state) => state.setScrollLeft);
     const setScrollTop = useTimelineStore((state) => state.setScrollTop);
@@ -201,7 +200,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     };
 
     return (
-      <div className={`flex flex-col bg-editor-bg ${className}`}>
+      <div className={"h-80 flex flex-col bg-editor-bg"}>
         {/* Mac 风格滚动条样式 */}
         <style jsx>{`
           .timeline-scroll-container {

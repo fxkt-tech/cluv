@@ -5,6 +5,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useTimelineStore } from "@/app/editor/stores/timelineStore";
 import { pixelsToTime, timeToPixels } from "@/app/editor/utils/timeline";
+import { formatTime } from "@/app/editor/utils/time";
 
 interface PlayheadProps {
   containerWidth: number;
@@ -99,14 +100,6 @@ export const Playhead: React.FC<PlayheadProps> = ({
         title={`Current Time: ${currentTime.toFixed(2)}s`}
       >
         {/* 三角形头部 */}
-        {/*<svg width="16" height="16" viewBox="0 0 16 16">
-          <path
-            d="M 8 2 L 14 8 L 8 14 Z"
-            fill={isDragging ? "#FF0000" : "#000000"}
-            stroke="white"
-            strokeWidth="1"
-          />
-        </svg>*/}
         <div
           className="w-0 h-0"
           style={{
@@ -130,30 +123,6 @@ export const Playhead: React.FC<PlayheadProps> = ({
             : "0 0 2px rgba(0, 0, 0, 0.3)",
         }}
       />
-
-      {/* 时间标签（可选，显示在底部） */}
-      {isDragging && (
-        <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap"
-          style={{
-            marginBottom: "4px",
-          }}
-        >
-          <div className="px-2 py-1 bg-black text-white text-xs rounded shadow-lg">
-            {formatTime(currentTime)}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
-/**
- * 格式化时间显示
- */
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const frames = Math.floor((seconds % 1) * 30); // 假设30fps
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${frames.toString().padStart(2, "0")}`;
-}

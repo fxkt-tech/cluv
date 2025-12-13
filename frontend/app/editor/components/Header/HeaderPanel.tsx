@@ -43,13 +43,6 @@ export function Header({
         >
           项目列表
         </button>
-        {/*<button
-          onClick={onSave}
-          className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"
-          aria-label="Save project"
-        >
-          保存
-        </button>*/}
         <button
           onClick={onExport}
           className="font-medium px-3 py-0.5 rounded text-xs bg-accent-blue text-white hover:bg-accent-cyan transition-colors"

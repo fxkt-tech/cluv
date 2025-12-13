@@ -62,14 +62,14 @@ export const ClipContent: React.FC<ClipContentProps> = ({
     <div
       className={`rounded border-2 overflow-hidden ${getClipColor(clip.type)} ${
         isSelected
-          ? "ring-2 ring-white ring-offset-2 ring-offset-editor-bg"
+          ? "ring-1 ring-black ring-offset-0 ring-offset-editor-bg"
           : ""
       } ${isDragging ? "opacity-50" : ""} ${className}`}
       style={mergedStyle}
     >
       {/* Clip 内容 */}
-      <div className="px-2 py-1 h-full flex space-x-2 text-white text-xs">
-        <div className="font-medium truncate">{clip.name}</div>
+      <div className="px-2 py-1 h-full flex space-x-2 text-white">
+        <div className="text-xs font-medium truncate">{clip.name}</div>
         <div className="text-[10px] opacity-75">
           {formatTime(clip.duration)}
         </div>
