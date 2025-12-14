@@ -4,7 +4,7 @@
 - [ ] 不同的Track类型可以包含的Clip类型不一样
     - [ ] Video Track可以包含Video Clip和Image Clip
     - [ ] Audio Track仅可以包含Audio Clip
-- [ ] Clip支持分割
+- [x] Clip支持分割
     
 ### 时间线播放器
 TODO：先和AI分析一下

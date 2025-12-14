@@ -14,6 +14,7 @@ import {
   SnappingIcon,
   ZoomOutIcon,
   ZoomInIcon,
+  SplitIcon,
 } from "../../icons";
 
 interface TimelineToolbarProps {
@@ -36,6 +37,10 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   const redo = useTimelineStore((state) => state.redo);
   const canUndo = useTimelineStore((state) => state.canUndo);
   const canRedo = useTimelineStore((state) => state.canRedo);
+  const selectedClipIds = useTimelineStore((state) => state.selectedClipIds);
+  const splitSelectedClips = useTimelineStore(
+    (state) => state.splitSelectedClips,
+  );
 
   return (
     <div className="h-8 flex items-center justify-between px-4 py-1 bg-editor-bg border-t-2 border-b border-editor-border">
@@ -54,23 +59,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
         </button>
 
         <div className="w-px h-6 bg-editor-border" />
-        <button
-          onClick={() => addTrack("video")}
-          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-          title="Add Video Track"
-        >
-          <VideoTrackIcon className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => addTrack("audio")}
-          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
-          title="Add Audio Track"
-        >
-          <AudioTrackIcon className="w-5 h-5" />
-        </button>
-      </div>
 
-      <div className="flex items-center gap-2">
         {/* 撤销/重做按钮 */}
         <button
           onClick={undo}
@@ -91,17 +80,49 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
 
         <div className="w-px h-6 bg-editor-border" />
 
+        <button
+          onClick={() => addTrack("video")}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+          title="Add Video Track"
+        >
+          <VideoTrackIcon className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => addTrack("audio")}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
+          title="Add Audio Track"
+        >
+          <AudioTrackIcon className="w-5 h-5" />
+        </button>
+
+        <div className="w-px h-6 bg-editor-border" />
+
+        {/* 分割按钮 */}
+        <button
+          onClick={() => splitSelectedClips()}
+          disabled={selectedClipIds.length === 0}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Split Clip (Ctrl+B)"
+        >
+          <SplitIcon className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
         {/* 吸附开关 */}
         <button
           onClick={toggleSnapping}
-          className={`p-1 rounded transition-colors ${
+          className={`p-1 rounded transition-colors relative ${
             snappingEnabled
-              ? "border-b-accent-magenta bg-accent-magenta text-white hover:bg-accent-magenta/90"
+              ? "text-accent-blue hover:text-accent-blue/80"
               : "hover:bg-editor-hover text-text-muted hover:text-editor-dark"
           }`}
           title={snappingEnabled ? "Snapping: ON" : "Snapping: OFF"}
         >
           <SnappingIcon className="w-5 h-5" />
+          {snappingEnabled && (
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-accent-blue rounded-full" />
+          )}
         </button>
 
         <div className="w-px h-6 bg-editor-border" />

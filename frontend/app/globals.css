@@ -78,3 +78,35 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+
+/* 水平滚动条样式 */
+::-webkit-scrollbar {
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb:horizontal {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:horizontal:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+/* Timeline 滚动条样式 */
+.timeline-scroll-container {
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* 隐藏垂直滚动条 */
+.timeline-scroll-container::-webkit-scrollbar:vertical {
+    width: 0;
+    display: none;
+}

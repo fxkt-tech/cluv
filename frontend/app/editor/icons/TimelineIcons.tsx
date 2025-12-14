@@ -3,14 +3,14 @@
  * SVG icons for timeline controls
  */
 
-import React from 'react';
+import React from "react";
 
 interface IconProps {
   size?: number;
   className?: string;
 }
 
-export function PlayCircleIcon({ size = 20, className = '' }: IconProps) {
+export function PlayCircleIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -29,7 +29,7 @@ export function PlayCircleIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function PauseCircleIcon({ size = 20, className = '' }: IconProps) {
+export function PauseCircleIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -48,7 +48,7 @@ export function PauseCircleIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function UndoIcon({ size = 20, className = '' }: IconProps) {
+export function UndoIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -67,7 +67,7 @@ export function UndoIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function RedoIcon({ size = 20, className = '' }: IconProps) {
+export function RedoIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -86,7 +86,7 @@ export function RedoIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function SnappingIcon({ size = 20, className = '' }: IconProps) {
+export function SnappingIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -98,14 +98,14 @@ export function SnappingIcon({ size = 20, className = '' }: IconProps) {
     >
       <path
         fillRule="evenodd"
-        d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"
+        d="M4 10a6 6 0 0012 0V5.5a1.5 1.5 0 00-3 0V10a3 3 0 01-6 0V5.5a1.5 1.5 0 00-3 0V10z"
         clipRule="evenodd"
       />
     </svg>
   );
 }
 
-export function ZoomOutIcon({ size = 20, className = '' }: IconProps) {
+export function ZoomOutIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -124,7 +124,7 @@ export function ZoomOutIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function ZoomInIcon({ size = 20, className = '' }: IconProps) {
+export function ZoomInIcon({ size = 20, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -143,7 +143,37 @@ export function ZoomInIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
-export function EmptyTimelineIcon({ size = 64, className = '' }: IconProps) {
+export function SplitIcon({ size = 20, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Right bracket ] */}
+      <path
+        d="M8 5 L8 15 M8 5 L6 5 M8 15 L6 15"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Left bracket [ */}
+      <path
+        d="M12 5 L12 15 M12 5 L14 5 M12 15 L14 15"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function EmptyTimelineIcon({ size = 64, className = "" }: IconProps) {
   return (
     <svg
       width={size}

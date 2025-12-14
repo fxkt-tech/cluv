@@ -50,6 +50,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
   const tracks = useTimelineStore((state) => state.tracks);
   const selectClip = useTimelineStore((state) => state.selectClip);
   const duplicateClip = useTimelineStore((state) => state.duplicateClip);
+  const splitSelectedClips = useTimelineStore(
+    (state) => state.splitSelectedClips,
+  );
 
   // 复制的片段 ID（简单实现，后续可以用更复杂的剪贴板）
   const copyClip = useCallback(() => {
@@ -150,6 +153,14 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         }
       }
 
+      // Cmd/Ctrl + B: 分割选中的 Clip
+      else if (cmdOrCtrl && e.code === "KeyB") {
+        e.preventDefault();
+        if (selectedClipIds.length > 0) {
+          splitSelectedClips();
+        }
+      }
+
       // Cmd/Ctrl + A: 全选
       else if (cmdOrCtrl && e.code === "KeyA") {
         e.preventDefault();
@@ -229,6 +240,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
       pasteClip,
       duplicateClip,
       selectAllClips,
+      splitSelectedClips,
     ],
   );
 

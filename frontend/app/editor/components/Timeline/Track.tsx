@@ -74,14 +74,6 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
         }}
         onClick={handleTrackClick}
       >
-        {/* 拖拽悬停提示 */}
-        {isOver && !track.locked && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="px-4 py-2 bg-accent-blue text-white rounded-lg text-sm">
-              Drop here to add clip
-            </div>
-          </div>
-        )}
         {/* 轨道背景网格 */}
         <div className="absolute inset-0 opacity-10">
           <div

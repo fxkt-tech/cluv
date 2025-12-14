@@ -16,6 +16,7 @@ import {
   PauseIcon,
   PreviousFrameIcon,
   NextFrameIcon,
+  SnappingIcon,
 } from "../../icons";
 
 /**
@@ -191,7 +192,8 @@ export const PlayerArea = forwardRef<PlayerAreaRef, PlayerAreaProps>(
             </video>
           ) : (
             <div className="w-full h-full flex items-center justify-center rounded text-text-muted">
-              {"预览窗口"}
+              <SnappingIcon className="w-50 h-50" />
+              {/* {"预览窗口"} */}
             </div>
           )}
         </div>

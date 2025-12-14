@@ -28,6 +28,8 @@ interface TimelineStore extends TimelineState {
     newStartTime: number,
   ) => void;
   duplicateClip: (clipId: string) => void;
+  splitClip: (clipId: string, splitTime: number) => boolean;
+  splitSelectedClips: () => void;
 
   // 选择操作
   selectClip: (clipId: string, addToSelection?: boolean) => void;
@@ -360,6 +362,110 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
         }
       }),
     );
+  },
+
+  splitClip: (clipId, splitTime) => {
+    const state = get();
+
+    // 查找 Clip 和所在 Track
+    let clip: Clip | undefined;
+    let track: Track | undefined;
+
+    for (const t of state.tracks) {
+      const foundClip = t.clips.find((c) => c.id === clipId);
+      if (foundClip) {
+        clip = foundClip;
+        track = t;
+        break;
+      }
+    }
+
+    if (!clip || !track) {
+      return false;
+    }
+
+    // 验证分割点是否在有效范围内
+    const clipStart = clip.startTime;
+    const clipEnd = clip.startTime + clip.duration;
+    const tolerance = 0.01; // 0.01 秒容差
+
+    if (
+      splitTime <= clipStart + tolerance ||
+      splitTime >= clipEnd - tolerance
+    ) {
+      return false; // 分割点不在有效范围内
+    }
+
+    // 计算分割偏移量
+    const splitOffset = splitTime - clipStart;
+
+    // 验证 Clip 是否足够长
+    if (clip.duration < 0.1) {
+      return false; // Clip 太短，不允许分割
+    }
+
+    saveToHistory();
+
+    set((state) =>
+      produce(state, (draft) => {
+        // 重新查找 track 和 clip（在 draft 中）
+        const draftTrack = draft.tracks.find((t) => t.id === track!.id);
+        if (!draftTrack) return;
+
+        const clipIndex = draftTrack.clips.findIndex((c) => c.id === clipId);
+        if (clipIndex === -1) return;
+
+        const originalClip = draftTrack.clips[clipIndex];
+
+        // 创建第一个 Clip（左侧）
+        const leftClip: Clip = {
+          ...originalClip,
+          id: generateId("clip"),
+          duration: splitOffset,
+          trimEnd: originalClip.trimEnd + (originalClip.duration - splitOffset),
+        };
+
+        // 创建第二个 Clip（右侧）
+        const rightClip: Clip = {
+          ...originalClip,
+          id: generateId("clip"),
+          startTime: splitTime,
+          duration: originalClip.duration - splitOffset,
+          trimStart: originalClip.trimStart + splitOffset,
+        };
+
+        // 移除原 Clip
+        draftTrack.clips.splice(clipIndex, 1);
+
+        // 添加两个新 Clip
+        draftTrack.clips.push(leftClip, rightClip);
+
+        // 更新选中状态：选中右侧 Clip
+        draft.selectedClipIds = draft.selectedClipIds.filter(
+          (id) => id !== clipId,
+        );
+        draft.selectedClipIds.push(rightClip.id);
+      }),
+    );
+
+    return true;
+  },
+
+  splitSelectedClips: () => {
+    const state = get();
+    const currentTime = state.currentTime;
+    const selectedIds = [...state.selectedClipIds]; // 复制数组，因为会被修改
+
+    let successCount = 0;
+
+    for (const clipId of selectedIds) {
+      const success = get().splitClip(clipId, currentTime);
+      if (success) {
+        successCount++;
+      }
+    }
+
+    return successCount;
   },
 
   // 选择操作

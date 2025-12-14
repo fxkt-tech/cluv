@@ -198,38 +198,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
     return (
       <div className={"h-80 flex flex-col bg-editor-bg"}>
-        {/* Mac 风格滚动条样式 */}
-        <style jsx>{`
-          .timeline-scroll-container {
-            overflow-y: auto;
-            overflow-x: auto;
-          }
-
-          /* 水平滚动条样式 */
-          .timeline-scroll-container::-webkit-scrollbar {
-            height: 8px;
-          }
-
-          .timeline-scroll-container::-webkit-scrollbar-track:horizontal {
-            background: transparent;
-          }
-
-          .timeline-scroll-container::-webkit-scrollbar-thumb:horizontal {
-            background-color: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-          }
-
-          .timeline-scroll-container::-webkit-scrollbar-thumb:horizontal:hover {
-            background-color: rgba(0, 0, 0, 0.3);
-          }
-
-          /* 隐藏垂直滚动条 */
-          .timeline-scroll-container::-webkit-scrollbar:vertical {
-            width: 0;
-            display: none;
-          }
-        `}</style>
-
         {/* 工具栏 */}
         <TimelineToolbar isPlaying={isPlaying} onPlayPause={handlePlayPause} />
 
