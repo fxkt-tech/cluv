@@ -90,6 +90,7 @@ export default function EditorPage() {
   const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
   const fps = useTimelineStore((state) => state.fps);
+  const resetTimelineStore = useTimelineStore((state) => state.reset);
 
   const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
   const [selectedResource, setSelectedResource] = useState<{
@@ -158,6 +159,13 @@ export default function EditorPage() {
     return result;
   }, [protocol]);
 
+  // Cleanup timeline store when leaving editor page
+  useEffect(() => {
+    return () => {
+      resetTimelineStore();
+    };
+  }, [resetTimelineStore]);
+
   // Initialize tracks from protocol
   useEffect(() => {
     if (!protocol) return;
@@ -175,6 +183,10 @@ export default function EditorPage() {
         0,
       );
       setTimelineDuration(maxEndTime);
+    } else {
+      // Clear tracks if protocol has no tracks
+      setTracks([]);
+      setTimelineDuration(0);
     }
   }, [protocol, setTracks, setTimelineDuration]);
 

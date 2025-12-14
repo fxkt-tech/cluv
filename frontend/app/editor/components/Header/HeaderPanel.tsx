@@ -6,6 +6,7 @@
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { ProtocolViewer } from "./Protocol";
 import { CutProtocol } from "../../types/protocol";
+import { KivaCutLogo } from "../../icons/UIIcons";
 
 interface HeaderProps {
   projectId: string;
@@ -26,13 +27,13 @@ export function Header({
   return (
     <header className="h-8 flex items-center justify-between px-4 bg-editor-bg border-b border-editor-border shrink-0">
       <div
-        className="flex items-center font-bold text-lg cursor-pointer"
+        className="flex items-center gap-2 font-bold text-lg cursor-pointer"
         // onClick={onBack}
       >
-        <span className="text-accent-cyan">K</span>
-        <span className="text-text-fgDark">iva</span>
-        <span className="text-accent-green">C</span>
-        <span className="text-text-fgDark">ut</span>
+        <KivaCutLogo size={28} className="text-accent-blue" />
+        <div className="flex items-center">
+          <span className="text-accent-blue">KivaCut</span>
+        </div>
       </div>
       <div className="text-sm text-text-muted">
         {`${projectName}（${projectId}）`}
@@ -44,7 +45,7 @@ export function Header({
         <ProtocolViewer protocol={protocol || null} />
         <button
           onClick={onBack}
-          className="font-medium px-3 py-0.5 rounded text-xs bg-accent-green text-white hover:bg-accent-green/80 transition-colors"
+          className="font-medium px-3 py-0.5 rounded text-xs bg-editor-panel text-text-fg hover:bg-editor-hover transition-colors"
           aria-label="Back to Project List"
         >
           项目列表

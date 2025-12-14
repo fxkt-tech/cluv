@@ -16,7 +16,7 @@ import {
   PauseIcon,
   PreviousFrameIcon,
   NextFrameIcon,
-  SnappingIcon,
+  KivaCutLogo,
 } from "../../icons";
 
 /**
@@ -192,8 +192,7 @@ export const PlayerArea = forwardRef<PlayerAreaRef, PlayerAreaProps>(
             </video>
           ) : (
             <div className="w-full h-full flex items-center justify-center rounded text-text-muted">
-              <SnappingIcon className="w-50 h-50" />
-              {/* {"预览窗口"} */}
+              <KivaCutLogo size={200} className="text-[#B22222]" />
             </div>
           )}
         </div>
