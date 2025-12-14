@@ -36,17 +36,20 @@ export function useEditor(projectId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  const saveProtocol = async (protocol: CutProtocol) => {
+  const saveProtocol = async (updatedProtocol: CutProtocol) => {
     if (!projectId) {
       throw new Error("No project ID provided");
     }
 
     try {
-      const jsonString = JSON.stringify(protocol);
+      const jsonString = JSON.stringify(updatedProtocol);
       await invoke("save_protocol", {
         projectId: projectId,
         protoContent: jsonString,
       });
+
+      // 保存成功后同步更新本地 protocol 状态
+      setProtocol(updatedProtocol);
     } catch (err) {
       throw new Error(
         err instanceof Error ? err.message : "Failed to save protocol",

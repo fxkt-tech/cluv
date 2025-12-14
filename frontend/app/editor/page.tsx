@@ -104,6 +104,9 @@ export default function EditorPage() {
     null,
   );
 
+  // Track mouse position during drag for accurate drop position
+  const dragMousePositionRef = useRef<{ x: number; y: number } | null>(null);
+
   // PlayerArea ref for external control
   const playerRef = useRef<PlayerAreaRef>(null);
   // Timeline ref for external control
@@ -236,7 +239,7 @@ export default function EditorPage() {
   const debouncedSaveProtocol = useMemo(
     () =>
       debounce(async () => {
-        if (!protocol || tracks.length === 0) return;
+        if (!protocol) return;
 
         try {
           const updatedProtocol = timelineToProtocol(tracks, protocol);
@@ -251,7 +254,7 @@ export default function EditorPage() {
 
   // Auto-save when tracks change
   useEffect(() => {
-    if (tracks.length > 0 && protocol) {
+    if (protocol) {
       debouncedSaveProtocol();
     }
 
@@ -356,6 +359,15 @@ export default function EditorPage() {
     const { active } = event;
     const data = active.data.current;
 
+    // Record initial mouse position
+    if (event.activatorEvent && "clientX" in event.activatorEvent) {
+      const pointerEvent = event.activatorEvent as PointerEvent;
+      dragMousePositionRef.current = {
+        x: pointerEvent.clientX,
+        y: pointerEvent.clientY,
+      };
+    }
+
     // 判断是资源还是片段
     if (data && "resourceId" in data && !("clipId" in data)) {
       setActiveDragData(data as DragData);
@@ -371,6 +383,15 @@ export default function EditorPage() {
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    // Calculate final mouse position
+    if (dragMousePositionRef.current && event.delta) {
+      dragMousePositionRef.current = {
+        x: dragMousePositionRef.current.x + event.delta.x,
+        y: dragMousePositionRef.current.y + event.delta.y,
+      };
+    }
+
     setActiveDragData(null);
 
     if (!over) return;
@@ -396,8 +417,9 @@ export default function EditorPage() {
         ?.getBoundingClientRect();
       let startTime = 0;
 
-      if (rect && event.activatorEvent) {
-        const x = (event.activatorEvent as PointerEvent).clientX - rect.left;
+      if (rect && dragMousePositionRef.current) {
+        // 使用实际的鼠标位置
+        const x = dragMousePositionRef.current.x - rect.left;
         startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
 
         // 应用吸附
@@ -418,6 +440,9 @@ export default function EditorPage() {
         // 应用帧对齐
         startTime = snapToFrame(startTime, fps);
       }
+
+      // Clear mouse position ref
+      dragMousePositionRef.current = null;
 
       // 获取材料时长
       const materialDuration = getMaterialDuration(dragData.resourceId);
@@ -471,8 +496,9 @@ export default function EditorPage() {
         ?.getBoundingClientRect();
       let startTime = 0;
 
-      if (rect && event.activatorEvent) {
-        const x = (event.activatorEvent as PointerEvent).clientX - rect.left;
+      if (rect && dragMousePositionRef.current) {
+        // 使用实际的鼠标位置
+        const x = dragMousePositionRef.current.x - rect.left;
         startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
 
         // 应用吸附
@@ -493,6 +519,9 @@ export default function EditorPage() {
         // 应用帧对齐
         startTime = snapToFrame(startTime, fps);
       }
+
+      // Clear mouse position ref
+      dragMousePositionRef.current = null;
 
       // 获取材料时长
       const materialDuration = getMaterialDuration(dragData.resourceId);
@@ -540,10 +569,15 @@ export default function EditorPage() {
         ?.getBoundingClientRect();
       if (!rect) return;
 
-      const x = event.activatorEvent
-        ? (event.activatorEvent as PointerEvent).clientX - rect.left
-        : 0;
+      const x = dragMousePositionRef.current
+        ? dragMousePositionRef.current.x - rect.left
+        : event.activatorEvent
+          ? (event.activatorEvent as PointerEvent).clientX - rect.left
+          : 0;
       let startTime = pixelsToTime(x + scrollLeft, pixelsPerSecond);
+
+      // Clear mouse position ref
+      dragMousePositionRef.current = null;
 
       // 应用吸附
       if (snappingEnabled) {
@@ -609,6 +643,9 @@ export default function EditorPage() {
 
       const clip = useTimelineStore.getState().getClipById(clipId);
       if (!clip) return;
+
+      // Clear mouse position ref
+      dragMousePositionRef.current = null;
 
       // 计算新的开始时间
       const deltaTime = pixelsToTime(deltaX, pixelsPerSecond);

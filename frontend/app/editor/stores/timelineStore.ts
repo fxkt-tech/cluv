@@ -261,6 +261,12 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
         draft.selectedClipIds = draft.selectedClipIds.filter(
           (id) => id !== clipId,
         );
+        // 删除空的 track
+        draft.tracks = draft.tracks.filter((track) => track.clips.length > 0);
+        // 重新排序剩余 tracks
+        draft.tracks.forEach((track, index) => {
+          track.order = index;
+        });
       }),
     );
   },
@@ -540,6 +546,13 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
         }
 
         draft.selectedClipIds = [];
+
+        // 删除空的 track
+        draft.tracks = draft.tracks.filter((track) => track.clips.length > 0);
+        // 重新排序剩余 tracks
+        draft.tracks.forEach((track, index) => {
+          track.order = index;
+        });
       }),
     );
   },
