@@ -205,6 +205,33 @@ export default function EditorPage() {
     setTimelineDuration(maxEndTime);
   };
 
+  // Check if a clip would collide with existing clips on a track
+  const checkCollision = (
+    trackId: string,
+    startTime: number,
+    duration: number,
+    excludeClipId?: string,
+  ): boolean => {
+    const track = tracks.find((t) => t.id === trackId);
+    if (!track) return false;
+
+    const endTime = startTime + duration;
+
+    return track.clips.some((clip) => {
+      // Skip the clip being moved
+      if (excludeClipId && clip.id === excludeClipId) return false;
+
+      const clipEndTime = clip.startTime + clip.duration;
+
+      // Check for overlap: two clips overlap if one starts before the other ends
+      return (
+        (startTime >= clip.startTime && startTime < clipEndTime) ||
+        (endTime > clip.startTime && endTime <= clipEndTime) ||
+        (startTime <= clip.startTime && endTime >= clipEndTime)
+      );
+    });
+  };
+
   // Debounced auto-save function
   const debouncedSaveProtocol = useMemo(
     () =>
@@ -539,6 +566,12 @@ export default function EditorPage() {
       // Get actual duration from material
       const materialDuration = getMaterialDuration(dragData.resourceId);
 
+      // Check for collision before adding clip
+      if (checkCollision(trackId, startTime, materialDuration)) {
+        console.warn("Cannot add clip: collision detected");
+        return;
+      }
+
       // 添加片段到轨道
       addClip(trackId, {
         name: dragData.resourceName,
@@ -602,6 +635,12 @@ export default function EditorPage() {
 
       // 应用帧对齐
       newStartTime = snapToFrame(newStartTime, fps);
+
+      // Check for collision before moving clip
+      if (checkCollision(targetTrackId, newStartTime, clip.duration, clipId)) {
+        console.warn("Cannot move clip: collision detected");
+        return;
+      }
 
       // 如果是跨轨道拖拽
       if (sourceTrackId !== targetTrackId) {
