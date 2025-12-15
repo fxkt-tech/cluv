@@ -37,7 +37,7 @@ export interface EditorState {
   playbackTime: string;
   zoomLevel: number;
   activeTab: string;
-  activePropertyTab: "video" | "audio" | "speed";
+  activePropertyTab: "video" | "audio" | "speed" | "effects";
   properties: Properties;
   isPlaying: boolean;
 }

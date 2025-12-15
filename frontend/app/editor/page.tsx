@@ -19,7 +19,7 @@ import {
   PlayerArea,
   PropertiesPanel,
 } from "./components";
-import { Timeline } from "./components/Timeline/Panel";
+import { Timeline, TimelineRef } from "./components/Timeline/Panel";
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
@@ -27,7 +27,6 @@ import { useTimelineStore } from "./stores/timelineStore";
 import { BackendResource, EditorResource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
 import type { PlayerAreaRef } from "./components/Player/PlayerArea";
-import type { TimelineRef } from "./components/Timeline/Panel";
 import { DragData, Clip } from "./types/timeline";
 import {
   pixelsToTime,

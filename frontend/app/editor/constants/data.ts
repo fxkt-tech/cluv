@@ -25,7 +25,7 @@ export const RESOURCE_TAB_LABELS: Record<ResourceTab, string> = {
   filters: "滤镜",
 };
 
-export const PROPERTY_TABS = ["Video", "Audio", "Speed"] as const;
+export const PROPERTY_TABS = ["Video", "Audio", "Speed", "Effects"] as const;
 
 export const TIMELINE_MARKS = [
   "00:00",

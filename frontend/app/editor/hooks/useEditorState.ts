@@ -48,7 +48,9 @@ export function useEditorState() {
     }));
   };
 
-  const setActivePropertyTab = (tab: "video" | "audio" | "speed") => {
+  const setActivePropertyTab = (
+    tab: "video" | "audio" | "speed" | "effects",
+  ) => {
     setState((prev) => ({
       ...prev,
       activePropertyTab: tab,
