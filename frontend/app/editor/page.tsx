@@ -16,9 +16,10 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   Header,
   ResourcePanel,
-  PlayerArea,
+  WebGPUPlayArea,
   PropertiesPanel,
 } from "./components";
+import type { PlayerRef } from "./components";
 import { Timeline, TimelineRef } from "./components/Timeline/Panel";
 import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
@@ -26,7 +27,7 @@ import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
 import { BackendResource, EditorResource } from "./types/editor";
 import { formatTimeWithDuration } from "./utils/time";
-import type { PlayerAreaRef } from "./components/Player/PlayerArea";
+
 import { DragData, Clip } from "./types/timeline";
 import {
   pixelsToTime,
@@ -107,8 +108,12 @@ export default function EditorPage() {
   // Track mouse position during drag for accurate drop position
   const dragMousePositionRef = useRef<{ x: number; y: number } | null>(null);
 
-  // PlayerArea ref for external control
-  const playerRef = useRef<PlayerAreaRef>(null);
+  // Flag to prevent sync loop between protocol and tracks
+  const isSyncingFromProtocolRef = useRef(false);
+  const isSavingToProtocolRef = useRef(false);
+
+  // Player ref for external control
+  const playerRef = useRef<PlayerRef>(null);
   // Timeline ref for external control
   const timelineRef = useRef<TimelineRef>(null);
 
@@ -169,11 +174,19 @@ export default function EditorPage() {
   useEffect(() => {
     if (!protocol) return;
 
+    // Prevent sync if we just saved to protocol
+    if (isSavingToProtocolRef.current) {
+      isSavingToProtocolRef.current = false;
+      return;
+    }
+
+    isSyncingFromProtocolRef.current = true;
+
     if (protocol.tracks.length > 0) {
       // Convert protocol tracks to timeline tracks using converter
       const timelineTracks = protocolToTimeline(protocol);
       setTracks(timelineTracks);
-      console.log("xx");
+      console.log("Synced tracks from protocol");
       // Calculate total duration
       const maxEndTime = Math.max(
         ...timelineTracks.flatMap((t) =>
@@ -187,6 +200,11 @@ export default function EditorPage() {
       setTracks([]);
       setTimelineDuration(0);
     }
+
+    // Reset flag after a short delay to allow tracks update to propagate
+    setTimeout(() => {
+      isSyncingFromProtocolRef.current = false;
+    }, 100);
   }, [protocol, setTracks, setTimelineDuration]);
 
   // Get material duration helper
@@ -265,7 +283,13 @@ export default function EditorPage() {
 
   // Auto-save when tracks change
   useEffect(() => {
+    // Prevent auto-save if we're currently syncing from protocol
+    if (isSyncingFromProtocolRef.current) {
+      return;
+    }
+
     if (protocol) {
+      isSavingToProtocolRef.current = true;
       debouncedSaveProtocol();
     }
 
@@ -856,18 +880,11 @@ export default function EditorPage() {
             />
 
             {/* Center: Player */}
-            <PlayerArea
+            <WebGPUPlayArea
               ref={playerRef}
-              videoSrc={selectedVideoSrc}
-              playbackTime={formatTimeWithDuration(
-                timelineCurrentTime,
-                timelineDuration,
-              )}
-              onPlayPause={handlePlayPause}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
+              tracks={tracks}
               onTimeUpdate={handleTimeUpdate}
-              // onDurationChange={handleDurationChange}
+              onPlayStateChange={(playing) => setIsPlaying(playing)}
               externalTime={timelineCurrentTime}
             />
 
