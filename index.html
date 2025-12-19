@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>莫兰迪 | WebGPU 视频合成控制台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        /* 莫兰迪色系变量定义 */
+        :root {
+            --morandi-bg: #e2e2df;
+            --morandi-sidebar: #9a9b94;
+            --morandi-panel: rgba(245, 245, 243, 0.7);
+            --morandi-accent: #b8a091;
+            --morandi-text: #5e5e5e;
+            --morandi-text-dim: #a1a1a1;
+            --morandi-border: #d1d1cf;
+            --morandi-active: #84a59d;
+            --morandi-card: rgba(255, 255, 255, 0.2);
+            --morandi-header-border: rgba(255, 255, 255, 0.4);
+        }
+
+        .dark {
+            --morandi-bg: #2b2d2f;
+            --morandi-sidebar: #4a4d4a;
+            --morandi-panel: rgba(45, 47, 49, 0.75);
+            --morandi-accent: #8e7d71;
+            --morandi-text: #d1d1cf;
+            --morandi-text-dim: #7c7e7c;
+            --morandi-border: #3f4244;
+            --morandi-active: #6b8a82;
+            --morandi-card: rgba(255, 255, 255, 0.03);
+            --morandi-header-border: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            background-color: var(--morandi-bg);
+            color: var(--morandi-text);
+            overflow: hidden;
+            font-family: "Inter", "PingFang SC", "Hiragino Sans GB", sans-serif;
+            letter-spacing: 0.02em;
+            transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 磨砂玻璃效果 */
+        .glass-panel {
+            background: var(--morandi-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--morandi-header-border);
+            transition: background 0.6s ease, border 0.6s ease;
+        }
+
+        .layer-item {
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            background: var(--morandi-card);
+            border-bottom: 1px solid var(--morandi-border);
+        }
+
+        .layer-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .player-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 2px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--morandi-border);
+            transition: border 0.6s ease;
+        }
+
+        #mainCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* 切换按钮动效 */
+        .theme-toggle-btn {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            background: var(--morandi-card);
+            border: 1px solid var(--morandi-header-border);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .theme-icon {
+            position: absolute;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+        }
+
+        .sun-icon { opacity: 1; transform: rotate(0deg); }
+        .moon-icon { opacity: 0; transform: rotate(-90deg); }
+
+        .dark .sun-icon { opacity: 0; transform: rotate(90deg); }
+        .dark .moon-icon { opacity: 1; transform: rotate(0deg); }
+
+        /* 极简进度条 */
+        input[type=range] {
+            @apply h-1 rounded-full appearance-none cursor-pointer w-full bg-transparent;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            background: var(--morandi-border);
+            height: 4px;
+            border-radius: 2px;
+            transition: background 0.6s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            @apply w-3 h-3 rounded-full appearance-none shadow-sm;
+            background: var(--morandi-active);
+            border: 2px solid var(--morandi-bg);
+            margin-top: -4px;
+            transition: transform 0.2s ease, background 0.6s ease, border 0.6s ease;
+        }
+
+        input[type=range]:hover::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--morandi-sidebar); border-radius: 10px; }
+
+        .btn-morandi {
+            background: var(--morandi-active);
+            color: #fff;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        .btn-morandi:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .separator-line {
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--morandi-border), transparent);
+            transition: background 0.6s ease;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <header class="h-16 px-6 border-b glass-panel flex justify-between items-center shrink-0 z-10">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-1 border border-current opacity-20"></div>
+            <div>
+                <h1 class="text-lg font-medium tracking-widest uppercase transition-colors" style="color: var(--morandi-text)">WebGPU Studio</h1>
+                <p class="text-[9px] tracking-[0.2em] font-light transition-colors" style="color: var(--morandi-text-dim)">MORANDI SYMPHONY / 0.001s PRECISION</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div id="status" class="hidden md:block text-[10px] font-light px-4 py-1.5 rounded-full border border-white/10 transition-all" style="color: var(--morandi-text-dim); background: var(--morandi-card)">
+                SYSTEM READY
+            </div>
+
+            <!-- 丝滑切换按钮 -->
+            <button id="themeToggle" class="theme-toggle-btn" aria-label="切换主题">
+                <svg class="theme-icon sun-icon w-5 h-5" style="color: #d4a373" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+                <svg class="theme-icon moon-icon w-5 h-5" style="color: #a5a5a5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        <!-- 主播放区域 -->
+        <section class="flex-1 p-8 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
+            <div class="player-container">
+                <canvas id="mainCanvas"></canvas>
+                <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm hidden">
+                    <div class="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-8 rounded-sm space-y-6 relative">
+                <div class="flex flex-col gap-3">
+                    <input type="range" id="timelineRange" min="0" max="100" step="0.001" value="0" class="w-full">
+                    <div class="flex justify-between text-[10px] font-light tracking-widest" style="color: var(--morandi-text-dim)">
+                        <span id="currentTimeLabel">00:00.000</span>
+                        <div class="w-24 h-px self-center" style="background: var(--morandi-border)"></div>
+                        <span id="durationLabel">00:00.000</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <button id="playPauseBtn" class="btn-morandi px-12 py-2 rounded-sm text-xs font-light tracking-[0.3em] uppercase">
+                        Play
+                    </button>
+                    <div class="flex-1 separator-line"></div>
+                    <div id="audioStatus" class="text-[9px] tracking-tighter uppercase font-medium" style="color: var(--morandi-text-dim)">Audio Engine Idle</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 侧边栏 -->
+        <aside class="w-80 border-l glass-panel flex flex-col shrink-0 shadow-sm transition-colors" style="border-color: var(--morandi-border)">
+            <div class="p-5 border-b flex justify-between items-center" style="border-color: var(--morandi-border)">
+                <h2 class="text-xs font-semibold tracking-[0.2em] uppercase" style="color: var(--morandi-text)">Composition</h2>
+                <label class="cursor-pointer group">
+                    <div class="w-8 h-8 rounded-full border flex items-center justify-center transition-all group-hover:bg-white/10" style="border-color: var(--morandi-border)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" style="color: var(--morandi-text-dim)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <input type="file" id="videoInput" accept="video/*" class="hidden" multiple>
+                </label>
+            </div>
+
+            <div id="layerList" class="flex-1 overflow-y-auto custom-scrollbar">
+                <div class="text-[10px] tracking-widest italic text-center py-20 uppercase font-light" style="color: var(--morandi-text-dim)">Empty Stage</div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module">
+        // 主题切换逻辑
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            // 触觉/视觉反馈：简单的动画触发
+            themeToggle.style.transform = 'scale(0.9)';
+            setTimeout(() => themeToggle.style.transform = '', 150);
+        });
+
+        // 以下是核心渲染逻辑
+        const workletCode = `
+            class VolumeProcessor extends AudioWorkletProcessor {
+                static get parameterDescriptors() {
+                    return [{ name: 'gain', defaultValue: 1.0 }];
+                }
+                process(inputs, outputs, parameters) {
+                    const input = inputs[0];
+                    const output = outputs[0];
+                    const gain = parameters.gain;
+                    if (!input || !input[0]) return true;
+                    for (let channel = 0; channel < input.length; channel++) {
+                        const inputChannel = input[channel];
+                        const outputChannel = output[channel];
+                        if (outputChannel) {
+                            for (let i = 0; i < inputChannel.length; i++) {
+                                outputChannel[i] = inputChannel[i] * (gain.length > 1 ? gain[i] : gain[0]);
+                            }
+                        }
+                    }
+                    return true;
+                }
+            }
+            registerProcessor('volume-processor', VolumeProcessor);
+        `;
+
+        const workletDataUrl = "data:application/javascript;base64," + btoa(unescape(encodeURIComponent(workletCode)));
+
+        const shaderSource = `
+            struct LayerUniforms {
+                transform: vec4<f32>,
+            };
+            @group(0) @binding(0) var<uniform> uniforms: LayerUniforms;
+            @group(0) @binding(1) var mySampler: sampler;
+            @group(0) @binding(2) var myTexture: texture_external;
+
+            struct VertexOutput {
+                @builtin(position) position: vec4<f32>,
+                @location(0) texCoord: vec2<f32>,
+            };
+
+            @vertex
+            fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                var pos = array<vec2<f32>, 4>(
+                    vec2<f32>(-1.0, 1.0), vec2<f32>(1.0, 1.0),
+                    vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0)
+                );
+                var tex = array<vec2<f32>, 4>(
+                    vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 0.0),
+                    vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 1.0)
+                );
+                var output: VertexOutput;
+                let offsetX = uniforms.transform.x / 960.0;
+                let offsetY = -uniforms.transform.y / 540.0;
+
+                let finalPos = vec2<f32>(
+                    pos[vertexIndex].x * uniforms.transform.z + offsetX,
+                    pos[vertexIndex].y * uniforms.transform.w + offsetY
+                );
+                output.position = vec4<f32>(finalPos, 0.0, 1.0);
+                output.texCoord = tex[vertexIndex];
+                return output;
+            }
+
+            @fragment
+            fn fs_main(@location(0) texCoord: vec2<f32>) -> @location(0) vec4<f32> {
+                return textureSampleBaseClampToEdge(myTexture, mySampler, texCoord);
+            }
+        `;
+
+        let device, canvasContext, renderPipeline, sampler;
+        let audioCtx;
+        let layers = [];
+        let isPlaying = false;
+        let maxDuration = 0;
+        let isSeeking = false;
+        let lastTimestamp = 0;
+
+        const canvas = document.getElementById('mainCanvas');
+        const timeline = document.getElementById('timelineRange');
+        const currentLabel = document.getElementById('currentTimeLabel');
+        const durationLabel = document.getElementById('durationLabel');
+        const playBtn = document.getElementById('playPauseBtn');
+
+        async function initSystems() {
+            if (!navigator.gpu) return alert("浏览器不支持 WebGPU");
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter.requestDevice();
+            canvas.width = 1920; canvas.height = 1080;
+            canvasContext = canvas.getContext('webgpu');
+            canvasContext.configure({
+                device, format: navigator.gpu.getPreferredCanvasFormat(), alphaMode: 'premultiplied',
+            });
+            const shaderModule = device.createShaderModule({ code: shaderSource });
+            renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: { module: shaderModule, entryPoint: 'vs_main' },
+                fragment: {
+                    module: shaderModule, entryPoint: 'fs_main',
+                    targets: [{
+                        format: navigator.gpu.getPreferredCanvasFormat(),
+                        blend: {
+                            color: { operation: 'add', srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+                            alpha: { operation: 'add', srcFactor: 'one', dstFactor: 'one-minus-src-alpha' }
+                        }
+                    }],
+                },
+                primitive: { topology: 'triangle-strip' },
+            });
+            sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                await audioCtx.audioWorklet.addModule(workletDataUrl);
+                document.getElementById('audioStatus').innerText = "AUDIO ENGINE RUNNING";
+            } catch (e) {
+                document.getElementById('audioStatus').innerText = "AUDIO ENGINE SANDBOXED";
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return "00:00.000";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 1000);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+        }
+
+        function updateGlobalDuration() {
+            maxDuration = layers.length === 0 ? 0 : Math.max(...layers.map(l => l.startTime + (l.video.duration || 0)));
+            timeline.max = Math.max(maxDuration, 0.001);
+            durationLabel.innerText = formatTime(maxDuration);
+        }
+
+        async function addVideoLayer(file) {
+            const id = Math.random().toString(36).substr(2, 9);
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.muted = false;
+            video.playsInline = true;
+            video.crossOrigin = "anonymous";
+            video.preload = "auto";
+
+            return new Promise((resolve) => {
+                video.onloadedmetadata = async () => {
+                    const uniformBuffer = device.createBuffer({
+                        size: 16,
+                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    });
+
+                    const sourceNode = audioCtx.createMediaElementSource(video);
+                    const layerWorkletNode = new AudioWorkletNode(audioCtx, 'volume-processor');
+                    sourceNode.connect(layerWorkletNode).connect(audioCtx.destination);
+
+                    const canvasAspect = 1920 / 1080;
+                    const videoAspect = video.videoWidth / video.videoHeight;
+                    let initScaleX = 1.0, initScaleY = 1.0;
+                    if (videoAspect > canvasAspect) initScaleY = canvasAspect / videoAspect;
+                    else initScaleX = videoAspect / canvasAspect;
+
+                    const layer = {
+                        id, name: file.name, video, zIndex: layers.length,
+                        posX: 0, posY: 0, scale: 1.0, startTime: 0,
+                        baseScaleX: initScaleX, baseScaleY: initScaleY,
+                        uniformBuffer,
+                        audioNodes: { sourceNode, workletNode: layerWorkletNode }
+                    };
+                    layers.push(layer);
+                    updateGlobalDuration();
+                    updateLayerUI();
+                    resolve();
+                };
+            });
+        }
+
+        function updateLayerUI() {
+            const list = document.getElementById('layerList');
+            list.innerHTML = '';
+            if (layers.length === 0) {
+                list.innerHTML = '<div class="text-[10px] tracking-widest italic text-center py-20 uppercase font-light" style="color: var(--morandi-text-dim)">Empty Stage</div>';
+                return;
+            }
+
+            [...layers].sort((a, b) => b.zIndex - a.zIndex).forEach((layer) => {
+                const item = document.createElement('div');
+                item.className = 'layer-item';
+                item.innerHTML = `
+                    <div class="px-5 py-3 flex items-center justify-between border-b" style="border-color: var(--morandi-border)">
+                        <div class="flex items-center gap-3 overflow-hidden flex-1">
+                            <span class="text-[9px] font-bold" style="color: var(--morandi-text-dim)">#${layer.zIndex}</span>
+                            <span class="text-[11px] truncate font-medium" style="color: var(--morandi-text)">${layer.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="window.moveLayer('${layer.id}', 1)" class="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded" style="color: var(--morandi-text-dim)">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" stroke-width="2"></path></svg>
+                            </button>
+                            <button onclick="window.moveLayer('${layer.id}', -1)" class="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded" style="color: var(--morandi-text-dim)">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2"></path></svg>
+                            </button>
+                            <button onclick="window.removeLayer('${layer.id}')" class="w-6 h-6 flex items-center justify-center hover:text-rose-400 rounded transition-colors ml-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-4">
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-3">
+                            <div class="space-y-1">
+                                <label class="text-[9px] uppercase tracking-widest" style="color: var(--morandi-text-dim)">Scale</label>
+                                <input type="range" min="0.1" max="3" step="0.05" value="${layer.scale}" oninput="window.updateLayerProp('${layer.id}', 'scale', this.value)">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] uppercase tracking-widest" style="color: var(--morandi-text-dim)">Start (s)</label>
+                                <input type="range" min="0" max="120" step="0.001" value="${layer.startTime}" oninput="window.updateLayerProp('${layer.id}', 'startTime', this.value)">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] uppercase tracking-widest" style="color: var(--morandi-text-dim)">Pos X</label>
+                                <input type="range" min="-1000" max="1000" step="1" value="${layer.posX}" oninput="window.updateLayerProp('${layer.id}', 'posX', this.value)">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] uppercase tracking-widest" style="color: var(--morandi-text-dim)">Pos Y</label>
+                                <input type="range" min="-600" max="600" step="1" value="${layer.posY}" oninput="window.updateLayerProp('${layer.id}', 'posY', this.value)">
+                            </div>
+                        </div>
+                        <div class="pt-3 border-t flex items-center gap-4" style="border-color: var(--morandi-border)">
+                            <span class="text-[9px] uppercase" style="color: var(--morandi-text-dim)">Gain</span>
+                            <input type="range" min="0" max="2" step="0.1" value="${layer.audioNodes.workletNode.parameters.get('gain').value}" oninput="window.updateAudioGain('${layer.id}', this.value)" class="flex-1">
+                            <span class="text-[9px] font-mono" style="color: var(--morandi-text)">${layer.audioNodes.workletNode.parameters.get('gain').value.toFixed(1)}</span>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        window.moveLayer = (id, direction) => {
+            const idx = layers.findIndex(l => l.id === id);
+            if (idx === -1) return;
+            const currentZ = layers[idx].zIndex;
+            const targetZ = currentZ + direction;
+            if (targetZ < 0 || targetZ >= layers.length) return;
+            const otherLayer = layers.find(l => l.zIndex === targetZ);
+            if (otherLayer) {
+                otherLayer.zIndex = currentZ;
+                layers[idx].zIndex = targetZ;
+            }
+            updateLayerUI();
+        };
+
+        window.removeLayer = (id) => {
+            const idx = layers.findIndex(l => l.id === id);
+            if (idx !== -1) {
+                const removedZ = layers[idx].zIndex;
+                layers[idx].video.pause();
+                layers[idx].audioNodes.sourceNode.disconnect();
+                layers.splice(idx, 1);
+                layers.forEach(l => { if (l.zIndex > removedZ) l.zIndex--; });
+                updateGlobalDuration();
+                updateLayerUI();
+            }
+        };
+
+        window.updateLayerProp = (id, prop, value) => {
+            const layer = layers.find(l => l.id === id);
+            if (layer) {
+                layer[prop] = parseFloat(value);
+                if (prop === 'startTime') updateGlobalDuration();
+                syncVideosToGlobalTime(parseFloat(timeline.value));
+                updateLayerUI();
+            }
+        };
+
+        window.updateAudioGain = (id, value) => {
+            const layer = layers.find(l => l.id === id);
+            if (layer) {
+                layer.audioNodes.workletNode.parameters.get('gain').setValueAtTime(value, audioCtx.currentTime);
+                updateLayerUI();
+            }
+        };
+
+        function syncVideosToGlobalTime(time) {
+            layers.forEach(l => {
+                if (!l.video.duration) return;
+                const localTime = time - l.startTime;
+                let targetTime = Math.max(0, Math.min(localTime, l.video.duration));
+                if (Math.abs(l.video.currentTime - targetTime) > 0.05 && l.video.readyState >= 2) {
+                    l.video.currentTime = targetTime;
+                }
+            });
+        }
+
+        timeline.addEventListener('input', () => {
+            isSeeking = true;
+            const time = parseFloat(timeline.value);
+            currentLabel.innerText = formatTime(time);
+            syncVideosToGlobalTime(time);
+        });
+
+        timeline.addEventListener('change', () => { isSeeking = false; });
+
+        function renderLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            if (device) {
+                let currentGlobalTime = parseFloat(timeline.value);
+
+                if (!isSeeking && isPlaying) {
+                    currentGlobalTime += deltaTime;
+                    if (currentGlobalTime >= maxDuration) {
+                        currentGlobalTime = maxDuration;
+                        isPlaying = false;
+                        playBtn.innerText = "Play";
+                        layers.forEach(l => l.video.pause());
+                    }
+                    timeline.value = currentGlobalTime;
+                    currentLabel.innerText = formatTime(currentGlobalTime);
+                }
+
+                const commandEncoder = device.createCommandEncoder();
+                const currentTexture = canvasContext.getCurrentTexture();
+                const renderPass = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: currentTexture.createView(),
+                        clearValue: { r: 0.02, g: 0.02, b: 0.02, a: 1.0 },
+                        loadOp: 'clear', storeOp: 'store',
+                    }],
+                });
+
+                renderPass.setPipeline(renderPipeline);
+
+                const sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+
+                for (const layer of sortedLayers) {
+                    const localTime = currentGlobalTime - layer.startTime;
+
+                    if (isPlaying && !isSeeking) {
+                        if (localTime >= 0 && localTime < layer.video.duration) {
+                            if (layer.video.paused && !layer.video.ended) {
+                                layer.video.play().catch(()=>{});
+                            }
+                        } else {
+                            if (!layer.video.paused) layer.video.pause();
+                        }
+                    }
+
+                    const isVisible = localTime >= 0 && localTime <= layer.video.duration;
+                    const hasResource = layer.video.readyState >= 2 && !layer.video.seeking;
+
+                    if (isVisible && hasResource) {
+                        try {
+                            const data = new Float32Array([
+                                layer.posX, layer.posY,
+                                layer.baseScaleX * layer.scale,
+                                layer.baseScaleY * layer.scale
+                            ]);
+                            device.queue.writeBuffer(layer.uniformBuffer, 0, data);
+
+                            const bindGroup = device.createBindGroup({
+                                layout: renderPipeline.getBindGroupLayout(0),
+                                entries: [
+                                    { binding: 0, resource: { buffer: layer.uniformBuffer } },
+                                    { binding: 1, resource: sampler },
+                                    { binding: 2, resource: device.importExternalTexture({ source: layer.video }) }
+                                ],
+                            });
+                            renderPass.setBindGroup(0, bindGroup);
+                            renderPass.draw(4);
+                        } catch (e) {}
+                    }
+                }
+
+                renderPass.end();
+                device.queue.submit([commandEncoder.finish()]);
+            }
+            requestAnimationFrame(renderLoop);
+        }
+
+        playBtn.addEventListener('click', async () => {
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            if (isPlaying) {
+                isPlaying = false;
+                playBtn.innerText = "Play";
+                layers.forEach(l => l.video.pause());
+            } else if (layers.length > 0) {
+                if (parseFloat(timeline.value) >= maxDuration - 0.001) {
+                    timeline.value = 0;
+                    syncVideosToGlobalTime(0);
+                }
+                isPlaying = true;
+                playBtn.innerText = "Pause";
+                const current = parseFloat(timeline.value);
+                layers.forEach(l => {
+                    const localTime = current - l.startTime;
+                    if (localTime >= 0 && localTime < l.video.duration) {
+                        l.video.play().catch(()=>{});
+                    }
+                });
+            }
+        });
+
+        document.getElementById('videoInput').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            for (const file of files) await addVideoLayer(file);
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        });
+
+        initSystems();
+    </script>
+</body>
+</html>
