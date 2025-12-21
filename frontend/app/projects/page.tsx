@@ -6,12 +6,14 @@ import { useProjectList, ProjectHistory } from "./hooks/useProjectList";
 import { ProjectCard } from "./components/ProjectCard";
 import { CreateProjectModal } from "./components/CreateProjectModal";
 import { WindowControls } from "@/app/components/WindowControls";
+import { usePlatform } from "@/app/hooks/usePlatform";
 
 export default function ProjectsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projects, isLoading, error, refreshProjects } = useProjectList();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const platformType = usePlatform();
 
   // Initialize modal state from URL param
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(() => {
@@ -54,9 +56,7 @@ export default function ProjectsPage() {
       <header className="h-8 flex items-center justify-between bg-slate-900/50 border-b border-slate-700 shrink-0">
         {/* macOS 窗口控制按钮 - 左侧 */}
         <div className="flex items-center h-full">
-          <div className="mac-only">
-            <WindowControls />
-          </div>
+          {platformType === "macos" && <WindowControls platform="macos" />}
           <div
             data-tauri-drag-region
             className="flex items-center gap-2 font-bold text-lg px-4 select-none"
@@ -75,9 +75,7 @@ export default function ProjectsPage() {
 
         {/* 右侧 - Windows 窗口控制 */}
         <div className="flex items-center h-full">
-          <div className="windows-only">
-            <WindowControls />
-          </div>
+          {platformType === "windows" && <WindowControls platform="windows" />}
         </div>
       </header>
 

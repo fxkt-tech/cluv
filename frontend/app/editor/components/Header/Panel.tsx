@@ -11,6 +11,7 @@ import { CutProtocol } from "../../types/protocol";
 import { KivaCutLogo } from "../../icons/UIIcons";
 import { ThemeToggle } from "./ThemeToggle";
 import { WindowControls } from "@/app/components/WindowControls";
+import { usePlatform } from "@/app/hooks/usePlatform";
 
 interface HeaderProps {
   projectId: string;
@@ -28,13 +29,13 @@ export function Header({
   onExport,
   onBack,
 }: HeaderProps) {
+  const platformType = usePlatform();
+
   return (
     <header className="h-8 flex items-center justify-between bg-editor-bg border-b border-editor-border shrink-0">
       {/* macOS 窗口控制按钮 - 左侧 */}
       <div className="flex items-center h-full">
-        <div className="mac-only">
-          <WindowControls />
-        </div>
+        {platformType === "macos" && <WindowControls platform="macos" />}
         <div
           data-tauri-drag-region
           className="flex items-center gap-2 font-bold text-lg cursor-pointer px-4"
@@ -79,9 +80,7 @@ export function Header({
           </button>
         </div>
         {/* Windows 窗口控制按钮 - 右侧 */}
-        <div className="windows-only">
-          <WindowControls />
-        </div>
+        {platformType === "windows" && <WindowControls platform="windows" />}
       </div>
     </header>
   );
