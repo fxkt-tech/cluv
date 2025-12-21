@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   DndContext,
   DragOverlay,
@@ -25,9 +24,7 @@ import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
-import { BackendResource, EditorResource } from "./types/editor";
-import { formatTimeWithDuration } from "./utils/time";
-
+import { BackendResource } from "./types/editor";
 import { DragData, Clip } from "./types/timeline";
 import {
   pixelsToTime,
@@ -37,11 +34,6 @@ import {
   snapToFrame,
 } from "./utils/timeline";
 import { ClipDragPreview } from "./components/Timeline/ClipDragPreview";
-import {
-  VideoMaterialProto,
-  AudioMaterialProto,
-  ImageMaterialProto,
-} from "./types/protocol";
 import {
   protocolToTimeline,
   timelineToProtocol,
@@ -92,14 +84,6 @@ export default function EditorPage() {
   const fps = useTimelineStore((state) => state.fps);
   const resetTimelineStore = useTimelineStore((state) => state.reset);
 
-  const [selectedVideoSrc, setSelectedVideoSrc] = useState<string | null>(null);
-  const [selectedResource, setSelectedResource] = useState<{
-    id: string;
-    type: string;
-    data: VideoMaterialProto | AudioMaterialProto | ImageMaterialProto;
-  } | null>(null);
-  // const [currentTime, setCurrentTime] = useState(0);
-  // const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeDragData, setActiveDragData] = useState<DragData | Clip | null>(
     null,
@@ -788,7 +772,6 @@ export default function EditorPage() {
               onTabChange={setActivePropertyTab}
               properties={state.properties}
               onPropertyChange={updateProperty}
-              selectedResource={selectedResource}
             />
           </div>
 

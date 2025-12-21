@@ -19,6 +19,8 @@ import {
 } from "../../icons";
 import { Track } from "../../types/timeline";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { SHADER_SOURCE } from "./shader/video";
+import { formatTime } from "../../utils/time";
 
 /**
  * 视频图层接口
@@ -68,68 +70,6 @@ interface PlayerProps {
   externalTime?: number; // 外部控制的时间（从 Timeline）
   className?: string;
   tracks?: Track[]; // Timeline 的 tracks
-}
-
-/**
- * WebGPU Shader 源码
- */
-const SHADER_SOURCE = `
-struct VertexOutput {
-  @builtin(position) position: vec4<f32>,
-  @location(0) uv: vec2<f32>,
-}
-
-struct Uniforms {
-  posX: f32,
-  posY: f32,
-  scaleX: f32,
-  scaleY: f32,
-}
-
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var mySampler: sampler;
-@group(0) @binding(2) var myTexture: texture_external;
-
-@vertex
-fn vs_main(@builtin(vertex_index) VertexIndex: u32) -> VertexOutput {
-  var pos = array<vec2<f32>, 4>(
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(-1.0, 1.0),
-    vec2<f32>(1.0, 1.0)
-  );
-
-  var uv = array<vec2<f32>, 4>(
-    vec2<f32>(0.0, 1.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(1.0, 0.0)
-  );
-
-  var output: VertexOutput;
-  let p = pos[VertexIndex];
-  let scaledPos = vec2<f32>(p.x * uniforms.scaleX, p.y * uniforms.scaleY);
-  let finalPos = scaledPos + vec2<f32>(uniforms.posX, uniforms.posY);
-  output.position = vec4<f32>(finalPos, 0.0, 1.0);
-  output.uv = uv[VertexIndex];
-  return output;
-}
-
-@fragment
-fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
-  return textureSampleBaseClampToEdge(myTexture, mySampler, uv);
-}
-`;
-
-/**
- * 格式化时间显示
- */
-function formatTime(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) return "00:00.000";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${ms.toString().padStart(3, "0")}`;
 }
 
 export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
@@ -751,7 +691,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
         <div className="flex-1 flex items-center justify-center p-2">
           <canvas
             ref={canvasRef}
-            className="aspect-video max-w-full max-h-full shadow-lg border border-editor-border rounded bg-black"
+            className="aspect-video max-w-full max-h-full shadow-lg border border-editor-border bg-black"
             style={{ objectFit: "contain" }}
           />
         </div>
