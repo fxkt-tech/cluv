@@ -197,7 +197,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     };
 
     return (
-      <div className={"h-80 flex flex-col bg-editor-bg"}>
+      <div className={"w-full flex flex-col bg-editor-bg"}>
         {/* 工具栏 */}
         <TimelineToolbar isPlaying={isPlaying} onPlayPause={handlePlayPause} />
 

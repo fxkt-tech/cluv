@@ -42,8 +42,8 @@
     --height-timeline: 300px;
 
     /* Widths */
-    --width-sidebar: 340px;
-    --width-properties-panel: 280px;
+    --width-resource-panel: 30%;
+    --width-properties-panel: 30%;
     --width-track-header: 128px;
 
     /* Spacing */

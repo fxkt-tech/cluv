@@ -4,7 +4,7 @@
  */
 
 import { RESOURCE_TABS, RESOURCE_TAB_LABELS } from "../../constants/data";
-import { ResourceGrid } from "./ResourceGrid";
+import { ResourceGrid } from "./Grid";
 import {
   EditorResource,
   BackendResource,
@@ -69,7 +69,7 @@ export function ResourcePanel({
   };
 
   return (
-    <aside className="w-sidebar flex flex-col border-r border-editor-border bg-editor-bg">
+    <aside className="w-resource-panel flex flex-col border-r border-editor-border bg-editor-bg">
       {/* Resource Tabs */}
       <div className="flex items-center justify-between px-2 pt-2 pb-2 overflow-x-auto">
         <div className="flex gap-1 overflow-x-auto no-scrollbar">

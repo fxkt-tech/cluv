@@ -313,16 +313,6 @@ export default function EditorPage() {
     }
   };
 
-  // Sync Timeline time to local state
-  // useEffect(() => {
-  //   setCurrentTime(timelineCurrentTime);
-  // }, [timelineCurrentTime]);
-
-  // Sync Timeline duration to local state
-  // useEffect(() => {
-  //   setDuration(timelineDuration);
-  // }, [timelineDuration]);
-
   const projectName = useMemo(() => {
     if (project) {
       return project.name;
@@ -337,41 +327,12 @@ export default function EditorPage() {
     // TODO: Implement export functionality
   };
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    console.log("Play/Pause clicked", { isPlaying: !isPlaying });
-  };
-
-  const handlePrevious = () => {
-    console.log("Previous frame clicked");
-  };
-
-  const handleNext = () => {
-    console.log("Next frame clicked");
-  };
-
   const handleTimeUpdate = (time: number) => {
     // Update Timeline when player time changes (only when playing)
     if (isPlaying) {
       setTimelineCurrentTime(time);
     }
   };
-
-  // const handleDurationChange = (newDuration: number) => {
-  //   // setDuration(newDuration);
-  //   // Update Timeline duration
-  //   setTimelineDuration(newDuration);
-  // };
-
-  // Handle Timeline seek
-  // const handleTimelineSeek = (time: number) => {
-  //   // Update Timeline store
-  //   setTimelineCurrentTime(time);
-  //   // Update PlayerArea
-  //   if (playerRef.current) {
-  //     playerRef.current.seekTo(time);
-  //   }
-  // };
 
   // Handle play/pause state change from Timeline
   const handleTimelinePlayPauseChange = (playing: boolean) => {
@@ -748,73 +709,6 @@ export default function EditorPage() {
     },
   });
 
-  const handleResourceSelect = (resource: EditorResource | null) => {
-    if (resource && resource.src) {
-      // Find the material in protocol
-      if (protocol) {
-        const video = protocol.materials.videos.find(
-          (v) => v.id === resource.id,
-        );
-        if (video) {
-          setSelectedResource({
-            id: video.id,
-            type: "video",
-            data: video,
-          });
-          // Convert file path to Tauri asset protocol URL
-          const assetUrl = convertFileSrc(video.src);
-          setSelectedVideoSrc(assetUrl);
-          // setCurrentTime(0);
-          // setDuration(0);
-          setIsPlaying(false);
-          return;
-        }
-
-        const audio = protocol.materials.audios.find(
-          (a) => a.id === resource.id,
-        );
-        if (audio) {
-          setSelectedResource({
-            id: audio.id,
-            type: "audio",
-            data: audio,
-          });
-          // Clear video for audio
-          setSelectedVideoSrc(null);
-          // setCurrentTime(0);
-          // setDuration(0);
-          setIsPlaying(false);
-          return;
-        }
-
-        const image = protocol.materials.images.find(
-          (i) => i.id === resource.id,
-        );
-        if (image) {
-          setSelectedResource({
-            id: image.id,
-            type: "image",
-            data: image,
-          });
-          // Convert file path to Tauri asset protocol URL
-          const assetUrl = convertFileSrc(image.src);
-          setSelectedVideoSrc(assetUrl);
-          // setCurrentTime(0);
-          // setDuration(0);
-          setIsPlaying(false);
-          return;
-        }
-      }
-    } else {
-      // Clear selection
-      setSelectedResource(null);
-      setSelectedVideoSrc(null);
-      // setCurrentTime(0);
-      // setDuration(0);
-      setIsPlaying(false);
-    }
-  };
-
   if (isLoadingProject || isLoadingProtocol) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-editor-bg">
@@ -899,10 +793,12 @@ export default function EditorPage() {
           </div>
 
           {/* Bottom Section: Timeline */}
-          <Timeline
-            ref={timelineRef}
-            onPlayPauseChange={handleTimelinePlayPauseChange}
-          />
+          <div className="flex-1 flex min-h-0">
+            <Timeline
+              ref={timelineRef}
+              onPlayPauseChange={handleTimelinePlayPauseChange}
+            />
+          </div>
         </div>
       </div>
 
