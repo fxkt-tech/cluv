@@ -1,56 +1,66 @@
 @import "tailwindcss";
 
 :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    --background: #E8E4E1;
+    --foreground: #5C5856;
 }
 
-/*#5835e6
- #0fd67b*/
+[data-theme="dark"] {
+    --background: #3A3734;
+    --foreground: #D4CFC9;
+}
 
 @theme {
-    /* Editor colors */
-    --color-editor-bg: #d5d6db;
-    --color-editor-bg-alt: #c8c9cf;
-    --color-editor-panel: #e9e9ed;
-    --color-editor-border: #c1c2c7;
-    --color-editor-dark: #0f0f14;
-    --color-editor-hover: #c4c8da;
-    --color-editor-light: #a8aecb;
+    /* Editor colors - Light theme (Morandi) */
+    --color-editor-bg: #E8E4E1;
+    --color-editor-bg-alt: #D9D5D2;
+    --color-editor-panel: #F0EDEA;
+    --color-editor-border: #C8C4C1;
+    --color-editor-dark: #3A3734;
+    --color-editor-hover: #D4CFD0;
+    --color-editor-light: #B8B3AE;
 
-    /* Accent colors */
-    --color-accent-blue: #2e7de9;
-    --color-accent-cyan: #007197;
-    --color-accent-magenta: #9854f1;
-    --color-accent-green: #587539;
-    --color-accent-red: #f52a65;
-    --color-accent-orange: #b15c00;
-    --color-accent-yellow: #8c6c3e;
+    /* Accent colors - Morandi style */
+    --color-accent-blue: #7B9BAC;
+    --color-accent-cyan: #89A5A8;
+    --color-accent-magenta: #A78BA8;
+    --color-accent-green: #8B9B88;
+    --color-accent-red: #B88B8B;
+    --color-accent-orange: #C4A68A;
+    --color-accent-yellow: #C4B89E;
 
-    /* Text colors */
-    --color-text-primary: #3760bf;
-    --color-text-secondary: #6172b0;
-    --color-text-tertiary: #848cb5;
-    --color-text-muted: #9699a3;
-    --color-text-fg: #343b58;
-    --color-text-fg-dark: #0f0f14;
+    /* Text colors - Light theme */
+    --color-text-primary: #6B7D8C;
+    --color-text-secondary: #7A8897;
+    --color-text-tertiary: #9CA4AB;
+    --color-text-muted: #B3B8BC;
+    --color-text-fg: #5C5856;
+    --color-text-fg-dark: #3A3734;
+
+    /* Dark theme editor colors */
+    --color-editor-bg-dark: #3A3734;
+    --color-editor-bg-alt-dark: #4A4643;
+    --color-editor-panel-dark: #2C2A28;
+    --color-editor-border-dark: #565350;
+    --color-editor-hover-dark: #524F4C;
+    --color-editor-light-dark: #6B6764;
+
+    /* Dark theme text colors */
+    --color-text-primary-dark: #A4B4BE;
+    --color-text-secondary-dark: #9AA7B0;
+    --color-text-tertiary-dark: #7E8B94;
+    --color-text-muted-dark: #6B7479;
+    --color-text-fg-dark-mode: #D4CFC9;
 
     /* Heights */
     --height-header: 48px;
     --height-player-controls: 48px;
-    /*--height-timeline-toolbar: 40px;*/
     --height-timeline: 300px;
 
     /* Widths */
     --width-resource-panel: 30%;
     --width-properties-panel: 30%;
     --width-track-header: 128px;
-
-    /* Spacing */
-    /*--spacing-xs: 2px;
-    --spacing-sm: 6px;
-    --spacing-md: 8px;
-    --spacing-lg: 16px;*/
 }
 
 @theme inline {
@@ -61,9 +71,9 @@
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
+    :root:not([data-theme="light"]) {
+        --background: #3A3734;
+        --foreground: #D4CFC9;
     }
 }
 
@@ -71,6 +81,22 @@ body {
     background: var(--background);
     color: var(--foreground);
     font-family: Arial, Helvetica, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+    --color-editor-bg: var(--color-editor-bg-dark);
+    --color-editor-bg-alt: var(--color-editor-bg-alt-dark);
+    --color-editor-panel: var(--color-editor-panel-dark);
+    --color-editor-border: var(--color-editor-border-dark);
+    --color-editor-hover: var(--color-editor-hover-dark);
+    --color-editor-light: var(--color-editor-light-dark);
+    --color-text-primary: var(--color-text-primary-dark);
+    --color-text-secondary: var(--color-text-secondary-dark);
+    --color-text-tertiary: var(--color-text-tertiary-dark);
+    --color-text-muted: var(--color-text-muted-dark);
+    --color-text-fg: var(--color-text-fg-dark-mode);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -82,25 +108,31 @@ body {
     scrollbar-width: none;
 }
 
-
 /* 水平滚动条样式 */
 ::-webkit-scrollbar {
     height: 8px;
 }
 
 ::-webkit-scrollbar-thumb:horizontal {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(92, 88, 86, 0.2);
     border-radius: 4px;
 }
 
+[data-theme="dark"] ::-webkit-scrollbar-thumb:horizontal {
+    background-color: rgba(212, 207, 201, 0.2);
+}
+
 ::-webkit-scrollbar-thumb:horizontal:hover {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(92, 88, 86, 0.3);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:horizontal:hover {
+    background-color: rgba(212, 207, 201, 0.3);
 }
 
 ::-webkit-scrollbar-track {
     background: transparent;
 }
-
 
 /* Timeline 滚动条样式 */
 .timeline-scroll-container {
@@ -112,4 +144,22 @@ body {
 .timeline-scroll-container::-webkit-scrollbar:vertical {
     width: 0;
     display: none;
+}
+
+/* 平台特定的窗口控制按钮显示 */
+.mac-only {
+    display: none;
+}
+
+.windows-only {
+    display: none;
+}
+
+/* 根据 data-platform 属性显示对应平台的控件 */
+body[data-platform="macos"] .mac-only {
+    display: flex;
+}
+
+body[data-platform="windows"] .windows-only {
+    display: flex;
 }

@@ -3,7 +3,7 @@
  * Export all components for easy importing
  */
 
-export { Header } from "./Header/HeaderPanel";
+export { Header } from "./Header/Panel";
 export { ResourcePanel } from "./Resource/Panel";
 export { ResourceGrid } from "./Resource/Grid";
 export { PlayerArea } from "./Player/PlayerArea";
