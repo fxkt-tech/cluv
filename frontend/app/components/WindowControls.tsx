@@ -4,55 +4,45 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform } from "@tauri-apps/plugin-os";
 
+// 在组件外部检测平台，避免在 useEffect 中同步 setState
+let detectedPlatform: "windows" | "macos" = "windows";
+try {
+  const currentPlatform = platform();
+  detectedPlatform = currentPlatform === "macos" ? "macos" : "windows";
+  if (typeof document !== "undefined") {
+    document.body.setAttribute("data-platform", detectedPlatform);
+  }
+} catch (error) {
+  console.error("Platform detection failed:", error);
+}
+
 export function WindowControls() {
-  const [platformType, setPlatformType] = useState<"windows" | "macos" | null>(
-    null,
-  );
+  const [platformType] = useState<"windows" | "macos">(detectedPlatform);
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    // 检测平台
-    const checkPlatform = async () => {
-      try {
-        const currentPlatform = platform();
-        const detectedPlatform =
-          currentPlatform === "macos" ? "macos" : "windows";
-        setPlatformType(detectedPlatform);
-
-        // 将平台信息添加到 body 元素
-        if (typeof document !== "undefined") {
-          document.body.setAttribute("data-platform", detectedPlatform);
-        }
-      } catch (error) {
-        console.error("Platform detection failed:", error);
-        setPlatformType("windows");
-        if (typeof document !== "undefined") {
-          document.body.setAttribute("data-platform", "windows");
-        }
-      }
-    };
-
-    checkPlatform();
-
     // 监听窗口最大化状态变化
     const appWindow = getCurrentWindow();
-    const unlistenResize = appWindow.onResized(async () => {
-      const maximized = await appWindow.isMaximized();
-      setIsMaximized(maximized);
-    });
+    let unlisten: (() => void) | null = null;
+
+    appWindow
+      .onResized(async () => {
+        const maximized = await appWindow.isMaximized();
+        setIsMaximized(maximized);
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
 
     // 初始化最大化状态
     appWindow.isMaximized().then(setIsMaximized);
 
     return () => {
-      unlistenResize.then((unlisten) => unlisten());
+      if (unlisten) {
+        unlisten();
+      }
     };
   }, []);
-
-  // 等待平台检测完成
-  if (platformType === null) {
-    return null;
-  }
 
   const handleMinimize = async () => {
     const appWindow = getCurrentWindow();
