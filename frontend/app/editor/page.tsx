@@ -15,7 +15,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   Header,
   ResourcePanel,
-  WebGPUPlayArea,
+  WebGPUPlayer,
   PropertiesPanel,
 } from "./components";
 import type { PlayerRef } from "./components";
@@ -743,17 +743,15 @@ export default function EditorPage() {
               onTabChange={setActiveTab}
               resources={resources}
               isLoading={isLoadingProtocol}
-              // onResourceSelect={handleResourceSelect}
               projectPath={project?.path || null}
               loadResources={reloadProtocol}
             />
 
             {/* Center: Player */}
-            <WebGPUPlayArea
+            <WebGPUPlayer
               ref={playerRef}
               tracks={tracks}
               onTimeUpdate={handleTimeUpdate}
-              externalTime={timelineCurrentTime}
             />
 
             {/* Right Sidebar: Properties */}

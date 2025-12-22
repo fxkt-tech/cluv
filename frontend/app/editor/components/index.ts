@@ -6,9 +6,7 @@
 export { Header } from "./Header/Panel";
 export { ResourcePanel } from "./Resource/Panel";
 export { ResourceGrid } from "./Resource/Grid";
-export { PlayerArea } from "./Player/PlayerArea";
-export { WebGPUPlayArea } from "./Player/WebGPUPlayArea";
-export type { PlayerRef } from "./Player/WebGPUPlayArea";
+export { WebGPUPlayer } from "./Player/WebGPUPlayer";
+export type { PlayerRef } from "./Player/WebGPUPlayer";
 export { PropertiesPanel } from "./Properties/Panel";
 export { PropertySlider } from "./Properties/PropertySlider";
-export { EffectsPanel } from "./Properties/EffectsPanel";

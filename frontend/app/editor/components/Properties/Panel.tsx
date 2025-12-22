@@ -5,14 +5,12 @@
 
 import { PROPERTY_TABS } from "../../constants/data";
 import { PropertySlider } from "./PropertySlider";
-import { EffectsPanel } from "./EffectsPanel";
 import { Properties } from "../../types/editor";
 import {
   VideoMaterialProto,
   AudioMaterialProto,
   ImageMaterialProto,
 } from "../../types/protocol";
-import { EffectManager } from "../../../webgl/effects";
 
 interface PropertiesPanelProps {
   activeTab: "video" | "audio" | "speed" | "effects";
@@ -24,8 +22,6 @@ interface PropertiesPanelProps {
     type: string;
     data: VideoMaterialProto | AudioMaterialProto | ImageMaterialProto;
   } | null;
-  effectManager?: EffectManager | null;
-  onEffectChange?: (manager: EffectManager) => void;
 }
 
 export function PropertiesPanel({
@@ -34,8 +30,6 @@ export function PropertiesPanel({
   properties,
   onPropertyChange,
   selectedResource,
-  effectManager,
-  onEffectChange,
 }: PropertiesPanelProps) {
   return (
     <aside className="w-properties-panel border-l border-editor-border flex flex-col bg-editor-bg">
@@ -288,13 +282,6 @@ export function PropertiesPanel({
           <div className="text-center py-8 text-text-muted">
             Speed properties coming soon...
           </div>
-        )}
-
-        {activeTab === "effects" && (
-          <EffectsPanel
-            effectManager={effectManager}
-            onEffectChange={onEffectChange}
-          />
         )}
       </div>
     </aside>
