@@ -9,8 +9,6 @@ import { produce } from "immer";
  */
 interface HistoryState {
   tracks: TimelineState["tracks"];
-  currentTime: number;
-  duration: number;
 }
 
 /**

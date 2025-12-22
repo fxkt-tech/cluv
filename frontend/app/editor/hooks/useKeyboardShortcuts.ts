@@ -5,9 +5,12 @@ import { useTimelineStore } from "../stores/timelineStore";
 
 interface KeyboardShortcutsOptions {
   enabled?: boolean;
+  currentTime: number;
+  duration: number;
   onPlayPause?: () => void;
   onStepForward?: () => void;
   onStepBackward?: () => void;
+  onSeek?: (time: number) => void;
 }
 
 /**
@@ -28,12 +31,15 @@ interface KeyboardShortcutsOptions {
  * - Cmd/Ctrl + ←/→: 跳到开始/结束
  * - +/-: 缩放
  */
-export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
+export function useKeyboardShortcuts(options: KeyboardShortcutsOptions) {
   const {
     enabled = true,
+    currentTime,
+    duration,
     onPlayPause,
     onStepForward,
     onStepBackward,
+    onSeek,
   } = options;
 
   // Timeline store
@@ -42,9 +48,6 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
     (state) => state.deleteSelectedClips,
   );
   const clearSelection = useTimelineStore((state) => state.clearSelection);
-  const currentTime = useTimelineStore((state) => state.currentTime);
-  const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
-  const duration = useTimelineStore((state) => state.duration);
   const zoomIn = useTimelineStore((state) => state.zoomIn);
   const zoomOut = useTimelineStore((state) => state.zoomOut);
   const tracks = useTimelineStore((state) => state.tracks);
@@ -157,7 +160,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
       else if (cmdOrCtrl && e.code === "KeyB") {
         e.preventDefault();
         if (selectedClipIds.length > 0) {
-          splitSelectedClips();
+          splitSelectedClips(currentTime);
         }
       }
 
@@ -178,13 +181,12 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         e.preventDefault();
         if (cmdOrCtrl) {
           // Cmd/Ctrl + ←: 跳到开始
-          setCurrentTime(0);
+          onSeek?.(0);
         } else if (e.shiftKey) {
           // Shift + ←: 后退1秒
-          setCurrentTime(Math.max(0, currentTime - 1));
+          onSeek?.(Math.max(0, currentTime - 1));
         } else {
-          // ←: 后退1帧（1/30秒）
-          setCurrentTime(Math.max(0, currentTime - 1 / 30));
+          // ←: 后退1帧
           onStepBackward?.();
         }
       }
@@ -194,13 +196,12 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
         e.preventDefault();
         if (cmdOrCtrl) {
           // Cmd/Ctrl + →: 跳到结束
-          setCurrentTime(duration);
+          onSeek?.(duration);
         } else if (e.shiftKey) {
           // Shift + →: 前进1秒
-          setCurrentTime(Math.min(duration, currentTime + 1));
+          onSeek?.(Math.min(duration, currentTime + 1));
         } else {
-          // →: 前进1帧（1/30秒）
-          setCurrentTime(Math.min(duration, currentTime + 1 / 30));
+          // →: 前进1帧
           onStepForward?.();
         }
       }
@@ -229,8 +230,8 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
       deleteSelectedClips,
       clearSelection,
       currentTime,
-      setCurrentTime,
       duration,
+      onSeek,
       zoomIn,
       zoomOut,
       onPlayPause,

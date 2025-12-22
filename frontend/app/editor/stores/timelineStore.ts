@@ -29,7 +29,7 @@ interface TimelineStore extends TimelineState {
   ) => void;
   duplicateClip: (clipId: string) => void;
   splitClip: (clipId: string, splitTime: number) => boolean;
-  splitSelectedClips: () => void;
+  splitSelectedClips: (currentTime: number) => void;
 
   // 选择操作
   selectClip: (clipId: string, addToSelection?: boolean) => void;
@@ -38,22 +38,11 @@ interface TimelineStore extends TimelineState {
   selectTrack: (trackId: string | null) => void;
 
   // 时间轴操作
-  setCurrentTime: (time: number) => void;
-  setDuration: (duration: number) => void;
   setZoomLevel: (level: number) => void;
   setScrollLeft: (scrollLeft: number) => void;
   setScrollTop: (scrollTop: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
-
-  // 播放控制
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  play: () => void;
-  pause: () => void;
-  togglePlayPause: () => void;
-  stepForward: () => void;
-  stepBackward: () => void;
 
   // 拖拽操作
   startDrag: (clipId: string) => void;
@@ -86,8 +75,6 @@ interface TimelineStore extends TimelineState {
   // 获取当前状态快照（用于历史记录）
   getStateSnapshot: () => {
     tracks: Track[];
-    currentTime: number;
-    duration: number;
   };
 }
 
@@ -96,8 +83,6 @@ interface TimelineStore extends TimelineState {
  */
 const initialState: TimelineState = {
   tracks: [],
-  currentTime: 0,
-  duration: 0,
   pixelsPerSecond: TIMELINE_CONFIG.BASE_PIXELS_PER_SECOND,
   zoomLevel: 1,
   scrollLeft: 0,
@@ -109,10 +94,6 @@ const initialState: TimelineState = {
   snappingEnabled: true,
   snapThreshold: TIMELINE_CONFIG.SNAP_THRESHOLD,
   fps: TIMELINE_CONFIG.DEFAULT_FPS,
-};
-
-const initialPlayState = {
-  isPlaying: false,
 };
 
 /**
@@ -127,7 +108,6 @@ const saveToHistory = () => {
 
 export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   ...initialState,
-  ...initialPlayState,
 
   // Track 操作
   addTrack: (type) => {
@@ -178,14 +158,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     set((state) =>
       produce(state, (draft) => {
         draft.tracks = tracks;
-        // 更新总时长
-        const maxEnd = Math.max(
-          ...tracks.flatMap((t) =>
-            t.clips.map((c) => c.startTime + c.duration),
-          ),
-          0,
-        );
-        draft.duration = Math.max(draft.duration, maxEnd);
       }),
     );
   },
@@ -253,15 +225,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
         };
 
         track.clips.push(newClip);
-
-        // 更新总时长
-        const maxEnd = Math.max(
-          ...draft.tracks.flatMap((t) =>
-            t.clips.map((c) => c.startTime + c.duration),
-          ),
-          draft.duration,
-        );
-        draft.duration = maxEnd;
       }),
     );
   },
@@ -302,13 +265,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
           if (clip) {
             Object.assign(clip, updates);
 
-            // 更新总时长
-            const maxEnd = Math.max(
-              ...draft.tracks.flatMap((t) =>
-                t.clips.map((c) => c.startTime + c.duration),
-              ),
-            );
-            draft.duration = Math.max(draft.duration, maxEnd);
             return;
           }
         }
@@ -346,14 +302,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
         clip.trackId = targetTrackId;
         clip.startTime = Math.max(0, newStartTime);
         targetTrack.clips.push(clip);
-
-        // 更新总时长
-        const maxEnd = Math.max(
-          ...draft.tracks.flatMap((t) =>
-            t.clips.map((c) => c.startTime + c.duration),
-          ),
-        );
-        draft.duration = Math.max(draft.duration, maxEnd);
       }),
     );
   },
@@ -465,9 +413,8 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     return true;
   },
 
-  splitSelectedClips: () => {
+  splitSelectedClips: (currentTime: number) => {
     const state = get();
-    const currentTime = state.currentTime;
     const selectedIds = [...state.selectedClipIds]; // 复制数组，因为会被修改
 
     let successCount = 0;
@@ -524,22 +471,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   },
 
   // 时间轴操作
-  setCurrentTime: (time) => {
-    set((state) =>
-      produce(state, (draft) => {
-        draft.currentTime = clamp(time, 0, draft.duration);
-      }),
-    );
-  },
-
-  setDuration: (duration) => {
-    set((state) =>
-      produce(state, (draft) => {
-        draft.duration = Math.max(0, duration);
-      }),
-    );
-  },
-
   setZoomLevel: (level) => {
     set((state) =>
       produce(state, (draft) => {
@@ -578,37 +509,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   zoomOut: () => {
     const { zoomLevel, setZoomLevel } = get();
     setZoomLevel(Math.max(zoomLevel / 1.2, 0.1));
-  },
-
-  // 播放控制
-  setIsPlaying: (playing) => {
-    set({ isPlaying: playing });
-  },
-
-  play: () => {
-    set({ isPlaying: true });
-  },
-
-  pause: () => {
-    set({ isPlaying: false });
-  },
-
-  togglePlayPause: () => {
-    set((state) => ({ isPlaying: !state.isPlaying }));
-  },
-
-  stepForward: () => {
-    const { currentTime, duration, fps, setCurrentTime } = get();
-    const frameTime = 1 / fps;
-    const newTime = Math.min(duration, currentTime + frameTime);
-    setCurrentTime(newTime);
-  },
-
-  stepBackward: () => {
-    const { currentTime, fps, setCurrentTime } = get();
-    const frameTime = 1 / fps;
-    const newTime = Math.max(0, currentTime - frameTime);
-    setCurrentTime(newTime);
   },
 
   // 拖拽操作
@@ -710,15 +610,12 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
 
   // 撤销/重做
   undo: () => {
-    const getCurrentState = () => get().getStateSnapshot();
+    const getCurrentState = get().getStateSnapshot;
     const previousState = useHistoryStore.getState().undo(getCurrentState);
-
     if (previousState) {
       set((state) =>
         produce(state, (draft) => {
           draft.tracks = previousState.tracks;
-          draft.currentTime = previousState.currentTime;
-          draft.duration = previousState.duration;
         }),
       );
     }
@@ -726,13 +623,10 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
 
   redo: () => {
     const nextState = useHistoryStore.getState().redo();
-
     if (nextState) {
       set((state) =>
         produce(state, (draft) => {
           draft.tracks = nextState.tracks;
-          draft.currentTime = nextState.currentTime;
-          draft.duration = nextState.duration;
         }),
       );
     }
@@ -751,14 +645,16 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     const state = get();
     return {
       tracks: JSON.parse(JSON.stringify(state.tracks)), // 深拷贝
-      currentTime: state.currentTime,
-      duration: state.duration,
     };
   },
 
   // 重置
   reset: () => {
     useHistoryStore.getState().clearHistory();
-    set({ ...initialState, ...initialPlayState });
+    set((state) =>
+      produce(state, (draft) => {
+        Object.assign(draft, initialState);
+      }),
+    );
   },
 }));

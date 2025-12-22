@@ -101,6 +101,11 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
     const [hasLayers, setHasLayers] = useState(false);
     const [isWebGPUReady, setIsWebGPUReady] = useState(false);
 
+    // 使用 ref 来跟踪上次通知的值，避免重复通知
+    const lastNotifiedTimeRef = useRef<number>(currentTime);
+    const lastNotifiedDurationRef = useRef<number>(duration);
+    const lastNotifiedPlayStateRef = useRef<boolean>(isPlaying);
+
     // WebGPU 资源引用
     const deviceRef = useRef<GPUDevice | null>(null);
     const contextRef = useRef<GPUCanvasContext | null>(null);
@@ -274,12 +279,10 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
             newTime = currentDuration;
             // 播放结束，暂停
             setIsPlaying(false);
-            onPlayStateChange?.(false);
             layersRef.current.forEach((layer) => layer.video.pause());
           }
 
           setCurrentTime(newTime);
-          onTimeUpdate?.(newTime);
         }
 
         // 开始渲染
@@ -373,10 +376,10 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
       };
 
       renderLoopRef.current = renderLoop;
-    }, [isPlaying, currentTime, duration, onTimeUpdate, onPlayStateChange]);
+    }, [isPlaying, currentTime, duration]);
 
     /**
-     * 更新全局时长
+     * 更新总时长（根据所有图层的最大结束时间）
      */
     const updateDuration = useCallback(() => {
       const maxDuration =
@@ -390,12 +393,11 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
       setDuration((prevDuration) => {
         if (Math.abs(prevDuration - maxDuration) > 0.001) {
-          onDurationChange?.(maxDuration);
           return maxDuration;
         }
         return prevDuration;
       });
-    }, [onDurationChange]);
+    }, []);
 
     /**
      * 添加视频图层
@@ -570,7 +572,6 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
       });
 
       setIsPlaying(true);
-      onPlayStateChange?.(true);
 
       // 启动相关时间点的视频
       layersRef.current.forEach((layer) => {
@@ -579,16 +580,15 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           layer.video.play().catch(() => {});
         }
       });
-    }, [currentTime, duration, syncVideosToTime, onPlayStateChange]);
+    }, [currentTime, duration, syncVideosToTime]);
 
     /**
      * 暂停
      */
     const pause = useCallback(() => {
       setIsPlaying(false);
-      onPlayStateChange?.(false);
       layersRef.current.forEach((layer) => layer.video.pause());
-    }, [onPlayStateChange]);
+    }, []);
 
     /**
      * 切换播放/暂停
@@ -610,13 +610,12 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         const clampedTime = Math.max(0, Math.min(time, duration));
         setCurrentTime(clampedTime);
         syncVideosToTime(clampedTime);
-        onTimeUpdate?.(clampedTime);
 
         setTimeout(() => {
           isSeekingRef.current = false;
         }, 100);
       },
-      [duration, onTimeUpdate, syncVideosToTime],
+      [duration, syncVideosToTime],
     );
 
     /**
@@ -627,10 +626,9 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
       setCurrentTime((prevTime) => {
         const newTime = Math.min(prevTime + frameTime, duration);
         syncVideosToTime(newTime);
-        onTimeUpdate?.(newTime);
         return newTime;
       });
-    }, [fps, duration, syncVideosToTime, onTimeUpdate]);
+    }, [fps, duration, syncVideosToTime]);
 
     /**
      * 上一帧
@@ -640,10 +638,9 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
       setCurrentTime((prevTime) => {
         const newTime = Math.max(prevTime - frameTime, 0);
         syncVideosToTime(newTime);
-        onTimeUpdate?.(newTime);
         return newTime;
       });
-    }, [fps, syncVideosToTime, onTimeUpdate]);
+    }, [fps, syncVideosToTime]);
 
     /**
      * 获取当前时间
@@ -727,6 +724,28 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
     }, []);
 
     // 从 tracks 同步图层（等待 WebGPU 初始化完成）
+    // 使用 useEffect 异步通知父组件状态变化
+    useEffect(() => {
+      if (Math.abs(currentTime - lastNotifiedTimeRef.current) > 0.001) {
+        lastNotifiedTimeRef.current = currentTime;
+        onTimeUpdate?.(currentTime);
+      }
+    }, [currentTime, onTimeUpdate]);
+
+    useEffect(() => {
+      if (Math.abs(duration - lastNotifiedDurationRef.current) > 0.001) {
+        lastNotifiedDurationRef.current = duration;
+        onDurationChange?.(duration);
+      }
+    }, [duration, onDurationChange]);
+
+    useEffect(() => {
+      if (isPlaying !== lastNotifiedPlayStateRef.current) {
+        lastNotifiedPlayStateRef.current = isPlaying;
+        onPlayStateChange?.(isPlaying);
+      }
+    }, [isPlaying, onPlayStateChange]);
+
     useEffect(() => {
       let mounted = true;
       const sync = async () => {

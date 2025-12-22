@@ -13,13 +13,17 @@ import { TIMELINE_CONFIG } from "../../types/timeline";
 
 interface TimelineRulerProps {
   width: number;
+  duration: number;
+  onSeek: (time: number) => void;
 }
 
-export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
+export const TimelineRuler: React.FC<TimelineRulerProps> = ({
+  width,
+  duration,
+  onSeek,
+}) => {
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
   const scrollLeft = useTimelineStore((state) => state.scrollLeft);
-  const duration = useTimelineStore((state) => state.duration);
-  const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
   const fps = useTimelineStore((state) => state.fps);
 
   // 计算整个时间范围（不考虑滚动，因为外层容器通过 transform 处理滚动）
@@ -41,7 +45,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ width }) => {
     // 点击位置需要加上 scrollLeft，因为容器已经通过 transform 偏移了
     const time = pixelsToTime(x + scrollLeft, pixelsPerSecond);
     const clampedTime = Math.max(0, Math.min(duration, time));
-    setCurrentTime(clampedTime);
+    onSeek(clampedTime);
   };
 
   return (

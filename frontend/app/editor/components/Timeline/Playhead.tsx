@@ -7,19 +7,22 @@ import { useTimelineStore } from "@/app/editor/stores/timelineStore";
 import { pixelsToTime, timeToPixels } from "@/app/editor/utils/timeline";
 
 interface PlayheadProps {
+  currentTime: number;
+  duration: number;
+  onSeek: (time: number) => void;
   containerWidth: number;
   containerHeight: number;
 }
 
 export const Playhead: React.FC<PlayheadProps> = ({
+  currentTime,
+  duration,
+  onSeek,
   containerWidth,
   containerHeight,
 }) => {
-  const currentTime = useTimelineStore((state) => state.currentTime);
-  const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
   const scrollLeft = useTimelineStore((state) => state.scrollLeft);
-  const duration = useTimelineStore((state) => state.duration);
 
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; time: number } | null>(null);
@@ -55,7 +58,7 @@ export const Playhead: React.FC<PlayheadProps> = ({
         Math.min(duration, dragStartRef.current.time + deltaTime),
       );
 
-      setCurrentTime(newTime);
+      onSeek(newTime);
     };
 
     const handleMouseUp = () => {
@@ -70,7 +73,7 @@ export const Playhead: React.FC<PlayheadProps> = ({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, currentTime, pixelsPerSecond, duration, setCurrentTime]);
+  }, [isDragging, currentTime, pixelsPerSecond, duration, onSeek]);
 
   if (!isVisible) {
     return null; // 不在可视区域内时不渲染

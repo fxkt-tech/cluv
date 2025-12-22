@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -63,17 +63,11 @@ export default function EditorPage() {
   const { state, updateProperty, setActiveTab, setActivePropertyTab } =
     useEditorState();
 
-  // 使用 Timeline Store
+  // 使用 Timeline Store - 仅编辑相关状态
   const tracks = useTimelineStore((state) => state.tracks);
   const addTrack = useTimelineStore((state) => state.addTrack);
   const insertTrackAt = useTimelineStore((state) => state.insertTrackAt);
   const setTracks = useTimelineStore((state) => state.setTracks);
-  const timelineCurrentTime = useTimelineStore((state) => state.currentTime);
-  const setTimelineCurrentTime = useTimelineStore(
-    (state) => state.setCurrentTime,
-  );
-  const timelineDuration = useTimelineStore((state) => state.duration);
-  const setTimelineDuration = useTimelineStore((state) => state.setDuration);
   const addClip = useTimelineStore((state) => state.addClip);
   const moveClip = useTimelineStore((state) => state.moveClip);
   const updateClip = useTimelineStore((state) => state.updateClip);
@@ -82,10 +76,12 @@ export default function EditorPage() {
   const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
   const fps = useTimelineStore((state) => state.fps);
-  const isPlaying = useTimelineStore((state) => state.isPlaying);
-  const stepForward = useTimelineStore((state) => state.stepForward);
-  const stepBackward = useTimelineStore((state) => state.stepBackward);
   const resetTimelineStore = useTimelineStore((state) => state.reset);
+
+  // Player 状态 - 通过回调同步
+  const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
+  const [playerDuration, setPlayerDuration] = useState(0);
+  const [playerIsPlaying, setPlayerIsPlaying] = useState(false);
 
   const [activeDragData, setActiveDragData] = useState<DragData | Clip | null>(
     null,
@@ -102,6 +98,60 @@ export default function EditorPage() {
   const playerRef = useRef<PlayerRef>(null);
   // Timeline ref for external control
   const timelineRef = useRef<TimelineRef>(null);
+
+  // === Player 回调 - 同步状态 ===
+  const handlePlayerTimeUpdate = useCallback((time: number) => {
+    setPlayerCurrentTime(time);
+  }, []);
+
+  const handlePlayerDurationChange = useCallback((duration: number) => {
+    setPlayerDuration(duration);
+  }, []);
+
+  const handlePlayerPlayStateChange = useCallback((isPlaying: boolean) => {
+    setPlayerIsPlaying(isPlaying);
+  }, []);
+
+  // === 播放控制方法 - 调用 Player ===
+  const handlePlayPause = useCallback(() => {
+    playerRef.current?.togglePlayPause();
+  }, []);
+
+  const handleStepForward = useCallback(() => {
+    playerRef.current?.stepForward();
+  }, []);
+
+  const handleStepBackward = useCallback(() => {
+    playerRef.current?.stepBackward();
+  }, []);
+
+  const handleSeek = useCallback((time: number) => {
+    playerRef.current?.seekTo(time);
+  }, []);
+
+  // === 键盘快捷键 ===
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 空格键：播放/暂停
+      if (e.code === "Space" && e.target === document.body) {
+        e.preventDefault();
+        handlePlayPause();
+      }
+      // 左箭头：上一帧
+      if (e.code === "ArrowLeft" && e.target === document.body) {
+        e.preventDefault();
+        handleStepBackward();
+      }
+      // 右箭头：下一帧
+      if (e.code === "ArrowRight" && e.target === document.body) {
+        e.preventDefault();
+        handleStepForward();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePlayPause, handleStepForward, handleStepBackward]);
 
   // 全局拖拽传感器配置
   const sensors = useSensors(
@@ -173,25 +223,16 @@ export default function EditorPage() {
       const timelineTracks = protocolToTimeline(protocol);
       setTracks(timelineTracks);
       console.log("Synced tracks from protocol");
-      // Calculate total duration
-      const maxEndTime = Math.max(
-        ...timelineTracks.flatMap((t) =>
-          t.clips.map((c) => c.startTime + c.duration),
-        ),
-        0,
-      );
-      setTimelineDuration(maxEndTime);
     } else {
       // Clear tracks if protocol has no tracks
       setTracks([]);
-      setTimelineDuration(0);
     }
 
     // Reset flag after a short delay to allow tracks update to propagate
     setTimeout(() => {
       isSyncingFromProtocolRef.current = false;
     }, 100);
-  }, [protocol, setTracks, setTimelineDuration]);
+  }, [protocol, setTracks]);
 
   // Get material duration helper
   const getMaterialDuration = (resourceId: string): number => {
@@ -209,18 +250,6 @@ export default function EditorPage() {
 
     // Default duration for images (3 seconds)
     return 3;
-  };
-
-  // Recalculate timeline duration based on all clips
-  const recalculateTimelineDuration = () => {
-    const currentTracks = useTimelineStore.getState().tracks;
-    const maxEndTime = Math.max(
-      ...currentTracks.flatMap((t) =>
-        t.clips.map((c) => c.startTime + c.duration),
-      ),
-      0,
-    );
-    setTimelineDuration(maxEndTime);
   };
 
   // Check if a clip would collide with existing clips on a track
@@ -313,19 +342,6 @@ export default function EditorPage() {
     // TODO: Implement export functionality
   };
 
-  const handleTimeUpdate = (time: number) => {
-    // Update Timeline when player time changes (only when playing)
-    if (isPlaying) {
-      setTimelineCurrentTime(time);
-    }
-  };
-
-  // Handle play/pause state change from Timeline
-  // Timeline 和 Player 现在都使用 timelineStore 的 isPlaying，无需手动同步
-  const handleTimelinePlayPauseChange = () => {
-    // 状态已经通过 store 同步，这里可以添加额外的逻辑（如果需要）
-  };
-
   const handleBackToProjects = () => {
     router.push("/projects");
   };
@@ -401,7 +417,7 @@ export default function EditorPage() {
         // 应用吸附
         if (snappingEnabled) {
           const allClips = getAllClipsFromTracks(tracks);
-          const snapPoints = collectSnapPoints(allClips, timelineCurrentTime);
+          const snapPoints = collectSnapPoints(allClips, playerCurrentTime);
           const snapped = calculateSnappedTime(
             startTime,
             snapPoints,
@@ -448,7 +464,6 @@ export default function EditorPage() {
             opacity: 1,
             volume: 1,
           });
-          recalculateTimelineDuration();
         }
       }, 0);
     }
@@ -480,7 +495,7 @@ export default function EditorPage() {
         // 应用吸附
         if (snappingEnabled) {
           const allClips = getAllClipsFromTracks(tracks);
-          const snapPoints = collectSnapPoints(allClips, timelineCurrentTime);
+          const snapPoints = collectSnapPoints(allClips, playerCurrentTime);
           const snapped = calculateSnappedTime(
             startTime,
             snapPoints,
@@ -527,7 +542,6 @@ export default function EditorPage() {
             opacity: 1,
             volume: 1,
           });
-          recalculateTimelineDuration();
         }
       }, 0);
     }
@@ -558,7 +572,7 @@ export default function EditorPage() {
       // 应用吸附
       if (snappingEnabled) {
         const allClips = getAllClipsFromTracks(tracks);
-        const snapPoints = collectSnapPoints(allClips, timelineCurrentTime);
+        const snapPoints = collectSnapPoints(allClips, playerCurrentTime);
         const snapped = calculateSnappedTime(
           startTime,
           snapPoints,
@@ -598,7 +612,6 @@ export default function EditorPage() {
         opacity: 1,
         volume: 1,
       });
-      recalculateTimelineDuration();
     }
     // 情况4: 移动现有Clip到轨道
     else if (activeData.type === "clip" && dropData.type === "track") {
@@ -632,7 +645,7 @@ export default function EditorPage() {
         const allClips = getAllClipsFromTracks(tracks);
         const snapPoints = collectSnapPoints(
           allClips,
-          timelineCurrentTime,
+          playerCurrentTime,
           clipId,
         );
         const snapped = calculateSnappedTime(
@@ -662,26 +675,18 @@ export default function EditorPage() {
         // 同轨道内拖拽,只更新时间
         updateClip(clipId, { startTime: newStartTime });
       }
-      recalculateTimelineDuration();
     }
   };
 
   // 键盘快捷键
   useKeyboardShortcuts({
     enabled: true,
-    onPlayPause: () => {
-      if (timelineRef.current) {
-        timelineRef.current.togglePlayPause();
-      }
-    },
-    onStepForward: () => {
-      // 使用 store 的帧步进方法，自动同步到所有组件
-      stepForward();
-    },
-    onStepBackward: () => {
-      // 使用 store 的帧步进方法，自动同步到所有组件
-      stepBackward();
-    },
+    currentTime: playerCurrentTime,
+    duration: playerDuration,
+    onPlayPause: handlePlayPause,
+    onStepForward: handleStepForward,
+    onStepBackward: handleStepBackward,
+    onSeek: handleSeek,
   });
 
   if (isLoadingProject || isLoadingProtocol) {
@@ -751,7 +756,10 @@ export default function EditorPage() {
             <WebGPUPlayer
               ref={playerRef}
               tracks={tracks}
-              onTimeUpdate={handleTimeUpdate}
+              fps={fps}
+              onTimeUpdate={handlePlayerTimeUpdate}
+              onDurationChange={handlePlayerDurationChange}
+              onPlayStateChange={handlePlayerPlayStateChange}
             />
 
             {/* Right Sidebar: Properties */}
@@ -767,7 +775,15 @@ export default function EditorPage() {
           <div className="flex-1 flex min-h-0">
             <Timeline
               ref={timelineRef}
-              onPlayPauseChange={handleTimelinePlayPauseChange}
+              isPlaying={playerIsPlaying}
+              currentTime={playerCurrentTime}
+              duration={playerDuration}
+              onPlayPause={handlePlayPause}
+              onStepForward={handleStepForward}
+              onStepBackward={handleStepBackward}
+              onSeek={handleSeek}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
             />
           </div>
         </div>

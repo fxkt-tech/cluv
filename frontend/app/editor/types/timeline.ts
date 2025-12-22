@@ -66,8 +66,6 @@ export interface Track {
  */
 export interface TimelineState {
   tracks: Track[];
-  currentTime: number; // 当前播放时间（秒）
-  duration: number; // Timeline 总时长（秒）
   pixelsPerSecond: number; // 缩放级别，每秒对应的像素数
   zoomLevel: number; // 缩放倍数
   scrollLeft: number; // 水平滚动位置

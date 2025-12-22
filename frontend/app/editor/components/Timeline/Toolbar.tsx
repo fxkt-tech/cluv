@@ -7,6 +7,8 @@ import { useTimelineStore } from "../../stores/timelineStore";
 import {
   PlayCircleIcon,
   PauseCircleIcon,
+  PreviousFrameIcon,
+  NextFrameIcon,
   VideoTrackIcon,
   AudioTrackIcon,
   UndoIcon,
@@ -19,12 +21,18 @@ import {
 
 interface TimelineToolbarProps {
   isPlaying: boolean;
+  currentTime: number;
   onPlayPause: () => void;
+  onStepForward: () => void;
+  onStepBackward: () => void;
 }
 
 export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   isPlaying,
+  currentTime,
   onPlayPause,
+  onStepForward,
+  onStepBackward,
 }) => {
   const zoomLevel = useTimelineStore((state) => state.zoomLevel);
   const setZoomLevel = useTimelineStore((state) => state.setZoomLevel);
@@ -47,6 +55,14 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
       <div className="flex items-center gap-2">
         {/* 播放控制 */}
         <button
+          onClick={onStepBackward}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-editor-dark rounded transition-colors"
+          title="Previous Frame"
+        >
+          <PreviousFrameIcon className="w-5 h-5" />
+        </button>
+
+        <button
           onClick={onPlayPause}
           className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors"
           title={isPlaying ? "Pause" : "Play"}
@@ -56,6 +72,14 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           ) : (
             <PlayCircleIcon className="w-5 h-5" />
           )}
+        </button>
+
+        <button
+          onClick={onStepForward}
+          className="p-1 hover:bg-editor-hover text-text-muted hover:text-editor-dark rounded transition-colors"
+          title="Next Frame"
+        >
+          <NextFrameIcon className="w-5 h-5" />
         </button>
 
         <div className="w-px h-6 bg-editor-border" />
@@ -99,7 +123,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
 
         {/* 分割按钮 */}
         <button
-          onClick={() => splitSelectedClips()}
+          onClick={() => splitSelectedClips(currentTime)}
           disabled={selectedClipIds.length === 0}
           className="p-1 hover:bg-editor-hover text-text-muted hover:text-(--color-editor-dark) rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           title="Split Clip (Ctrl+B)"

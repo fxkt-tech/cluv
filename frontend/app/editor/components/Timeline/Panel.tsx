@@ -23,30 +23,47 @@ import { TimelineToolbar } from "./Toolbar";
  * Timeline 暴露的方法接口
  */
 export interface TimelineRef {
-  play: () => void;
-  pause: () => void;
-  togglePlayPause: () => void;
-  stepForward: () => void;
-  stepBackward: () => void;
+  scrollToTime?: (time: number) => void;
 }
 
 interface TimelineProps {
-  onPlayPauseChange?: (isPlaying: boolean) => void;
+  // 从 Player 接收的状态
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+
+  // 播放控制回调
+  onPlayPause: () => void;
+  onStepForward: () => void;
+  onStepBackward: () => void;
+  onSeek: (time: number) => void;
+
+  // 拖拽事件
   onDragStart?: (event: DragStartEvent) => void;
   onDragEnd?: (event: DragEndEvent) => void;
 }
 
 export const Timeline = forwardRef<TimelineRef, TimelineProps>(
-  ({ onPlayPauseChange, onDragStart, onDragEnd }, ref) => {
+  (
+    {
+      isPlaying,
+      currentTime,
+      duration,
+      onPlayPause,
+      onStepForward,
+      onStepBackward,
+      onSeek,
+      onDragStart,
+      onDragEnd,
+    },
+    ref,
+  ) => {
     const tracks = useTimelineStore((state) => state.tracks);
     const setScrollLeft = useTimelineStore((state) => state.setScrollLeft);
     const setScrollTop = useTimelineStore((state) => state.setScrollTop);
     const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
-    const duration = useTimelineStore((state) => state.duration);
     const zoomIn = useTimelineStore((state) => state.zoomIn);
     const zoomOut = useTimelineStore((state) => state.zoomOut);
-    const currentTime = useTimelineStore((state) => state.currentTime);
-    const setCurrentTime = useTimelineStore((state) => state.setCurrentTime);
 
     const mainScrollRef = useRef<HTMLDivElement>(null);
     const rulerContentRef = useRef<HTMLDivElement>(null);
@@ -56,10 +73,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const [containerWidth, setContainerWidth] = useState<number>(0);
     const [containerHeight, setContainerHeight] = useState<number>(0);
     const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
-    // 从 timelineStore 读取播放状态，作为单一数据源
-    const isPlaying = useTimelineStore((state) => state.isPlaying);
-    const setIsPlaying = useTimelineStore((state) => state.setIsPlaying);
-    const animationFrameRef = useRef<number | undefined>(undefined);
 
     // 监听拖拽事件以更新 activeDragData
     useDndMonitor({
@@ -83,23 +96,15 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     useImperativeHandle(
       ref,
       () => ({
-        play: () => {
-          setIsPlaying(true);
-        },
-        pause: () => {
-          setIsPlaying(false);
-        },
-        togglePlayPause: () => {
-          setIsPlaying(!isPlaying);
-        },
-        stepForward: () => {
-          useTimelineStore.getState().stepForward();
-        },
-        stepBackward: () => {
-          useTimelineStore.getState().stepBackward();
+        scrollToTime: (time: number) => {
+          // 实现滚动到指定时间的逻辑
+          if (mainScrollRef.current) {
+            const scrollPosition = time * pixelsPerSecond;
+            mainScrollRef.current.scrollLeft = scrollPosition;
+          }
         },
       }),
-      [isPlaying, setIsPlaying],
+      [pixelsPerSecond],
     );
 
     // 计算时间轴内容区域的总宽度和高度
@@ -116,40 +121,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     }, 0);
 
     const totalHeight = tracksActualHeight + 100; // 额外增加100px的空白区域
-
-    // 播放动画循环
-    useEffect(() => {
-      if (isPlaying) {
-        const startTime = performance.now();
-        const initialTime = currentTime;
-
-        const animate = () => {
-          const elapsed = (performance.now() - startTime) / 1000;
-          const newTime = initialTime + elapsed;
-
-          if (newTime >= duration) {
-            setIsPlaying(false);
-            setCurrentTime(duration);
-          } else {
-            setCurrentTime(newTime);
-            animationFrameRef.current = requestAnimationFrame(animate);
-          }
-        };
-
-        animationFrameRef.current = requestAnimationFrame(animate);
-
-        return () => {
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
-        };
-      }
-    }, [isPlaying, currentTime, duration, setCurrentTime, setIsPlaying]);
-
-    // 通知父组件播放状态变化
-    useEffect(() => {
-      onPlayPauseChange?.(isPlaying);
-    }, [isPlaying, onPlayPauseChange]);
 
     // 监听容器尺寸变化
     useEffect(() => {
@@ -199,15 +170,16 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       }
     };
 
-    // 处理播放/暂停
-    const handlePlayPause = () => {
-      setIsPlaying(!isPlaying);
-    };
-
     return (
       <div className={"w-full flex flex-col bg-editor-bg"}>
         {/* 工具栏 */}
-        <TimelineToolbar isPlaying={isPlaying} onPlayPause={handlePlayPause} />
+        <TimelineToolbar
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          onPlayPause={onPlayPause}
+          onStepForward={onStepForward}
+          onStepBackward={onStepBackward}
+        />
 
         {/* 时间轴主体 - 四层Grid布局 */}
         <div
@@ -235,7 +207,11 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
                 willChange: "transform",
               }}
             >
-              <TimelineRuler width={totalWidth} />
+              <TimelineRuler
+                width={totalWidth}
+                duration={duration}
+                onSeek={onSeek}
+              />
             </div>
           </div>
 
@@ -322,6 +298,9 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
             }}
           >
             <Playhead
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={onSeek}
               containerWidth={containerWidth}
               containerHeight={containerHeight}
             />
