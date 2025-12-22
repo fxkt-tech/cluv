@@ -63,7 +63,7 @@ export default function EditorPage() {
   const { state, updateProperty, setActiveTab, setActivePropertyTab } =
     useEditorState();
 
-  // Timeline store
+  // 使用 Timeline Store
   const tracks = useTimelineStore((state) => state.tracks);
   const addTrack = useTimelineStore((state) => state.addTrack);
   const insertTrackAt = useTimelineStore((state) => state.insertTrackAt);
@@ -82,9 +82,11 @@ export default function EditorPage() {
   const snappingEnabled = useTimelineStore((state) => state.snappingEnabled);
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
   const fps = useTimelineStore((state) => state.fps);
+  const isPlaying = useTimelineStore((state) => state.isPlaying);
+  const stepForward = useTimelineStore((state) => state.stepForward);
+  const stepBackward = useTimelineStore((state) => state.stepBackward);
   const resetTimelineStore = useTimelineStore((state) => state.reset);
 
-  const [isPlaying, setIsPlaying] = useState(false);
   const [activeDragData, setActiveDragData] = useState<DragData | Clip | null>(
     null,
   );
@@ -319,15 +321,9 @@ export default function EditorPage() {
   };
 
   // Handle play/pause state change from Timeline
-  const handleTimelinePlayPauseChange = (playing: boolean) => {
-    setIsPlaying(playing);
-    if (playerRef.current) {
-      if (playing) {
-        playerRef.current.play();
-      } else {
-        playerRef.current.pause();
-      }
-    }
+  // Timeline 和 Player 现在都使用 timelineStore 的 isPlaying，无需手动同步
+  const handleTimelinePlayPauseChange = () => {
+    // 状态已经通过 store 同步，这里可以添加额外的逻辑（如果需要）
   };
 
   const handleBackToProjects = () => {
@@ -679,17 +675,12 @@ export default function EditorPage() {
       }
     },
     onStepForward: () => {
-      if (playerRef.current) {
-        const currentTime = playerRef.current.getCurrentTime();
-        const duration = playerRef.current.getDuration();
-        playerRef.current.seekTo(Math.min(duration, currentTime + 1 / 30));
-      }
+      // 使用 store 的帧步进方法，自动同步到所有组件
+      stepForward();
     },
     onStepBackward: () => {
-      if (playerRef.current) {
-        const currentTime = playerRef.current.getCurrentTime();
-        playerRef.current.seekTo(Math.max(0, currentTime - 1 / 30));
-      }
+      // 使用 store 的帧步进方法，自动同步到所有组件
+      stepBackward();
     },
   });
 
@@ -762,7 +753,6 @@ export default function EditorPage() {
               ref={playerRef}
               tracks={tracks}
               onTimeUpdate={handleTimeUpdate}
-              onPlayStateChange={(playing) => setIsPlaying(playing)}
               externalTime={timelineCurrentTime}
             />
 

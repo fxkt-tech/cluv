@@ -26,6 +26,8 @@ export interface TimelineRef {
   play: () => void;
   pause: () => void;
   togglePlayPause: () => void;
+  stepForward: () => void;
+  stepBackward: () => void;
 }
 
 interface TimelineProps {
@@ -54,7 +56,9 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
     const [containerWidth, setContainerWidth] = useState<number>(0);
     const [containerHeight, setContainerHeight] = useState<number>(0);
     const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    // 从 timelineStore 读取播放状态，作为单一数据源
+    const isPlaying = useTimelineStore((state) => state.isPlaying);
+    const setIsPlaying = useTimelineStore((state) => state.setIsPlaying);
     const animationFrameRef = useRef<number | undefined>(undefined);
 
     // 监听拖拽事件以更新 activeDragData
@@ -81,19 +85,21 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       () => ({
         play: () => {
           setIsPlaying(true);
-          onPlayPauseChange?.(true);
         },
         pause: () => {
           setIsPlaying(false);
-          onPlayPauseChange?.(false);
         },
         togglePlayPause: () => {
-          const newState = !isPlaying;
-          setIsPlaying(newState);
-          onPlayPauseChange?.(newState);
+          setIsPlaying(!isPlaying);
+        },
+        stepForward: () => {
+          useTimelineStore.getState().stepForward();
+        },
+        stepBackward: () => {
+          useTimelineStore.getState().stepBackward();
         },
       }),
-      [isPlaying, onPlayPauseChange],
+      [isPlaying, setIsPlaying],
     );
 
     // 计算时间轴内容区域的总宽度和高度
@@ -124,7 +130,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
           if (newTime >= duration) {
             setIsPlaying(false);
             setCurrentTime(duration);
-            onPlayPauseChange?.(false);
           } else {
             setCurrentTime(newTime);
             animationFrameRef.current = requestAnimationFrame(animate);
@@ -139,7 +144,12 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
           }
         };
       }
-    }, [isPlaying, currentTime, duration, setCurrentTime, onPlayPauseChange]);
+    }, [isPlaying, currentTime, duration, setCurrentTime, setIsPlaying]);
+
+    // 通知父组件播放状态变化
+    useEffect(() => {
+      onPlayPauseChange?.(isPlaying);
+    }, [isPlaying, onPlayPauseChange]);
 
     // 监听容器尺寸变化
     useEffect(() => {
@@ -191,9 +201,7 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
 
     // 处理播放/暂停
     const handlePlayPause = () => {
-      const newState = !isPlaying;
-      setIsPlaying(newState);
-      onPlayPauseChange?.(newState);
+      setIsPlaying(!isPlaying);
     };
 
     return (

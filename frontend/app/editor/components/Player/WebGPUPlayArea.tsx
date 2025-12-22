@@ -21,6 +21,7 @@ import { Track } from "../../types/timeline";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { SHADER_SOURCE } from "./shader/video";
 import { formatTime } from "../../utils/time";
+import { useTimelineStore } from "../../stores/timelineStore";
 
 /**
  * 视频图层接口
@@ -84,7 +85,17 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
     ref,
   ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+    // 从 timelineStore 读取播放状态和时间，作为单一数据源
+    const isPlaying = useTimelineStore((state) => state.isPlaying);
+    const setIsPlaying = useTimelineStore((state) => state.setIsPlaying);
+    const timelineCurrentTime = useTimelineStore((state) => state.currentTime);
+    const setTimelineCurrentTime = useTimelineStore(
+      (state) => state.setCurrentTime,
+    );
+    const stepForward = useTimelineStore((state) => state.stepForward);
+    const stepBackward = useTimelineStore((state) => state.stepBackward);
+
+    // 本地状态用于渲染循环的高频更新
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [hasLayers, setHasLayers] = useState(false);
@@ -102,6 +113,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
     const lastTimestampRef = useRef<number>(0);
     const isSeekingRef = useRef(false);
     const externalTimeRef = useRef<number | undefined>(undefined);
+    const lastTimelineSyncTimeRef = useRef<number>(timelineCurrentTime);
 
     /**
      * 初始化 WebGPU
@@ -198,7 +210,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
     /**
      * 同步所有视频到指定时间
      */
-    const syncVideosToTime = (time: number) => {
+    const syncVideosToTime = useCallback((time: number) => {
       layersRef.current.forEach((layer) => {
         if (!layer.video.duration) return;
 
@@ -215,7 +227,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
           layer.video.currentTime = targetTime;
         }
       });
-    };
+    }, []);
 
     /**
      * 渲染循环
@@ -264,6 +276,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
         }
 
         setCurrentTime(newTime);
+        setTimelineCurrentTime(newTime);
         onTimeUpdate?.(newTime);
       }
 
@@ -546,22 +559,19 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
         syncVideosToTime(0);
       }
 
-      setIsPlaying(true);
-      onPlayStateChange?.(true);
-
+      // 只控制视频播放，不修改状态
       layersRef.current.forEach((layer) => {
         const localTime = currentTime - layer.startTime;
         if (localTime >= 0 && localTime < layer.video.duration) {
           layer.video.play().catch(() => {});
         }
       });
-    }, [currentTime, duration, onPlayStateChange]);
+    }, [currentTime, duration, syncVideosToTime]);
 
     const pause = useCallback(() => {
-      setIsPlaying(false);
-      onPlayStateChange?.(false);
+      // 只控制视频暂停，不修改状态
       layersRef.current.forEach((layer) => layer.video.pause());
-    }, [onPlayStateChange]);
+    }, []);
 
     const seekTo = useCallback(
       (time: number) => {
@@ -574,7 +584,7 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
           isSeekingRef.current = false;
         }, 100);
       },
-      [onTimeUpdate],
+      [onTimeUpdate, syncVideosToTime],
     );
 
     const getCurrentTime = useCallback(() => currentTime, [currentTime]);
@@ -643,6 +653,30 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // 监听 timelineStore 的 currentTime 变化进行同步（用于帧步进等操作）
+    useEffect(() => {
+      // 使用 ref 来跟踪上次同步的时间，避免循环
+      if (
+        !isPlaying &&
+        timelineCurrentTime !== lastTimelineSyncTimeRef.current &&
+        Math.abs(currentTime - timelineCurrentTime) > 0.01
+      ) {
+        lastTimelineSyncTimeRef.current = timelineCurrentTime;
+        // 使用 setTimeout 避免在 effect 中直接调用 setState
+        setTimeout(() => {
+          setCurrentTime(timelineCurrentTime);
+          syncVideosToTime(timelineCurrentTime);
+          onTimeUpdate?.(timelineCurrentTime);
+        }, 0);
+      }
+    }, [
+      timelineCurrentTime,
+      isPlaying,
+      currentTime,
+      syncVideosToTime,
+      onTimeUpdate,
+    ]);
+
     // 外部时间同步 - 使用 ref 避免在 effect 中调用 setState
     useEffect(() => {
       externalTimeRef.current = externalTime;
@@ -662,25 +696,34 @@ export const WebGPUPlayArea = forwardRef<PlayerRef, PlayerProps>(
       };
     }, [tracks, syncTracksToLayers, isWebGPUReady]);
 
+    // 监听 isPlaying 状态变化，自动控制视频播放/暂停
+    useEffect(() => {
+      if (isPlaying && layersRef.current.length > 0) {
+        layersRef.current.forEach((layer) => {
+          const localTime = currentTime - layer.startTime;
+          if (localTime >= 0 && localTime < layer.video.duration) {
+            layer.video.play().catch(() => {});
+          }
+        });
+      } else {
+        layersRef.current.forEach((layer) => layer.video.pause());
+      }
+    }, [isPlaying, currentTime]);
+
     // 播放/暂停控制
     const handlePlayPause = () => {
-      if (isPlaying) {
-        pause();
-      } else {
-        play();
-      }
+      // 通过 store 切换播放状态，会触发 useEffect 监听
+      setIsPlaying(!isPlaying);
     };
 
-    // 上一帧（1/30 秒）
+    // 上一帧 - 使用 store 的方法
     const handlePrevious = () => {
-      const newTime = Math.max(0, currentTime - 1 / 30);
-      seekTo(newTime);
+      stepBackward();
     };
 
-    // 下一帧（1/30 秒）
+    // 下一帧 - 使用 store 的方法
     const handleNext = () => {
-      const newTime = Math.min(duration, currentTime + 1 / 30);
-      seekTo(newTime);
+      stepForward();
     };
 
     return (

@@ -46,6 +46,15 @@ interface TimelineStore extends TimelineState {
   zoomIn: () => void;
   zoomOut: () => void;
 
+  // 播放控制
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
+  play: () => void;
+  pause: () => void;
+  togglePlayPause: () => void;
+  stepForward: () => void;
+  stepBackward: () => void;
+
   // 拖拽操作
   startDrag: (clipId: string) => void;
   endDrag: () => void;
@@ -102,6 +111,10 @@ const initialState: TimelineState = {
   fps: TIMELINE_CONFIG.DEFAULT_FPS,
 };
 
+const initialPlayState = {
+  isPlaying: false,
+};
+
 /**
  * Timeline Store
  */
@@ -114,6 +127,7 @@ const saveToHistory = () => {
 
 export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   ...initialState,
+  ...initialPlayState,
 
   // Track 操作
   addTrack: (type) => {
@@ -558,12 +572,43 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
 
   zoomIn: () => {
     const { zoomLevel, setZoomLevel } = get();
-    setZoomLevel(zoomLevel * 1.2);
+    setZoomLevel(Math.min(zoomLevel * 1.2, 5));
   },
 
   zoomOut: () => {
     const { zoomLevel, setZoomLevel } = get();
-    setZoomLevel(zoomLevel / 1.2);
+    setZoomLevel(Math.max(zoomLevel / 1.2, 0.1));
+  },
+
+  // 播放控制
+  setIsPlaying: (playing) => {
+    set({ isPlaying: playing });
+  },
+
+  play: () => {
+    set({ isPlaying: true });
+  },
+
+  pause: () => {
+    set({ isPlaying: false });
+  },
+
+  togglePlayPause: () => {
+    set((state) => ({ isPlaying: !state.isPlaying }));
+  },
+
+  stepForward: () => {
+    const { currentTime, duration, fps, setCurrentTime } = get();
+    const frameTime = 1 / fps;
+    const newTime = Math.min(duration, currentTime + frameTime);
+    setCurrentTime(newTime);
+  },
+
+  stepBackward: () => {
+    const { currentTime, fps, setCurrentTime } = get();
+    const frameTime = 1 / fps;
+    const newTime = Math.max(0, currentTime - frameTime);
+    setCurrentTime(newTime);
   },
 
   // 拖拽操作
@@ -714,6 +759,6 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   // 重置
   reset: () => {
     useHistoryStore.getState().clearHistory();
-    set(initialState);
+    set({ ...initialState, ...initialPlayState });
   },
 }));
