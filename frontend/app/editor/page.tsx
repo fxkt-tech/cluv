@@ -129,30 +129,6 @@ export default function EditorPage() {
     playerRef.current?.seekTo(time);
   }, []);
 
-  // === 键盘快捷键 ===
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 空格键：播放/暂停
-      if (e.code === "Space" && e.target === document.body) {
-        e.preventDefault();
-        handlePlayPause();
-      }
-      // 左箭头：上一帧
-      if (e.code === "ArrowLeft" && e.target === document.body) {
-        e.preventDefault();
-        handleStepBackward();
-      }
-      // 右箭头：下一帧
-      if (e.code === "ArrowRight" && e.target === document.body) {
-        e.preventDefault();
-        handleStepForward();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handlePlayPause, handleStepForward, handleStepBackward]);
-
   // 全局拖拽传感器配置
   const sensors = useSensors(
     useSensor(PointerSensor, {
