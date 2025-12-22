@@ -94,6 +94,9 @@ export default function EditorPage() {
   const isSyncingFromProtocolRef = useRef(false);
   const isSavingToProtocolRef = useRef(false);
 
+  // Flag to prevent duplicate drag end handling
+  const isDragEndProcessingRef = useRef(false);
+
   // Player ref for external control
   const playerRef = useRef<PlayerRef>(null);
   // Timeline ref for external control
@@ -350,6 +353,12 @@ export default function EditorPage() {
 
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
+    // Prevent duplicate execution
+    if (isDragEndProcessingRef.current) {
+      return;
+    }
+    isDragEndProcessingRef.current = true;
+
     const { active, over } = event;
 
     // Calculate final mouse position
@@ -362,7 +371,13 @@ export default function EditorPage() {
 
     setActiveDragData(null);
 
-    if (!over) return;
+    if (!over) {
+      // Reset flag before returning
+      setTimeout(() => {
+        isDragEndProcessingRef.current = false;
+      }, 100);
+      return;
+    }
 
     const activeData = active.data.current;
     const dropData = over.data.current;
@@ -652,6 +667,11 @@ export default function EditorPage() {
         updateClip(clipId, { startTime: newStartTime });
       }
     }
+
+    // Reset flag after processing
+    setTimeout(() => {
+      isDragEndProcessingRef.current = false;
+    }, 100);
   };
 
   // 键盘快捷键

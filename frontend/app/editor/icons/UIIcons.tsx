@@ -3,8 +3,6 @@
  * SVG icons for UI elements
  */
 
-import React from "react";
-
 interface IconProps {
   size?: number;
   className?: string;
@@ -109,6 +107,42 @@ export function KeyboardIcon({ size = 24, className = "" }: IconProps) {
       <rect x="14" y="12" width="2" height="2" rx="0.5" fill="currentColor" />
       <rect x="17" y="12" width="2" height="2" rx="0.5" fill="currentColor" />
       <rect x="7" y="15" width="10" height="2" rx="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function DeleteIcon({ size = 16, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        d="M4 4L12 12M4 12L12 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function DragHandleIcon({ size = 16, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
     </svg>
   );
 }

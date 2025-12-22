@@ -81,11 +81,13 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
         if (data && "resourceId" in data) {
           setActiveDragData(data as DragData);
         }
-        onDragStart?.(event);
+        // 不在这里调用 onDragStart，避免重复执行
+        // onDragStart?.(event);
       },
       onDragEnd: (event) => {
         setActiveDragData(null);
-        onDragEnd?.(event);
+        // 不在这里调用 onDragEnd，避免重复执行
+        // onDragEnd?.(event);
       },
       onDragCancel: () => {
         setActiveDragData(null);

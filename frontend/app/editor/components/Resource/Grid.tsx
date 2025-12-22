@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 import { DragData, MediaType } from "../../types/timeline";
+import { DeleteIcon, DragHandleIcon } from "../../icons/UIIcons";
 
 interface BackendResource {
   id: string;
@@ -147,31 +148,24 @@ function ResourceItem({
           : "border-editor-border hover:border-accent-blue"
       } ${isDragging ? "opacity-50" : ""}`}
     >
-      <div className="absolute inset-0 flex items-center justify-center text-xs rounded p-1 text-center text-text-muted pointer-events-none">
+      <div className="absolute left-0 bottom-0 text-xs p-1 text-text-muted pointer-events-none">
         {resource.name}
       </div>
 
       {/* 拖拽提示图标 */}
-      <div className="absolute bottom-1 left-1 opacity-50 pointer-events-none">
-        <svg
-          className="w-4 h-4 text-gray-400"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
+      <div className="absolute top-1 left-0 opacity-50 pointer-events-none">
+        <DragHandleIcon size={16} className="text-gray-400" />
       </div>
 
       {/* Delete button - hidden by default, shown on hover */}
       <button
         onClick={onDelete}
         disabled={isDeleting}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded disabled:opacity-50 bg-accent-red text-white hover:opacity-80 z-10"
-        style={{ fontSize: "12px" }}
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded disabled:opacity-50 bg-accent-red text-white hover:opacity-80 z-10 flex items-center justify-center"
         title="Delete material"
         aria-label="Delete material"
       >
-        {isDeleting ? "..." : "✕"}
+        {isDeleting ? "..." : <DeleteIcon size={12} />}
       </button>
     </div>
   );

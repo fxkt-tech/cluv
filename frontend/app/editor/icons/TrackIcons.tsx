@@ -3,8 +3,6 @@
  * SVG icons for timeline track controls
  */
 
-import React from "react";
-
 interface IconProps {
   size?: number;
   className?: string;

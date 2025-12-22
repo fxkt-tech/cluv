@@ -3,7 +3,7 @@
 "use client";
 
 import React from "react";
-import { Clip, MediaType, getTrackHeight } from "../../types/timeline";
+import { Clip, getTrackHeight } from "../../types/timeline";
 import { TIMELINE_CONFIG } from "../../types/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
 import { timeToPixels } from "../../utils/timeline";

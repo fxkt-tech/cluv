@@ -3,14 +3,12 @@
  * SVG icons for video player controls
  */
 
-import React from 'react';
-
 interface IconProps {
   size?: number;
   className?: string;
 }
 
-export function PlayIcon({ size = 24, className = '' }: IconProps) {
+export function PlayIcon({ size = 24, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -31,7 +29,7 @@ export function PlayIcon({ size = 24, className = '' }: IconProps) {
   );
 }
 
-export function PauseIcon({ size = 24, className = '' }: IconProps) {
+export function PauseIcon({ size = 24, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -41,19 +39,13 @@ export function PauseIcon({ size = 24, className = '' }: IconProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <path
-        d="M6 4H10V20H6V4Z"
-        fill="currentColor"
-      />
-      <path
-        d="M14 4H18V20H14V4Z"
-        fill="currentColor"
-      />
+      <path d="M6 4H10V20H6V4Z" fill="currentColor" />
+      <path d="M14 4H18V20H14V4Z" fill="currentColor" />
     </svg>
   );
 }
 
-export function PreviousFrameIcon({ size = 24, className = '' }: IconProps) {
+export function PreviousFrameIcon({ size = 24, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -80,7 +72,7 @@ export function PreviousFrameIcon({ size = 24, className = '' }: IconProps) {
   );
 }
 
-export function NextFrameIcon({ size = 24, className = '' }: IconProps) {
+export function NextFrameIcon({ size = 24, className = "" }: IconProps) {
   return (
     <svg
       width={size}
