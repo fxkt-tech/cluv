@@ -21,7 +21,9 @@ export default function HomePage() {
       <header className="h-8 flex items-center justify-between bg-slate-900/50 border-b border-slate-700 shrink-0">
         {/* macOS 窗口控制按钮 - 左侧 */}
         <div className="flex items-center h-full">
-          {platformType === "macos" && <WindowControls platform="macos" />}
+          <WindowControls
+            platform={platformType === "macos" ? "macos" : null}
+          />
           <div
             data-tauri-drag-region
             className="flex items-center gap-2 font-bold text-lg px-4 select-none"
@@ -38,7 +40,9 @@ export default function HomePage() {
 
         {/* 右侧 - Windows 窗口控制 */}
         <div className="flex items-center h-full">
-          {platformType === "windows" && <WindowControls platform="windows" />}
+          <WindowControls
+            platform={platformType === "windows" ? "windows" : null}
+          />
         </div>
       </header>
 

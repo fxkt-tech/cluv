@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface WindowControlsProps {
-  platform?: "windows" | "macos";
+  platform?: "windows" | "macos" | null;
 }
 
 export function WindowControls({ platform = "windows" }: WindowControlsProps) {
@@ -106,6 +106,11 @@ export function WindowControls({ platform = "windows" }: WindowControlsProps) {
     const appWindow = getCurrentWindow();
     await appWindow.close();
   };
+
+  // Don't render platform-specific controls until platform is detected to avoid hydration mismatch
+  if (!platform) {
+    return null;
+  }
 
   if (platform === "macos") {
     return (

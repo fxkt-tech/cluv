@@ -60,7 +60,7 @@ export function CreateProjectModal({
       getDefaultProjectsDir,
       onClose,
       onProjectCreated,
-    ]
+    ],
   );
 
   const handleClose = () => {
@@ -80,14 +80,35 @@ export function CreateProjectModal({
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 w-full max-w-md">
+        <div
+          className="rounded-lg shadow-2xl border w-full max-w-md"
+          style={{
+            background: "var(--color-editor-panel)",
+            borderColor: "var(--color-editor-border)",
+          }}
+        >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">创建新项目</h2>
+          <div
+            className="px-6 py-4 border-b flex justify-between items-center"
+            style={{ borderColor: "var(--color-editor-border)" }}
+          >
+            <h2
+              className="text-xl font-bold"
+              style={{ color: "var(--color-text-fg)" }}
+            >
+              创建新项目
+            </h2>
             <button
               onClick={handleClose}
               disabled={status === "creating"}
-              className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+              className="transition-colors disabled:opacity-50"
+              style={{ color: "var(--color-text-secondary)" }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.color = "var(--color-text-fg)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "var(--color-text-secondary)")
+              }
               aria-label="Close"
             >
               ✕
@@ -106,7 +127,20 @@ export function CreateProjectModal({
                   setError(null);
                 }}
                 placeholder="项目名称"
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 transition-all"
+                style={{
+                  background: "var(--color-editor-bg-alt)",
+                  borderColor: "var(--color-editor-border)",
+                  color: "var(--color-text-fg)",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--color-accent-cyan)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--color-editor-border)";
+                }}
                 disabled={status === "creating"}
                 autoFocus
               />
@@ -114,15 +148,37 @@ export function CreateProjectModal({
 
             {/* Error Message */}
             {error && (
-              <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg">
-                <p className="text-sm text-red-400">{error}</p>
+              <div
+                className="p-3 border rounded-lg"
+                style={{
+                  background: "var(--color-accent-red)",
+                  borderColor: "var(--color-accent-red)",
+                  opacity: 0.3,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-accent-red)" }}
+                >
+                  {error}
+                </p>
               </div>
             )}
 
             {/* Success Message */}
             {status === "success" && (
-              <div className="p-3 bg-green-900/20 border border-green-800 rounded-lg">
-                <p className="text-sm text-green-400">
+              <div
+                className="p-3 border rounded-lg"
+                style={{
+                  background: "var(--color-accent-green)",
+                  borderColor: "var(--color-accent-green)",
+                  opacity: 0.3,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-accent-green)" }}
+                >
                   ✓ Project created successfully!
                 </p>
               </div>
@@ -133,11 +189,20 @@ export function CreateProjectModal({
               <button
                 type="submit"
                 disabled={status === "creating"}
-                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2"
+                style={{
+                  background: "var(--color-accent-cyan)",
+                  color: "var(--color-editor-panel)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 {status === "creating" ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div
+                      className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
+                      style={{ borderColor: "var(--color-editor-panel)" }}
+                    />
                     {"创建中..."}
                   </>
                 ) : (

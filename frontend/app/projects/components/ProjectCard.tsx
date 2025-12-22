@@ -70,34 +70,70 @@ export function ProjectCard({
     >
       <button
         onClick={onSelect}
-        className={`w-full text-left p-4 rounded-lg border transition-all ${
-          isSelected
-            ? "bg-cyan-900/30 border-cyan-500 shadow-lg shadow-cyan-500/20"
-            : "bg-slate-800 border-slate-700 hover:border-slate-600 hover:bg-slate-750"
-        }`}
+        className="w-full text-left p-4 rounded-lg border transition-all"
+        style={{
+          background: isSelected
+            ? "var(--color-editor-bg-alt)"
+            : "var(--color-editor-panel)",
+          borderColor: isSelected
+            ? "var(--color-accent-cyan)"
+            : "var(--color-editor-border)",
+          boxShadow: isSelected
+            ? "0 10px 15px -3px rgba(137, 165, 168, 0.2)"
+            : "none",
+        }}
       >
         <div className="flex items-start justify-between gap-4 mb-3">
-          <h3 className="text-lg font-semibold text-white truncate flex-1">
+          <h3
+            className="text-lg font-semibold truncate flex-1"
+            style={{ color: "var(--color-text-fg)" }}
+          >
             {project.name}
           </h3>
           {isSelected && (
-            <div className="shrink-0 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">✓</span>
+            <div
+              className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ background: "var(--color-accent-cyan)" }}
+            >
+              <span
+                className="text-xs font-bold"
+                style={{ color: "var(--color-editor-panel)" }}
+              >
+                ✓
+              </span>
             </div>
           )}
         </div>
 
         <p
-          className="text-slate-400 text-xs mb-2 truncate hover:text-cyan-400 cursor-pointer transition-colors"
+          className="text-xs mb-2 truncate cursor-pointer transition-colors"
+          style={{ color: "var(--color-text-secondary)" }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.color = "var(--color-accent-cyan)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = "var(--color-text-secondary)")
+          }
           onClick={handleOpenFolder}
           title="打开项目所在位置"
         >
           {project.path}
         </p>
 
-        <div className="flex flex-col gap-1 pt-2 border-t border-slate-700">
-          <span className="text-slate-500 text-xs">创建: {createdDate}</span>
-          <span className="text-slate-500 text-xs">
+        <div
+          className="flex flex-col gap-1 pt-2 border-t"
+          style={{ borderColor: "var(--color-editor-border)" }}
+        >
+          <span
+            className="text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            创建: {createdDate}
+          </span>
+          <span
+            className="text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
             更新: {lastModifiedDate}
           </span>
         </div>
@@ -108,7 +144,14 @@ export function ProjectCard({
         <button
           onClick={handleDeleteClick}
           disabled={isDeleting}
-          className="absolute top-2 right-2 p-2 text-slate-400 hover:text-red-400 transition-colors disabled:opacity-50"
+          className="absolute top-2 right-2 p-2 transition-colors disabled:opacity-50"
+          style={{ color: "var(--color-text-secondary)" }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.color = "var(--color-accent-red)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = "var(--color-text-secondary)")
+          }
           title="Delete project"
         >
           <svg
@@ -130,26 +173,52 @@ export function ProjectCard({
       {/* Confirmation Popup - positioned to the left of delete button */}
       {isDeleteConfirming && (
         <div
-          className="absolute top-0 right-12 z-10 bg-slate-900 border border-slate-700 rounded-lg shadow-xl p-3 w-48 pointer-events-auto"
+          className="absolute top-0 right-12 z-10 border rounded-lg shadow-xl p-3 w-48 pointer-events-auto"
+          style={{
+            background: "var(--color-editor-panel)",
+            borderColor: "var(--color-editor-border)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-slate-300 text-sm mb-3">确定删除此项目？</p>
+          <p className="text-sm mb-3" style={{ color: "var(--color-text-fg)" }}>
+            确定删除此项目？
+          </p>
           <div className="flex gap-2">
             <button
               onClick={handleCancelDelete}
               disabled={isDeleting}
-              className="flex-1 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors disabled:opacity-50"
+              className="flex-1 px-3 py-1.5 text-sm rounded transition-colors disabled:opacity-50"
+              style={{
+                background: "var(--color-editor-bg-alt)",
+                color: "var(--color-text-fg)",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--color-editor-hover)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  "var(--color-editor-bg-alt)")
+              }
             >
               取消
             </button>
             <button
               onClick={handleConfirmDelete}
               disabled={isDeleting}
-              className="flex-1 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-500 text-white rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+              className="flex-1 px-3 py-1.5 text-sm rounded transition-all disabled:opacity-50 flex items-center justify-center gap-1"
+              style={{
+                background: "var(--color-accent-red)",
+                color: "var(--color-editor-panel)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               {isDeleting ? (
                 <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div
+                    className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                    style={{ borderColor: "var(--color-editor-panel)" }}
+                  />
                   删除中
                 </>
               ) : (
