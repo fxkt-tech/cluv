@@ -59,11 +59,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = ({ track }) => {
     >
       <div className="flex items-center gap-2">
         {/* 轨道类型图标 */}
-        <div className="shrink-0">
+        <div className="shrink-0 text-text-fg">
           {track.type === "video" ? (
-            <VideoTrackIcon className="w-4 h-4 text-accent-magenta" />
+            <VideoTrackIcon className="w-4 h-4" />
           ) : (
-            <AudioTrackIcon className="w-4 h-4 text-accent-green" />
+            <AudioTrackIcon className="w-4 h-4" />
           )}
         </div>
 

@@ -5,6 +5,7 @@
 import React from "react";
 import { DragData, Clip, MediaType } from "../../types/timeline";
 import { ClipContent } from "./ClipContent";
+import { AudioTrackIcon, VideoTrackIcon } from "../../icons";
 
 interface ClipDragPreviewProps {
   data: DragData | Clip;
@@ -39,15 +40,15 @@ export const ClipDragPreview: React.FC<ClipDragPreviewProps> = ({
     const mediaType = getMediaType();
     switch (mediaType) {
       case "video":
-        return "bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)]/80";
+        return "bg-accent-magenta border-accent-magenta/80";
       case "audio":
-        return "bg-[var(--color-accent-green)] border-[var(--color-accent-green)]/80";
+        return "bg-accent-green border-accent-green/80";
       case "image":
-        return "bg-[var(--color-accent-magenta)] border-[var(--color-accent-magenta)]/80";
+        return "bg-accent-blue border-accent-blue/80";
       case "text":
-        return "bg-[var(--color-accent-yellow)] border-[var(--color-accent-yellow)]/80";
+        return "bg-accent-yellow border-accent-yellow/80";
       default:
-        return "bg-[var(--color-text-muted)] border-[var(--color-text-muted)]/80";
+        return "bg-text-muted border-text-muted/80";
     }
   };
 
@@ -55,21 +56,9 @@ export const ClipDragPreview: React.FC<ClipDragPreviewProps> = ({
     const mediaType = getMediaType();
     switch (mediaType) {
       case "video":
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-          </svg>
-        );
+        return <VideoTrackIcon className="w-4 h-4" />;
       case "audio":
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
+        return <AudioTrackIcon className="w-4 h-4" />;
       case "image":
         return (
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

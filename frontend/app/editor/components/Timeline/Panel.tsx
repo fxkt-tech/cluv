@@ -53,8 +53,6 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
       onStepForward,
       onStepBackward,
       onSeek,
-      onDragStart,
-      onDragEnd,
     },
     ref,
   ) => {
@@ -81,13 +79,9 @@ export const Timeline = forwardRef<TimelineRef, TimelineProps>(
         if (data && "resourceId" in data) {
           setActiveDragData(data as DragData);
         }
-        // 不在这里调用 onDragStart，避免重复执行
-        // onDragStart?.(event);
       },
-      onDragEnd: (event) => {
+      onDragEnd: () => {
         setActiveDragData(null);
-        // 不在这里调用 onDragEnd，避免重复执行
-        // onDragEnd?.(event);
       },
       onDragCancel: () => {
         setActiveDragData(null);

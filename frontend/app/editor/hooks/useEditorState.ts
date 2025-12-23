@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { EditorState, Properties } from "../types/editor";
-import { MOCK_TRACKS } from "../constants/data";
 
 const INITIAL_PROPERTIES: Properties = {
   scale: 100,
@@ -16,7 +15,7 @@ const INITIAL_PROPERTIES: Properties = {
 };
 
 const INITIAL_STATE: EditorState = {
-  tracks: MOCK_TRACKS,
+  tracks: [],
   selectedClipId: null,
   selectedTrackId: null,
   currentTime: 0,

@@ -8,7 +8,7 @@ interface IconProps {
   className?: string;
 }
 
-export function VideoTrackIcon({ size = 16, className = "" }: IconProps) {
+export function CameraIcon({ size = 16, className = "" }: IconProps) {
   return (
     <svg
       width={size}
@@ -23,6 +23,25 @@ export function VideoTrackIcon({ size = 16, className = "" }: IconProps) {
   );
 }
 
+export function VideoTrackIcon({ size = 16, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        fillRule="evenodd"
+        d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM5 5h2v2H5V5zm4 0h2v2H9V5zm4 0h2v2h-2V5zM5 13h2v2H5v-2zm4 0h2v2H9v-2zm4 0h2v2h-2v-2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export function AudioTrackIcon({ size = 16, className = "" }: IconProps) {
   return (
     <svg
@@ -33,7 +52,11 @@ export function AudioTrackIcon({ size = 16, className = "" }: IconProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <path d="M18 3a1 1 0 00-1.196-.98l-8 1.5A1 1 0 008 4.5v8.205a3 3 0 10.5 4.988C9.333 17.075 10 16.092 10 15V8.35l7-1.312V12.205a3 3 0 10.5 4.988c.833-.618 1.5-1.601 1.5-2.693V3z" />
+      <path
+        fillRule="evenodd"
+        d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 5a3 3 0 110 6 3 3 0 010-6zm0 2a1 1 0 100 2 1 1 0 000-2z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }

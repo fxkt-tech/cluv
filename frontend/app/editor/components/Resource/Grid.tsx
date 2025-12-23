@@ -114,7 +114,9 @@ function ResourceItem({
     if (
       type.includes("image") ||
       type.includes("png") ||
-      type.includes("jpg")
+      type.includes("jpg") ||
+      type.includes("jpeg") ||
+      type.includes("webp")
     ) {
       return "image";
     }
@@ -148,7 +150,7 @@ function ResourceItem({
           : "border-editor-border hover:border-accent-blue"
       } ${isDragging ? "opacity-50" : ""}`}
     >
-      <div className="absolute left-0 bottom-0 text-xs p-1 text-text-muted pointer-events-none">
+      <div className="absolute left-0 bottom-0 w-full text-xs p-1 text-text-muted pointer-events-none text-ellipsis text-nowrap overflow-hidden">
         {resource.name}
       </div>
 

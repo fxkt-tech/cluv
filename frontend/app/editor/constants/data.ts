@@ -1,8 +1,3 @@
-/**
- * Data Constants
- * Static data and configurations
- */
-
 import { ResourceTab } from "../types/editor";
 
 export const RESOURCE_TABS: ResourceTab[] = [
@@ -25,50 +20,4 @@ export const RESOURCE_TAB_LABELS: Record<ResourceTab, string> = {
   filters: "滤镜",
 };
 
-export const PROPERTY_TABS = ["Video", "Audio", "Speed", "Effects"] as const;
-
-export const TIMELINE_MARKS = [
-  "00:00",
-  "00:15",
-  "00:30",
-  "00:45",
-  "01:00",
-] as const;
-
-export const TIMELINE_TOOLS = [
-  { label: "Select", icon: "cursor" },
-  { label: "Split", icon: "scissors" },
-  { label: "Delete", icon: "trash" },
-] as const;
-
-export const PLAYBACK_BUTTONS = [
-  { symbol: "⏮", label: "Previous frame", action: "previous" },
-  { symbol: "▶️", label: "Play/Pause", action: "play" },
-  { symbol: "⏭", label: "Next frame", action: "next" },
-] as const;
-
-export const MOCK_RESOURCES = Array.from({ length: 6 }, (_, i) => ({
-  id: `resource-${i + 1}`,
-  name: `Media ${i + 1}`,
-  type: "media" as const,
-}));
-
-export const MOCK_TRACKS = [
-  {
-    id: "track-1",
-    name: "Main Track",
-    type: "video" as const,
-    visible: true,
-    locked: false,
-    clips: [
-      {
-        id: "clip-1",
-        name: "Video_Clip_01.mp4",
-        type: "video" as const,
-        startTime: 0,
-        duration: 5,
-        position: { x: 50, y: 0 },
-      },
-    ],
-  },
-];
+export const PROPERTY_TABS = ["画面", "音频", "变速"] as const;
