@@ -23,6 +23,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { SHADER_SOURCE } from "./shader/video";
 import { formatTime } from "../../utils/time";
 import { generateId } from "../../utils/timeline";
+import { useTimelineStore } from "../../stores/timelineStore";
 
 /**
  * 视频图层接口
@@ -65,6 +66,15 @@ export interface PlayerRef {
   updateLayerTransform: (
     layerId: string,
     transform: Partial<VideoLayer>,
+  ) => void;
+  updateClipTransform: (
+    clipId: string,
+    transform: {
+      position?: { x: number; y: number };
+      scale?: number;
+      rotation?: number;
+      opacity?: number;
+    },
   ) => void;
   syncTracksToLayers: (tracks: Track[]) => Promise<void>;
 }
@@ -121,9 +131,38 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
     const currentTimeRef = useRef(currentTime);
     const durationRef = useRef(duration);
 
-    // 画布尺寸
-    const width: number = 1920;
-    const height: number = 1080;
+    // 画布尺寸 - 从 stage 获取
+    const stage = useTimelineStore((state) => state.stage);
+    const width: number = stage.width;
+    const height: number = stage.height;
+
+    /**
+     * 将像素坐标转换为 WebGPU 标准化坐标
+     * 像素坐标系：中心为原点 (0, 0)，向右为 X 正方向，向上为 Y 正方向
+     * WebGPU 坐标系：中心为原点 (0, 0)，向右为 X 正方向，向上为 Y 正方向，范围 [-1, 1]
+     */
+    const pixelToNormalized = useCallback(
+      (pixelX: number, pixelY: number): { x: number; y: number } => {
+        // 将像素值转换为标准化坐标
+        const normalizedX = pixelX / (width / 2);
+        const normalizedY = pixelY / (height / 2);
+        return { x: normalizedX, y: normalizedY };
+      },
+      [width, height],
+    );
+
+    /**
+     * 将 WebGPU 标准化坐标转换为像素坐标
+     * 暂时未使用，保留供将来使用
+     */
+    // const normalizedToPixel = useCallback(
+    //   (normalizedX: number, normalizedY: number): { x: number; y: number } => {
+    //     const pixelX = normalizedX * (width / 2);
+    //     const pixelY = normalizedY * (height / 2);
+    //     return { x: pixelX, y: pixelY };
+    //   },
+    //   [width, height],
+    // );
 
     /**
      * 初始化 WebGPU
@@ -329,17 +368,22 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
           if (isVisible && hasResource) {
             try {
+              // 将像素坐标转换为标准化坐标
+              const normalizedPos = pixelToNormalized(layer.posX, layer.posY);
+
               // 更新 uniform buffer
               const data = new Float32Array([
-                layer.posX,
-                layer.posY,
+                normalizedPos.x,
+                normalizedPos.y,
                 layer.baseScaleX * layer.scale,
                 layer.baseScaleY * layer.scale,
+                layer.rotation ?? 0,
+                layer.opacity ?? 1.0,
               ]);
 
               if (!layer.uniformBuffer) {
                 layer.uniformBuffer = device.createBuffer({
-                  size: 16,
+                  size: 24,
                   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
                 });
               }
@@ -376,7 +420,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
       };
 
       renderLoopRef.current = renderLoop;
-    }, [isPlaying, currentTime, duration]);
+    }, [isPlaying, currentTime, duration, pixelToNormalized]);
 
     /**
      * 更新总时长（根据所有图层的最大结束时间）
@@ -407,6 +451,13 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         videoSrc: string,
         startTime: number = 0,
         name?: string,
+        clipId?: string,
+        transform?: {
+          position?: { x: number; y: number };
+          scale?: number;
+          rotation?: number;
+          opacity?: number;
+        },
       ): Promise<void> => {
         const device = deviceRef.current;
         if (!device) {
@@ -437,18 +488,21 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
             }
 
             const layer: VideoLayer = {
-              id: generateId(),
+              id: clipId ?? generateId(),
               name: name || `Video ${layersRef.current.length + 1}`,
               video,
               zIndex: 100 - layersRef.current.length,
-              posX: 0,
-              posY: 0,
-              scale: 1.0,
+              // 默认位置为中心 (0, 0) - 笛卡尔坐标系
+              posX: transform?.position?.x ?? 0,
+              posY: transform?.position?.y ?? 0,
+              scale: transform?.scale ?? 1.0,
               startTime,
               baseScaleX: initScaleX,
               baseScaleY: initScaleY,
-              opacity: 1.0,
-              rotation: 0,
+              opacity: transform?.opacity ?? 1.0,
+              rotation: transform?.rotation
+                ? transform.rotation * (Math.PI / 180)
+                : 0,
             };
 
             layersRef.current.push(layer);
@@ -462,7 +516,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           };
         });
       },
-      [updateDuration],
+      [updateDuration, width, height],
     );
 
     /**
@@ -515,18 +569,36 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
               src: clip.resourceSrc!,
               startTime: clip.startTime,
               name: clip.name,
+              transform: {
+                position: clip.position,
+                scale: clip.scale,
+                rotation: clip.rotation,
+                opacity: clip.opacity,
+              },
             })),
         );
 
-        // 检查是否需要更新
+        // 检查是否需要更新 - 不仅检查 ID，还要检查 startTime 等属性
         const existingIds = new Set(layersRef.current.map((l) => l.id));
         const newIds = new Set(videoClips.map((c) => c.id));
 
-        // 如果完全相同，不需要更新
-        if (
-          existingIds.size === newIds.size &&
-          [...existingIds].every((id) => newIds.has(id))
-        ) {
+        // 检查是否有 ID 变化或 startTime 变化
+        let needsUpdate =
+          existingIds.size !== newIds.size ||
+          ![...existingIds].every((id) => newIds.has(id));
+
+        // 如果 ID 相同，检查 startTime 是否有变化
+        if (!needsUpdate) {
+          for (const clip of videoClips) {
+            const layer = layersRef.current.find((l) => l.id === clip.id);
+            if (layer && Math.abs(layer.startTime - clip.startTime) > 0.001) {
+              needsUpdate = true;
+              break;
+            }
+          }
+        }
+
+        if (!needsUpdate) {
           return;
         }
 
@@ -544,15 +616,24 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         for (const clip of videoClips) {
           try {
             const videoUrl = convertFileSrc(clip.src);
-            await addVideoLayer(videoUrl, clip.startTime, clip.name);
+            await addVideoLayer(
+              videoUrl,
+              clip.startTime,
+              clip.name,
+              clip.id,
+              clip.transform,
+            );
           } catch (error) {
             console.error(`加载视频失败: ${clip.name}`, error);
           }
         }
 
         setHasLayers(videoClips.length > 0);
+
+        // 更新总时长
+        updateDuration();
       },
-      [addVideoLayer, isWebGPUReady],
+      [addVideoLayer, isWebGPUReady, updateDuration],
     );
 
     /**
@@ -673,6 +754,35 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         addVideoLayer, // 添加视频层
         clearLayers, // 清除所有层
         updateLayerTransform, // 更新层的变换
+        updateClipTransform: (
+          clipId: string,
+          transform: {
+            position?: { x: number; y: number };
+            scale?: number;
+            rotation?: number;
+            opacity?: number;
+          },
+        ) => {
+          const layer = layersRef.current.find((l) => l.id === clipId);
+          if (!layer) {
+            console.warn(`Layer not found: ${clipId}`);
+            return;
+          }
+
+          if (transform.position !== undefined) {
+            layer.posX = transform.position.x;
+            layer.posY = transform.position.y;
+          }
+          if (transform.scale !== undefined) {
+            layer.scale = transform.scale;
+          }
+          if (transform.rotation !== undefined) {
+            layer.rotation = transform.rotation * (Math.PI / 180);
+          }
+          if (transform.opacity !== undefined) {
+            layer.opacity = transform.opacity;
+          }
+        },
         syncTracksToLayers, // 同步轨道到层
       }),
       [
@@ -721,6 +831,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         });
         layersRef.current = [];
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // 从 tracks 同步图层（等待 WebGPU 初始化完成）

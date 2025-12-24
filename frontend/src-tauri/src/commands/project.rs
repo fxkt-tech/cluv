@@ -75,11 +75,14 @@ pub fn delete_project(app: AppHandle, project_id: String) -> Result<(), String> 
 pub fn list_projects_history(app: AppHandle) -> Result<Vec<ProjectHistory>, String> {
     let mut histories = load_histories(&app)?;
 
+    // Store original count before filtering
+    let original_count = histories.len();
+
     // Filter out projects that no longer exist
     histories.retain(|h| PathBuf::from(&h.path).exists());
 
     // Update history file if any were removed
-    if histories.len() < load_histories(&app).unwrap_or_default().len() {
+    if histories.len() < original_count {
         save_histories(&app, &histories)?;
     }
 

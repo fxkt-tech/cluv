@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { Track, Clip, TimelineState, TIMELINE_CONFIG } from "../types/timeline";
+import { StageConfig } from "../types/protocol";
 import { generateId, clamp } from "../utils/timeline";
 import { produce } from "immer";
 import { useHistoryStore } from "./historyStore";
@@ -10,6 +11,9 @@ import { useHistoryStore } from "./historyStore";
  * Timeline Store 接口
  */
 interface TimelineStore extends TimelineState {
+  // Stage 操作
+  setStage: (stage: StageConfig) => void;
+
   // Track 操作
   addTrack: (type: "video" | "audio") => void;
   insertTrackAt: (index: number, type: "video" | "audio") => void;
@@ -22,6 +26,15 @@ interface TimelineStore extends TimelineState {
   addClip: (trackId: string, clip: Omit<Clip, "id" | "trackId">) => void;
   removeClip: (clipId: string) => void;
   updateClip: (clipId: string, updates: Partial<Clip>) => void;
+  updateClipTransform: (
+    clipId: string,
+    transform: {
+      position?: { x: number; y: number };
+      scale?: number;
+      rotation?: number;
+      opacity?: number;
+    },
+  ) => void;
   moveClip: (
     clipId: string,
     targetTrackId: string,
@@ -57,6 +70,7 @@ interface TimelineStore extends TimelineState {
 
   // 查询方法
   getClipById: (clipId: string) => Clip | undefined;
+  getSelectedClip: () => Clip | null;
   getTrackById: (trackId: string) => Track | undefined;
   getClipsAtTime: (time: number) => Clip[];
 
@@ -74,6 +88,7 @@ interface TimelineStore extends TimelineState {
 
   // 获取当前状态快照（用于历史记录）
   getStateSnapshot: () => {
+    stage: StageConfig;
     tracks: Track[];
   };
 }
@@ -82,6 +97,10 @@ interface TimelineStore extends TimelineState {
  * 初始状态
  */
 const initialState: TimelineState = {
+  stage: {
+    width: 1920,
+    height: 1080,
+  },
   tracks: [],
   pixelsPerSecond: TIMELINE_CONFIG.BASE_PIXELS_PER_SECOND,
   zoomLevel: 1,
@@ -108,6 +127,11 @@ const saveToHistory = () => {
 
 export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   ...initialState,
+
+  // Stage 操作
+  setStage: (stage: StageConfig) => {
+    set({ stage });
+  },
 
   // Track 操作
   addTrack: (type) => {
@@ -222,6 +246,11 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
           ...clipData,
           id: generateId("clip"),
           trackId,
+          // 确保有默认 transform 值 - 中心原点坐标系 (0, 0)
+          position: clipData.position ?? { x: 0, y: 0 },
+          scale: clipData.scale ?? 1,
+          rotation: clipData.rotation ?? 0,
+          opacity: clipData.opacity ?? 1,
         };
 
         track.clips.push(newClip);
@@ -265,6 +294,32 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
           if (clip) {
             Object.assign(clip, updates);
 
+            return;
+          }
+        }
+      }),
+    );
+  },
+
+  updateClipTransform: (clipId, transform) => {
+    saveToHistory();
+    set((state) =>
+      produce(state, (draft) => {
+        for (const track of draft.tracks) {
+          const clip = track.clips.find((c) => c.id === clipId);
+          if (clip) {
+            if (transform.position !== undefined) {
+              clip.position = transform.position;
+            }
+            if (transform.scale !== undefined) {
+              clip.scale = transform.scale;
+            }
+            if (transform.rotation !== undefined) {
+              clip.rotation = transform.rotation;
+            }
+            if (transform.opacity !== undefined) {
+              clip.opacity = transform.opacity;
+            }
             return;
           }
         }
@@ -566,6 +621,12 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     return undefined;
   },
 
+  getSelectedClip: () => {
+    const state = get();
+    if (state.selectedClipIds.length !== 1) return null;
+    return state.getClipById(state.selectedClipIds[0]) ?? null;
+  },
+
   getTrackById: (trackId) => {
     return get().tracks.find((t) => t.id === trackId);
   },
@@ -615,6 +676,7 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     if (previousState) {
       set((state) =>
         produce(state, (draft) => {
+          draft.stage = previousState.stage;
           draft.tracks = previousState.tracks;
         }),
       );
@@ -626,6 +688,7 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
     if (nextState) {
       set((state) =>
         produce(state, (draft) => {
+          draft.stage = nextState.stage;
           draft.tracks = nextState.tracks;
         }),
       );
@@ -644,6 +707,7 @@ export const useTimelineStore = create<TimelineStore>()((set, get) => ({
   getStateSnapshot: () => {
     const state = get();
     return {
+      stage: JSON.parse(JSON.stringify(state.stage)),
       tracks: JSON.parse(JSON.stringify(state.tracks)), // 深拷贝
     };
   },

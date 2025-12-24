@@ -2,12 +2,14 @@
 
 import { create } from "zustand";
 import { TimelineState } from "../types/timeline";
+import { StageConfig } from "../types/protocol";
 import { produce } from "immer";
 
 /**
  * 历史记录状态
  */
 interface HistoryState {
+  stage: StageConfig;
   tracks: TimelineState["tracks"];
 }
 

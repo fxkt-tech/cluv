@@ -22,7 +22,7 @@ const INITIAL_STATE: EditorState = {
   playbackTime: "00:00:00:00",
   zoomLevel: 1,
   activeTab: "media",
-  activePropertyTab: "video",
+  activePropertyTab: "frame",
   properties: INITIAL_PROPERTIES,
   isPlaying: false,
 };
@@ -47,9 +47,7 @@ export function useEditorState() {
     }));
   };
 
-  const setActivePropertyTab = (
-    tab: "video" | "audio" | "speed" | "effects",
-  ) => {
+  const setActivePropertyTab = (tab: string) => {
     setState((prev) => ({
       ...prev,
       activePropertyTab: tab,

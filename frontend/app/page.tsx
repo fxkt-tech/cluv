@@ -1,24 +1,119 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useProjectList, ProjectHistory } from "./hooks/useProjectList";
+import { ProjectCard } from "./components/ProjectCard";
+import { CreateProjectModal } from "./components/CreateProjectModal";
 import { WindowControls } from "@/app/components/WindowControls";
 import { usePlatform } from "@/app/hooks/usePlatform";
+import { useTheme } from "@/app/hooks/useTheme";
 
-export default function HomePage() {
+export default function ProjectsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { projects, isLoading, error, refreshProjects } = useProjectList();
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   const platformType = usePlatform();
+  useTheme();
 
+  const navigationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Initialize modal state from URL param
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(() => {
+    const shouldOpen = searchParams.get("create") === "true";
+    return shouldOpen;
+  });
+
+  // Clean up URL param after initial render
   useEffect(() => {
-    router.replace("/projects");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const shouldCleanup = searchParams.get("create") === "true";
+    if (shouldCleanup) {
+      // Use setTimeout to avoid potential infinite loops
+      const timer = setTimeout(() => {
+        router.replace("/projects");
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [router, searchParams]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+    };
   }, []);
 
+  const handleProjectSelect = useCallback(
+    (project: ProjectHistory) => {
+      // Prevent multiple clicks and navigation
+      if (selectedProject === project.id || isNavigating) return;
+
+      setIsNavigating(true);
+      setSelectedProject(project.id);
+
+      // Clear any existing timer
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+
+      // Redirect to editor with project ID after a small delay
+      navigationTimerRef.current = setTimeout(() => {
+        router.push(`/editor?id=${encodeURIComponent(project.id)}`);
+        // Reset navigation state after navigation completes
+        setTimeout(() => {
+          setIsNavigating(false);
+        }, 500);
+      }, 100);
+    },
+    [selectedProject, isNavigating, router],
+  );
+
+  const handleCreateProject = useCallback(() => {
+    // Prevent multiple clicks
+    if (isNavigating) return;
+
+    setIsCreateModalOpen(true);
+
+    // Focus the create button for better UX
+    if (createButtonRef.current) {
+      setTimeout(() => {
+        createButtonRef.current?.blur();
+      }, 100);
+    }
+  }, [isNavigating]);
+
+  const handleCreateProjectClose = useCallback(() => {
+    // Prevent multiple calls
+    setIsCreateModalOpen(false);
+  }, []);
+
+  const handleProjectCreated = useCallback(() => {
+    refreshProjects();
+  }, [refreshProjects]);
+
+  const handleProjectDeleted = useCallback(() => {
+    setSelectedProject(null);
+    refreshProjects();
+  }, [refreshProjects]);
+
   return (
-    <div className="min-h-screen flex flex-col bg-linear-to-br from-slate-900 to-slate-800">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--color-editor-bg)" }}
+    >
       {/* Custom Header with Window Controls */}
-      <header className="h-8 flex items-center justify-between bg-slate-900/50 border-b border-slate-700 shrink-0">
+      <header
+        className="h-8 flex items-center justify-between border-b shrink-0"
+        style={{
+          background: "var(--color-editor-panel)",
+          borderColor: "var(--color-editor-border)",
+        }}
+      >
         {/* macOS 窗口控制按钮 - 左侧 */}
         <div className="flex items-center h-full">
           <WindowControls
@@ -28,15 +123,18 @@ export default function HomePage() {
             data-tauri-drag-region
             className="flex items-center gap-2 font-bold text-lg px-4 select-none"
           >
-            <span className="text-cyan-400">KivaCut</span>
+            <span style={{ color: "var(--color-accent-cyan)" }}>KivaCut</span>
           </div>
         </div>
 
         {/* 中间拖拽区域 */}
         <div
           data-tauri-drag-region
-          className="flex-1 flex items-center justify-center select-none"
-        ></div>
+          className="flex-1 flex items-center justify-center text-sm select-none"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          项目列表
+        </div>
 
         {/* 右侧 - Windows 窗口控制 */}
         <div className="flex items-center h-full">
@@ -47,48 +145,111 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-md">
-          <div className="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 p-8 text-center">
-            {/* Logo */}
-            <div className="mb-8">
-              <div className="text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-cyan-600 mb-2">
-                KivaCut
-              </div>
-              <p className="text-slate-400">Professional Video Editor</p>
-            </div>
-
-            {/* Description */}
-            <div className="mb-8 text-left">
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Create and edit videos with ease. Organize your assets, compose
-                tracks, and produce professional-quality video content.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Link
-                href="/project"
-                className="block w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg transition-colors text-center"
-              >
-                Create New Project
-              </Link>
-              <Link
-                href="/projects"
-                className="block w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors text-center"
-              >
-                Open Existing Project
-              </Link>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-slate-700">
-              <p className="text-xs text-slate-500">
-                Version 0.1.0 • © 2025 KivaCut
-              </p>
-            </div>
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-12">
+            <button
+              ref={createButtonRef}
+              onClick={handleCreateProject}
+              disabled={isNavigating}
+              style={{
+                height: "100px",
+                background: `linear-gradient(to right, var(--color-accent-blue), var(--color-accent-green))`,
+                color: "var(--color-editor-panel)",
+              }}
+              className="w-full font-medium rounded-lg transition-all shadow-md flex items-center justify-center hover:opacity-90 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isNavigating ? "处理中..." : "开始创作"}
+            </button>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div
+              className="border rounded-lg px-4 py-3 mb-8"
+              style={{
+                background: "var(--color-accent-red)",
+                borderColor: "var(--color-accent-red)",
+                opacity: 0.3,
+              }}
+            >
+              <p style={{ color: "var(--color-accent-red)" }}>⚠️ {error}</p>
+            </div>
+          )}
+
+          {/* Projects Grid */}
+          <div>
+            <div className="mb-6">
+              <h2
+                className="text-xl font-semibold"
+                style={{ color: "var(--color-text-fg)" }}
+              >
+                {"草稿"}
+                {projects.length > 0 && (
+                  <span
+                    className="ml-2"
+                    style={{ color: "var(--color-text-secondary)" }}
+                  >
+                    ({projects.length})
+                  </span>
+                )}
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div
+                  className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2"
+                  style={{ borderColor: "var(--color-accent-cyan)" }}
+                ></div>
+              </div>
+            ) : projects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    isSelected={selectedProject === project.id}
+                    onSelect={() => handleProjectSelect(project)}
+                    onDelete={handleProjectDeleted}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                className="rounded-lg border border-dashed p-8 text-center"
+                style={{
+                  background: "var(--color-editor-panel)",
+                  borderColor: "var(--color-editor-border)",
+                }}
+              >
+                <p
+                  className="mb-2"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  还没有项目捏~
+                </p>
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-text-tertiary)" }}
+                >
+                  创建一个吧
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Create Project Modal */}
+          <CreateProjectModal
+            isOpen={isCreateModalOpen}
+            onClose={handleCreateProjectClose}
+            onProjectCreated={handleProjectCreated}
+          />
+
+          {/* Navigation overlay to prevent interactions during navigation */}
+          {isNavigating && (
+            <div className="fixed inset-0 z-50 pointer-events-none"></div>
+          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ export const SHADER_SOURCE = `
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
   @location(0) uv: vec2<f32>,
+  @location(1) opacity: f32,
 }
 
 struct Uniforms {
@@ -12,6 +13,8 @@ struct Uniforms {
   posY: f32,
   scaleX: f32,
   scaleY: f32,
+  rotation: f32,
+  opacity: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -36,15 +39,31 @@ fn vs_main(@builtin(vertex_index) VertexIndex: u32) -> VertexOutput {
 
   var output: VertexOutput;
   let p = pos[VertexIndex];
+
+  // Apply scale
   let scaledPos = vec2<f32>(p.x * uniforms.scaleX, p.y * uniforms.scaleY);
-  let finalPos = scaledPos + vec2<f32>(uniforms.posX, uniforms.posY);
+
+  // Apply rotation
+  let cosR = cos(uniforms.rotation);
+  let sinR = sin(uniforms.rotation);
+  let rotatedPos = vec2<f32>(
+    scaledPos.x * cosR - scaledPos.y * sinR,
+    scaledPos.x * sinR + scaledPos.y * cosR
+  );
+
+  // Apply position
+  let finalPos = rotatedPos + vec2<f32>(uniforms.posX, uniforms.posY);
+
   output.position = vec4<f32>(finalPos, 0.0, 1.0);
   output.uv = uv[VertexIndex];
+  output.opacity = uniforms.opacity;
   return output;
 }
 
 @fragment
-fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
-  return textureSampleBaseClampToEdge(myTexture, mySampler, uv);
+fn fs_main(@location(0) uv: vec2<f32>, @location(1) opacity: f32) -> @location(0) vec4<f32> {
+  var color = textureSampleBaseClampToEdge(myTexture, mySampler, uv);
+  color.a = color.a * opacity;
+  return color;
 }
 `;

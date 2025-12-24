@@ -68,6 +68,8 @@ export interface ProtocolSegment {
   source_timerange: TimeRangeProto;
   scale?: ScaleProto;
   position?: PositionProto;
+  rotation?: number;
+  opacity?: number;
 }
 
 export interface TimeRangeProto {

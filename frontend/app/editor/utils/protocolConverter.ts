@@ -31,6 +31,8 @@ export function protocolToTimeline(protocol: CutProtocol): Track[] {
       let mediaType: MediaType = "video";
       let resourceSrc = "";
       let resourceName = "";
+      let originalWidth = 1920;
+      let originalHeight = 1080;
 
       // 从 materials 中查找对应的素材
       const videoMaterial = protocol.materials.videos.find(
@@ -47,6 +49,8 @@ export function protocolToTimeline(protocol: CutProtocol): Track[] {
         mediaType = "video";
         resourceSrc = videoMaterial.src;
         resourceName = videoMaterial.name;
+        originalWidth = videoMaterial.dimension.width;
+        originalHeight = videoMaterial.dimension.height;
       } else if (audioMaterial) {
         mediaType = "audio";
         resourceSrc = audioMaterial.src;
@@ -55,6 +59,14 @@ export function protocolToTimeline(protocol: CutProtocol): Track[] {
         mediaType = "image";
         resourceSrc = imageMaterial.src;
         resourceName = imageMaterial.name;
+        originalWidth = imageMaterial.dimension.width;
+        originalHeight = imageMaterial.dimension.height;
+      }
+
+      // 计算 scale: Protocol 的 scale 是像素值，Timeline 的 scale 是倍数
+      let scale = 1;
+      if (segment.scale) {
+        scale = segment.scale.width / originalWidth;
       }
 
       return {
@@ -72,9 +84,9 @@ export function protocolToTimeline(protocol: CutProtocol): Track[] {
           segment.source_timerange.start + segment.source_timerange.duration,
         ),
         position: segment.position || { x: 0, y: 0 },
-        scale: segment.scale ? segment.scale.width : 1,
-        rotation: 0,
-        opacity: 1,
+        scale: scale,
+        rotation: segment.rotation || 0,
+        opacity: segment.opacity ?? 1,
         volume: 1,
       };
     });
@@ -104,31 +116,58 @@ export function timelineToProtocol(
     .map((track) => ({
       id: track.id,
       type: track.type,
-      segments: track.clips.map((clip) => ({
-        id: clip.id,
-        type: clip.type,
-        material_id: clip.resourceId || "",
-        // Timeline 使用秒(float)，Protocol 使用毫秒(int)
-        target_timerange: {
-          start: secondsToMs(clip.startTime),
-          duration: secondsToMs(clip.duration),
-        },
-        source_timerange: {
-          start: secondsToMs(clip.trimStart),
-          duration: secondsToMs(clip.trimEnd - clip.trimStart),
-        },
-        scale:
-          clip.scale !== 1
-            ? {
-                width: clip.scale,
-                height: clip.scale,
-              }
-            : undefined,
-        position:
-          clip.position.x !== 0 || clip.position.y !== 0
-            ? clip.position
-            : undefined,
-      })),
+      segments: track.clips.map((clip) => {
+        // 获取素材原始尺寸
+        let originalWidth = 1920;
+        let originalHeight = 1080;
+
+        const videoMaterial = existingProtocol.materials.videos.find(
+          (v) => v.id === clip.resourceId,
+        );
+        const imageMaterial = existingProtocol.materials.images.find(
+          (i) => i.id === clip.resourceId,
+        );
+
+        if (videoMaterial) {
+          originalWidth = videoMaterial.dimension.width;
+          originalHeight = videoMaterial.dimension.height;
+        } else if (imageMaterial) {
+          originalWidth = imageMaterial.dimension.width;
+          originalHeight = imageMaterial.dimension.height;
+        }
+
+        // 计算像素尺寸: Timeline 的 scale 是倍数，Protocol 的 scale 是像素值
+        const scaledWidth = Math.round(clip.scale * originalWidth);
+        const scaledHeight = Math.round(clip.scale * originalHeight);
+
+        return {
+          id: clip.id,
+          type: clip.type,
+          material_id: clip.resourceId || "",
+          // Timeline 使用秒(float)，Protocol 使用毫秒(int)
+          target_timerange: {
+            start: secondsToMs(clip.startTime),
+            duration: secondsToMs(clip.duration),
+          },
+          source_timerange: {
+            start: secondsToMs(clip.trimStart),
+            duration: secondsToMs(clip.trimEnd - clip.trimStart),
+          },
+          scale:
+            clip.scale !== 1
+              ? {
+                  width: scaledWidth,
+                  height: scaledHeight,
+                }
+              : undefined,
+          position:
+            clip.position.x !== 0 || clip.position.y !== 0
+              ? clip.position
+              : undefined,
+          rotation: clip.rotation !== 0 ? clip.rotation : undefined,
+          opacity: clip.opacity !== 1 ? clip.opacity : undefined,
+        };
+      }),
     }));
 
   return {

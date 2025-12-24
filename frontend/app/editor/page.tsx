@@ -24,6 +24,7 @@ import { useEditorState } from "./hooks/useEditorState";
 import { useProjectById } from "./hooks/useProjectById";
 import { useEditor } from "./hooks/useEditor";
 import { useTimelineStore } from "./stores/timelineStore";
+import { getPropertyTabsForClipType } from "./constants/data";
 import { BackendResource } from "./types/editor";
 import { DragData, Clip } from "./types/timeline";
 import {
@@ -60,14 +61,14 @@ export default function EditorPage() {
     reloadProtocol,
   } = useEditor(projectId);
 
-  const { state, updateProperty, setActiveTab, setActivePropertyTab } =
-    useEditorState();
+  const { state, setActiveTab, setActivePropertyTab } = useEditorState();
 
   // 使用 Timeline Store - 仅编辑相关状态
   const tracks = useTimelineStore((state) => state.tracks);
   const addTrack = useTimelineStore((state) => state.addTrack);
   const insertTrackAt = useTimelineStore((state) => state.insertTrackAt);
   const setTracks = useTimelineStore((state) => state.setTracks);
+  const setStage = useTimelineStore((state) => state.setStage);
   const addClip = useTimelineStore((state) => state.addClip);
   const moveClip = useTimelineStore((state) => state.moveClip);
   const updateClip = useTimelineStore((state) => state.updateClip);
@@ -77,6 +78,10 @@ export default function EditorPage() {
   const snapThreshold = useTimelineStore((state) => state.snapThreshold);
   const fps = useTimelineStore((state) => state.fps);
   const resetTimelineStore = useTimelineStore((state) => state.reset);
+  const selectedClip = useTimelineStore((state) => state.getSelectedClip());
+  const updateClipTransform = useTimelineStore(
+    (state) => state.updateClipTransform,
+  );
 
   // Player 状态 - 通过回调同步
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
@@ -101,6 +106,19 @@ export default function EditorPage() {
   const playerRef = useRef<PlayerRef>(null);
   // Timeline ref for external control
   const timelineRef = useRef<TimelineRef>(null);
+
+  // === Auto-switch property tab when selected clip changes ===
+  useEffect(() => {
+    if (selectedClip) {
+      const tabs = getPropertyTabsForClipType(selectedClip.type);
+      if (
+        tabs.length > 0 &&
+        !tabs.some((tab) => tab.key === state.activePropertyTab)
+      ) {
+        setActivePropertyTab(tabs[0].key);
+      }
+    }
+  }, [selectedClip, state.activePropertyTab, setActivePropertyTab]);
 
   // === Player 回调 - 同步状态 ===
   const handlePlayerTimeUpdate = useCallback((time: number) => {
@@ -131,6 +149,26 @@ export default function EditorPage() {
   const handleSeek = useCallback((time: number) => {
     playerRef.current?.seekTo(time);
   }, []);
+
+  // === Clip Transform 变更处理 ===
+  const handleClipTransformChange = useCallback(
+    (
+      clipId: string,
+      transform: {
+        position?: { x: number; y: number };
+        scale?: number;
+        rotation?: number;
+        opacity?: number;
+      },
+    ) => {
+      // 1. 更新 Timeline Store（数据持久化）
+      updateClipTransform(clipId, transform);
+
+      // 2. 直接更新 Player（实时渲染）
+      playerRef.current?.updateClipTransform?.(clipId, transform);
+    },
+    [updateClipTransform],
+  );
 
   // 全局拖拽传感器配置
   const sensors = useSensors(
@@ -197,6 +235,9 @@ export default function EditorPage() {
 
     isSyncingFromProtocolRef.current = true;
 
+    // Sync stage from protocol
+    setStage(protocol.stage);
+
     if (protocol.tracks.length > 0) {
       // Convert protocol tracks to timeline tracks using converter
       const timelineTracks = protocolToTimeline(protocol);
@@ -211,7 +252,7 @@ export default function EditorPage() {
     setTimeout(() => {
       isSyncingFromProtocolRef.current = false;
     }, 100);
-  }, [protocol, setTracks]);
+  }, [protocol, setTracks, setStage]);
 
   // Get material duration helper
   const getMaterialDuration = (resourceId: string): number => {
@@ -322,7 +363,7 @@ export default function EditorPage() {
   };
 
   const handleBackToProjects = () => {
-    router.push("/projects");
+    router.push("/");
   };
 
   // 处理拖拽开始
@@ -762,8 +803,8 @@ export default function EditorPage() {
             <PropertiesPanel
               activeTab={state.activePropertyTab}
               onTabChange={setActivePropertyTab}
-              properties={state.properties}
-              onPropertyChange={updateProperty}
+              selectedClip={selectedClip}
+              onClipTransformChange={handleClipTransformChange}
             />
           </div>
 

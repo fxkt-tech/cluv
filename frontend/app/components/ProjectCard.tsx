@@ -18,6 +18,7 @@ export function ProjectCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isProcessingClick, setIsProcessingClick] = useState(false);
   const { deleteProject, openProjectDir } = useTauriCommands();
 
   const createdDate = new Date(project.create_time).toLocaleString("sv-SE");
@@ -28,11 +29,13 @@ export function ProjectCard({
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setIsDeleteConfirming(true);
   };
 
   const handleConfirmDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setIsDeleting(true);
     try {
       await deleteProject(project.id);
@@ -47,15 +50,42 @@ export function ProjectCard({
 
   const handleCancelDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     setIsDeleteConfirming(false);
   };
 
   const handleOpenFolder = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     try {
       await openProjectDir(project.path);
     } catch (error) {
       console.error("Failed to open folder:", error);
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent multiple rapid clicks
+    if (isProcessingClick) return;
+
+    setIsProcessingClick(true);
+
+    try {
+      // Ensure we're not clicking on delete button or confirmation popup
+      const target = e.target as HTMLElement;
+      if (
+        target.closest("[data-delete-button]") ||
+        target.closest("[data-confirmation-popup]")
+      ) {
+        return;
+      }
+
+      onSelect();
+    } finally {
+      // Reset processing state after a short delay
+      setTimeout(() => {
+        setIsProcessingClick(false);
+      }, 300);
     }
   };
 
@@ -69,8 +99,9 @@ export function ProjectCard({
       }}
     >
       <button
-        onClick={onSelect}
-        className="w-full text-left p-4 rounded-lg border transition-all"
+        onClick={handleCardClick}
+        disabled={isProcessingClick}
+        className="w-full text-left p-4 rounded-lg border transition-all disabled:opacity-70 disabled:cursor-not-allowed"
         style={{
           background: isSelected
             ? "var(--color-editor-bg-alt)"
@@ -116,6 +147,7 @@ export function ProjectCard({
           }
           onClick={handleOpenFolder}
           title="打开项目所在位置"
+          data-path-link
         >
           {project.path}
         </p>
@@ -153,6 +185,7 @@ export function ProjectCard({
             (e.currentTarget.style.color = "var(--color-text-secondary)")
           }
           title="Delete project"
+          data-delete-button
         >
           <svg
             className="w-5 h-5"
@@ -179,6 +212,7 @@ export function ProjectCard({
             borderColor: "var(--color-editor-border)",
           }}
           onClick={(e) => e.stopPropagation()}
+          data-confirmation-popup
         >
           <p className="text-sm mb-3" style={{ color: "var(--color-text-fg)" }}>
             确定删除此项目？

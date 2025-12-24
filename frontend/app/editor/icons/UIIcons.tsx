@@ -146,3 +146,61 @@ export function DragHandleIcon({ size = 16, className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function PropertyIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect
+        x="3"
+        y="3"
+        width="8"
+        height="8"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <rect
+        x="13"
+        y="3"
+        width="8"
+        height="8"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <rect
+        x="3"
+        y="13"
+        width="8"
+        height="8"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <circle
+        cx="17"
+        cy="17"
+        r="4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <path
+        d="M17 15v4M15 17h4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

@@ -1,5 +1,7 @@
 // Timeline 核心类型定义
 
+import { StageConfig } from "./protocol";
+
 /**
  * 媒体资源类型
  */
@@ -65,6 +67,7 @@ export interface Track {
  * Timeline 状态
  */
 export interface TimelineState {
+  stage: StageConfig; // 舞台配置
   tracks: Track[];
   pixelsPerSecond: number; // 缩放级别，每秒对应的像素数
   zoomLevel: number; // 缩放倍数
