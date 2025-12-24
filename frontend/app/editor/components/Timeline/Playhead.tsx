@@ -98,7 +98,7 @@ export const Playhead: React.FC<PlayheadProps> = ({
           marginTop: "-6px", // 向上偏移，让三角形在标尺区域
         }}
         onMouseDown={handleMouseDown}
-        title={`Current Time: ${currentTime.toFixed(2)}s`}
+        title={`Current Time: ${currentTime.toFixed(3)}s`}
       >
         {/* 三角形头部 */}
         <div
