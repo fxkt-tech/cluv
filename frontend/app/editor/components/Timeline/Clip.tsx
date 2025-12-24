@@ -22,6 +22,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
 }) => {
   const pixelsPerSecond = useTimelineStore((state) => state.pixelsPerSecond);
   const selectClip = useTimelineStore((state) => state.selectClip);
+  const deselectClip = useTimelineStore((state) => state.deselectClip);
   const updateClip = useTimelineStore((state) => state.updateClip);
   const fps = useTimelineStore((state) => state.fps);
 
@@ -52,9 +53,19 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (e.shiftKey || e.metaKey || e.ctrlKey) {
-      selectClip(clip.id, true);
+      // 多选模式：如果已选中则取消选中，否则添加到选中
+      if (isSelected) {
+        deselectClip(clip.id);
+      } else {
+        selectClip(clip.id, true);
+      }
     } else {
-      selectClip(clip.id, false);
+      // 单选模式：如果已选中则取消选中，否则选中
+      if (isSelected) {
+        deselectClip(clip.id);
+      } else {
+        selectClip(clip.id, false);
+      }
     }
   };
 

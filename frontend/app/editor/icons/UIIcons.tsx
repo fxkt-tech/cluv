@@ -204,3 +204,57 @@ export function PropertyIcon({ size = 24, className = "" }: IconProps) {
     </svg>
   );
 }
+
+export function ResourceIcon({ size = 24, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect
+        x="3"
+        y="3"
+        width="8"
+        height="6"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <rect
+        x="13"
+        y="3"
+        width="8"
+        height="6"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <rect
+        x="3"
+        y="11"
+        width="8"
+        height="10"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <rect
+        x="13"
+        y="11"
+        width="8"
+        height="10"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
+    </svg>
+  );
+}

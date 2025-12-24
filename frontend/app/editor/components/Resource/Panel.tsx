@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { useTauriCommands } from "@/app/hooks/useTauriCommands";
 import { open } from "@tauri-apps/plugin-dialog";
+import { ResourceIcon } from "../../icons/UIIcons";
 
 interface ResourcePanelProps {
   activeTab: string;
@@ -161,8 +162,9 @@ export function ResourcePanel({
           )}
 
           {!isLoading && filteredResources.length === 0 && (
-            <div className="text-center py-8 text-sm text-text-muted">
-              暂无素材
+            <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+              <ResourceIcon size={48} className="mb-4 opacity-50" />
+              <span className="text-sm">素材</span>
             </div>
           )}
 
