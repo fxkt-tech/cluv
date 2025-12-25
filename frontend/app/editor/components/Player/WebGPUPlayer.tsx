@@ -20,10 +20,11 @@ import {
 } from "../../icons";
 import { Track } from "../../types/timeline";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { SHADER_SOURCE } from "./shader/video";
+import { SHADER_EXTERNAL, SHADER_2D } from "./shader/unified";
 import { formatTime } from "../../utils/time";
 import { generateId } from "../../utils/timeline";
 import { useTimelineStore } from "../../stores/timelineStore";
+import { MediaSourceFactory } from "./media-sources";
 
 /**
  * 视频图层接口
@@ -37,11 +38,14 @@ export interface VideoLayer {
   posY: number;
   scale: number;
   startTime: number;
+  duration: number; // clip 在时间轴上的持续时间
   baseScaleX: number;
   baseScaleY: number;
   uniformBuffer?: GPUBuffer;
   opacity?: number;
   rotation?: number;
+  isImage?: boolean; // 标记是否为图片（用于兼容性）
+  imageTexture?: GPUTexture; // 图片纹理缓存
 }
 
 /**
@@ -61,6 +65,19 @@ export interface PlayerRef {
     videoSrc: string,
     startTime: number,
     name?: string,
+  ) => Promise<void>;
+  addImageLayer: (
+    imageSrc: string,
+    startTime: number,
+    duration: number,
+    name?: string,
+    clipId?: string,
+    transform?: {
+      position?: { x: number; y: number };
+      scale?: number;
+      rotation?: number;
+      opacity?: number;
+    },
   ) => Promise<void>;
   clearLayers: () => void;
   updateLayerTransform: (
@@ -120,6 +137,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
     const deviceRef = useRef<GPUDevice | null>(null);
     const contextRef = useRef<GPUCanvasContext | null>(null);
     const pipelineRef = useRef<GPURenderPipeline | null>(null);
+    const pipeline2DRef = useRef<GPURenderPipeline | null>(null);
     const samplerRef = useRef<GPUSampler | null>(null);
 
     // 图层和动画状态
@@ -203,10 +221,12 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           alphaMode: "premultiplied",
         });
 
-        // 创建 Shader 模块
-        const shaderModule = device.createShaderModule({ code: SHADER_SOURCE });
+        // 创建 Shader 模块 (external texture for video)
+        const shaderModule = device.createShaderModule({
+          code: SHADER_EXTERNAL,
+        });
 
-        // 创建渲染管线
+        // 创建渲染管线 (external texture for video)
         const pipeline = device.createRenderPipeline({
           layout: "auto",
           vertex: {
@@ -238,6 +258,42 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         });
 
         pipelineRef.current = pipeline;
+
+        // 创建 Shader 模块 (2D texture for images)
+        const shader2DModule = device.createShaderModule({ code: SHADER_2D });
+
+        // 创建渲染管线 (2D texture for images)
+        const pipeline2D = device.createRenderPipeline({
+          layout: "auto",
+          vertex: {
+            module: shader2DModule,
+            entryPoint: "vs_main",
+          },
+          fragment: {
+            module: shader2DModule,
+            entryPoint: "fs_main",
+            targets: [
+              {
+                format: navigator.gpu.getPreferredCanvasFormat(),
+                blend: {
+                  color: {
+                    operation: "add",
+                    srcFactor: "src-alpha",
+                    dstFactor: "one-minus-src-alpha",
+                  },
+                  alpha: {
+                    operation: "add",
+                    srcFactor: "one",
+                    dstFactor: "one-minus-src-alpha",
+                  },
+                },
+              },
+            ],
+          },
+          primitive: { topology: "triangle-strip" },
+        });
+
+        pipeline2DRef.current = pipeline2D;
 
         // 创建采样器
         const sampler = device.createSampler({
@@ -299,9 +355,10 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         const device = deviceRef.current;
         const context = contextRef.current;
         const pipeline = pipelineRef.current;
+        const pipeline2D = pipeline2DRef.current;
         const sampler = samplerRef.current;
 
-        if (!device || !context || !pipeline || !sampler) {
+        if (!device || !context || !pipeline || !pipeline2D || !sampler) {
           animationFrameRef.current = requestAnimationFrame(renderLoop);
           return;
         }
@@ -338,8 +395,6 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           ],
         });
 
-        renderPass.setPipeline(pipeline);
-
         // 按 zIndex 排序图层
         const sortedLayers = [...layersRef.current].sort(
           (a, b) => a.zIndex - b.zIndex,
@@ -348,23 +403,62 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         for (const layer of sortedLayers) {
           const localTime = newTime - layer.startTime;
 
-          // 控制视频播放状态
-          if (currentIsPlaying && !isSeekingRef.current) {
-            if (localTime >= 0 && localTime < layer.video.duration) {
-              if (layer.video.paused && !layer.video.ended) {
-                layer.video.play().catch(() => {});
-              }
-            } else {
-              if (!layer.video.paused) {
-                layer.video.pause();
+          // 调试：每隔一段时间输出图层状态
+          if (layer.isImage && Math.floor(newTime * 10) % 10 === 0) {
+            console.log("🎬 渲染图层:", {
+              id: layer.id,
+              name: layer.name,
+              isImage: layer.isImage,
+              localTime,
+              duration: layer.duration,
+              hasTexture: !!layer.imageTexture,
+              currentTime: newTime,
+              startTime: layer.startTime,
+            });
+          }
+
+          // 控制视频播放状态（仅对视频）
+          if (!layer.isImage) {
+            if (currentIsPlaying && !isSeekingRef.current) {
+              if (localTime >= 0 && localTime < layer.video.duration) {
+                if (layer.video.paused && !layer.video.ended) {
+                  layer.video.play().catch(() => {});
+                }
+              } else {
+                if (!layer.video.paused) {
+                  layer.video.pause();
+                }
               }
             }
           }
 
           // 判断是否可见
-          const isVisible = localTime >= 0 && localTime <= layer.video.duration;
-          const hasResource =
-            layer.video.readyState >= 2 && !layer.video.seeking;
+          const clipDuration = layer.duration || layer.video.duration;
+          const isVisible = localTime >= 0 && localTime <= clipDuration;
+
+          // 检查资源是否准备好
+          let hasResource = false;
+          if (layer.isImage) {
+            hasResource = !!layer.imageTexture;
+            if (!hasResource && Math.floor(newTime * 10) % 10 === 0) {
+              console.warn("⚠️ 图片纹理未就绪:", layer.name);
+            }
+          } else {
+            hasResource = layer.video.readyState >= 2 && !layer.video.seeking;
+          }
+
+          if (
+            !isVisible &&
+            layer.isImage &&
+            Math.floor(newTime * 10) % 10 === 0
+          ) {
+            console.log("👁️ 图片不可见:", {
+              name: layer.name,
+              localTime,
+              duration: layer.duration,
+              isVisible,
+            });
+          }
 
           if (isVisible && hasResource) {
             try {
@@ -390,25 +484,53 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
               device.queue.writeBuffer(layer.uniformBuffer, 0, data);
 
-              // 创建 bind group
-              const bindGroup = device.createBindGroup({
-                layout: pipeline.getBindGroupLayout(0),
-                entries: [
-                  { binding: 0, resource: { buffer: layer.uniformBuffer } },
-                  { binding: 1, resource: sampler },
-                  {
-                    binding: 2,
-                    resource: device.importExternalTexture({
-                      source: layer.video,
-                    }),
-                  },
-                ],
-              });
+              // 根据类型选择管线并创建 bind group
+              let bindGroup: GPUBindGroup;
+
+              if (layer.isImage && layer.imageTexture) {
+                // 图片：使用 2D 纹理管线
+                if (Math.floor(newTime * 10) % 50 === 0) {
+                  console.log("🎨 使用 2D 纹理管线渲染图片:", layer.name);
+                }
+                renderPass.setPipeline(pipeline2D);
+                bindGroup = device.createBindGroup({
+                  layout: pipeline2D.getBindGroupLayout(0),
+                  entries: [
+                    { binding: 0, resource: { buffer: layer.uniformBuffer } },
+                    { binding: 1, resource: sampler },
+                    {
+                      binding: 2,
+                      resource: layer.imageTexture.createView(),
+                    },
+                  ],
+                });
+              } else {
+                // 视频：使用外部纹理管线
+                renderPass.setPipeline(pipeline);
+                bindGroup = device.createBindGroup({
+                  layout: pipeline.getBindGroupLayout(0),
+                  entries: [
+                    { binding: 0, resource: { buffer: layer.uniformBuffer } },
+                    { binding: 1, resource: sampler },
+                    {
+                      binding: 2,
+                      resource: device.importExternalTexture({
+                        source: layer.video,
+                      }),
+                    },
+                  ],
+                });
+              }
 
               renderPass.setBindGroup(0, bindGroup);
               renderPass.draw(4);
-            } catch {
-              // 忽略渲染错误
+            } catch (error) {
+              // 渲染错误
+              console.error("❌ 渲染错误:", {
+                layer: layer.name,
+                isImage: layer.isImage,
+                error,
+              });
             }
           }
         }
@@ -497,12 +619,14 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
               posY: transform?.position?.y ?? 0,
               scale: transform?.scale ?? 1.0,
               startTime,
+              duration: video.duration,
               baseScaleX: initScaleX,
               baseScaleY: initScaleY,
               opacity: transform?.opacity ?? 1.0,
               rotation: transform?.rotation
                 ? transform.rotation * (Math.PI / 180)
                 : 0,
+              isImage: false,
             };
 
             layersRef.current.push(layer);
@@ -520,12 +644,126 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
     );
 
     /**
+     * 添加图片图层
+     */
+    const addImageLayer = useCallback(
+      async (
+        imageSrc: string,
+        startTime: number = 0,
+        duration: number = 5,
+        name?: string,
+        clipId?: string,
+        transform?: {
+          position?: { x: number; y: number };
+          scale?: number;
+          rotation?: number;
+          opacity?: number;
+        },
+      ): Promise<void> => {
+        const device = deviceRef.current;
+        if (!device) {
+          console.error("WebGPU 未初始化");
+          return;
+        }
+
+        console.log("🖼️ 开始加载图片:", imageSrc);
+
+        try {
+          // 使用 MediaSourceFactory 加载图片
+          const layerId = clipId ?? generateId();
+          console.log("📝 创建图层 ID:", layerId);
+
+          const source = await MediaSourceFactory.createAndLoad(
+            layerId,
+            imageSrc,
+          );
+
+          console.log("✅ 图片加载成功:", {
+            type: source.type,
+            width: source.width,
+            height: source.height,
+            duration: source.duration,
+          });
+
+          // 计算基础缩放
+          const canvasAspect = width / height;
+          const imageAspect = source.width / source.height;
+
+          let initScaleX = 1.0;
+          let initScaleY = 1.0;
+
+          if (imageAspect > canvasAspect) {
+            initScaleY = canvasAspect / imageAspect;
+          } else {
+            initScaleX = imageAspect / canvasAspect;
+          }
+
+          console.log("📐 计算缩放:", { initScaleX, initScaleY });
+
+          // 获取纹理并缓存
+          const textureResult = source.getTexture(device, 0);
+          if (!textureResult || textureResult.type !== "2d") {
+            throw new Error("无法获取图片纹理");
+          }
+
+          console.log("🎨 纹理创建成功:", textureResult.type);
+
+          // 创建一个假的 video 元素用于兼容现有渲染逻辑
+          const dummyVideo = document.createElement("video");
+          dummyVideo.width = source.width;
+          dummyVideo.height = source.height;
+
+          const layer: VideoLayer = {
+            id: layerId,
+            name: name || `Image ${layersRef.current.length + 1}`,
+            video: dummyVideo,
+            zIndex: 100 - layersRef.current.length,
+            posX: transform?.position?.x ?? 0,
+            posY: transform?.position?.y ?? 0,
+            scale: transform?.scale ?? 1.0,
+            startTime,
+            duration: duration,
+            baseScaleX: initScaleX,
+            baseScaleY: initScaleY,
+            opacity: transform?.opacity ?? 1.0,
+            rotation: transform?.rotation
+              ? transform.rotation * (Math.PI / 180)
+              : 0,
+            isImage: true,
+            imageTexture: textureResult.texture as GPUTexture,
+          };
+
+          layersRef.current.push(layer);
+          setHasLayers(true);
+          updateDuration();
+
+          console.log("🎉 图片图层添加成功:", {
+            id: layerId,
+            name: layer.name,
+            startTime,
+            duration,
+            layerCount: layersRef.current.length,
+          });
+        } catch (error) {
+          console.error("❌ 图片加载失败:", error);
+          throw error;
+        }
+      },
+      [updateDuration, width, height],
+    );
+
+    /**
      * 清空所有图层
      */
     const clearLayers = useCallback(() => {
       layersRef.current.forEach((layer) => {
-        layer.video.pause();
-        layer.video.src = "";
+        if (!layer.isImage) {
+          layer.video.pause();
+          layer.video.src = "";
+        }
+        if (layer.imageTexture) {
+          layer.imageTexture.destroy();
+        }
         if (layer.uniformBuffer) {
           layer.uniformBuffer.destroy();
         }
@@ -560,14 +798,20 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           return;
         }
 
-        // 收集所有视频 clips
-        const videoClips = newTracks.flatMap((track) =>
+        // 收集所有视频和图片 clips
+        const mediaClips = newTracks.flatMap((track) =>
           track.clips
-            .filter((clip) => clip.type === "video" && clip.resourceSrc)
+            .filter(
+              (clip) =>
+                (clip.type === "video" || clip.type === "image") &&
+                clip.resourceSrc,
+            )
             .map((clip) => ({
               id: clip.id,
+              type: clip.type,
               src: clip.resourceSrc!,
               startTime: clip.startTime,
+              duration: clip.duration,
               name: clip.name,
               transform: {
                 position: clip.position,
@@ -580,7 +824,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
         // 检查是否需要更新 - 不仅检查 ID，还要检查 startTime 等属性
         const existingIds = new Set(layersRef.current.map((l) => l.id));
-        const newIds = new Set(videoClips.map((c) => c.id));
+        const newIds = new Set(mediaClips.map((c) => c.id));
 
         // 检查是否有 ID 变化或 startTime 变化
         let needsUpdate =
@@ -589,7 +833,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
         // 如果 ID 相同，检查 startTime 是否有变化
         if (!needsUpdate) {
-          for (const clip of videoClips) {
+          for (const clip of mediaClips) {
             const layer = layersRef.current.find((l) => l.id === clip.id);
             if (layer && Math.abs(layer.startTime - clip.startTime) > 0.001) {
               needsUpdate = true;
@@ -604,8 +848,13 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
         // 清空现有图层
         layersRef.current.forEach((layer) => {
-          layer.video.pause();
-          layer.video.src = "";
+          if (!layer.isImage) {
+            layer.video.pause();
+            layer.video.src = "";
+          }
+          if (layer.imageTexture) {
+            layer.imageTexture.destroy();
+          }
           if (layer.uniformBuffer) {
             layer.uniformBuffer.destroy();
           }
@@ -613,27 +862,46 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         layersRef.current = [];
 
         // 添加新图层
-        for (const clip of videoClips) {
+        for (const clip of mediaClips) {
           try {
-            const videoUrl = convertFileSrc(clip.src);
-            await addVideoLayer(
-              videoUrl,
-              clip.startTime,
-              clip.name,
-              clip.id,
-              clip.transform,
-            );
+            const mediaUrl = convertFileSrc(clip.src);
+
+            if (clip.type === "video") {
+              console.log("🎬 添加视频 clip:", clip.name);
+              await addVideoLayer(
+                mediaUrl,
+                clip.startTime,
+                clip.name,
+                clip.id,
+                clip.transform,
+              );
+            } else if (clip.type === "image") {
+              console.log("🖼️ 添加图片 clip:", {
+                name: clip.name,
+                src: mediaUrl,
+                startTime: clip.startTime,
+                duration: clip.duration,
+              });
+              await addImageLayer(
+                mediaUrl,
+                clip.startTime,
+                clip.duration,
+                clip.name,
+                clip.id,
+                clip.transform,
+              );
+            }
           } catch (error) {
-            console.error(`加载视频失败: ${clip.name}`, error);
+            console.error(`加载媒体失败: ${clip.name}`, error);
           }
         }
 
-        setHasLayers(videoClips.length > 0);
+        setHasLayers(mediaClips.length > 0);
 
         // 更新总时长
         updateDuration();
       },
-      [addVideoLayer, isWebGPUReady, updateDuration],
+      [addVideoLayer, addImageLayer, isWebGPUReady, updateDuration],
     );
 
     /**
@@ -752,6 +1020,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         getDuration, // 获取总时长
         isPlaying: getIsPlaying, // 获取播放状态
         addVideoLayer, // 添加视频层
+        addImageLayer, // 添加图片层
         clearLayers, // 清除所有层
         updateLayerTransform, // 更新层的变换
         updateClipTransform: (
@@ -796,6 +1065,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
         getDuration,
         getIsPlaying,
         addVideoLayer,
+        addImageLayer,
         clearLayers,
         updateLayerTransform,
         syncTracksToLayers,
