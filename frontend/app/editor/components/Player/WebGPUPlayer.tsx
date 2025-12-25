@@ -317,13 +317,14 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
      */
     const syncVideosToTime = useCallback((time: number) => {
       layersRef.current.forEach((layer) => {
-        if (!layer.video.duration) return;
+        // 跳过图片图层，图片不需要视频同步
+        if (layer.isImage) return;
+
+        const clipDuration = layer.duration || layer.video.duration;
+        if (!clipDuration) return;
 
         const localTime = time - layer.startTime;
-        const targetTime = Math.max(
-          0,
-          Math.min(localTime, layer.video.duration),
-        );
+        const targetTime = Math.max(0, Math.min(localTime, clipDuration));
 
         if (
           Math.abs(layer.video.currentTime - targetTime) > 0.05 &&
@@ -420,7 +421,8 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           // 控制视频播放状态（仅对视频）
           if (!layer.isImage) {
             if (currentIsPlaying && !isSeekingRef.current) {
-              if (localTime >= 0 && localTime < layer.video.duration) {
+              const videoClipDuration = layer.duration || layer.video.duration;
+              if (localTime >= 0 && localTime < videoClipDuration) {
                 if (layer.video.paused && !layer.video.ended) {
                   layer.video.play().catch(() => {});
                 }
@@ -553,7 +555,7 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
           ? 0
           : Math.max(
               ...layersRef.current.map(
-                (l) => l.startTime + (l.video.duration || 0),
+                (l) => l.startTime + (l.duration || l.video.duration || 0),
               ),
             );
 
@@ -924,8 +926,12 @@ export const WebGPUPlayer = forwardRef<PlayerRef, PlayerProps>(
 
       // 启动相关时间点的视频
       layersRef.current.forEach((layer) => {
+        // 跳过图片图层，图片不需要播放
+        if (layer.isImage) return;
+
         const localTime = currentTime - layer.startTime;
-        if (localTime >= 0 && localTime < layer.video.duration) {
+        const clipDuration = layer.duration || layer.video.duration;
+        if (localTime >= 0 && localTime < clipDuration) {
           layer.video.play().catch(() => {});
         }
       });
